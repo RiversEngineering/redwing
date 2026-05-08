@@ -1,0 +1,10 @@
+# udev rule: creates a stable /dev/rp2040 symlink for the RP2040 USB serial port.
+# Install on the Pi host (not inside Docker):
+#   sudo cp 99-rp2040.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules && sudo udevadm trigger
+#
+# The VID/PID below match the Redwing firmware's USB descriptor.
+# Adjust if you changed them.
+
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000a", \
+    ATTRS{manufacturer}=="Redwing", SYMLINK+="rp2040", MODE="0666"

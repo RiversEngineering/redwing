@@ -1,0 +1,93 @@
+---
+# Deploy or update Redwing on all robots.
+# Usage:
+#   ansible-playbook -i ../inventory.yml deploy.yml
+#   ansible-playbook -i ../inventory.yml deploy.yml --limit robot1
+
+- name: Deploy Redwing
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install Docker
+      apt:
+        name: [docker.io, docker-compose-plugin]
+        state: present
+        update_cache: true
+
+    - name: Add pi user to docker group
+      user:
+        name: pi
+        groups: docker
+        append: true
+
+    - name: Install udev rule for RP2040 stable symlink
+      copy:
+        src: ../../docker/99-rp2040.rules
+        dest: /etc/udev/rules.d/99-rp2040.rules
+        mode: "0644"
+      notify: reload udev
+
+    - name: Create workspace directory (persists student code)
+      file:
+        path: /home/pi/workspace
+        state: directory
+        owner: pi
+        mode: "0755"
+
+    - name: Copy project files
+      synchronize:
+        src: ../../
+        dest: /opt/redwing/
+        delete: true
+        rsync_opts:
+          - "--exclude=.git"
+          - "--exclude=node_modules"
+          - "--exclude=firmware/build"
+          - "--exclude=dashboard/node_modules"
+          - "--exclude=dashboard/dist"
+
+    - name: Pull and build Docker images
+      community.docker.docker_compose_v2:
+        project_src: /opt/redwing/docker
+        pull: always
+        build: true
+        state: present
+
+    - name: Ensure redwing daemon is running
+      community.docker.docker_compose_v2:
+        project_src: /opt/redwing/docker
+        state: present
+
+  handlers:
+    - name: reload udev
+      command: udevadm control --reload-rules && udevadm trigger
+
+
+- name: Restore a student's workspace (reset a single robot)
+  hosts: all
+  become: true
+  tags: [restore]
+
+  tasks:
+    - name: Stop containers
+      community.docker.docker_compose_v2:
+        project_src: /opt/redwing/docker
+        state: stopped
+
+    - name: Clear student workspace
+      file:
+        path: /home/pi/workspace
+        state: absent
+
+    - name: Recreate empty workspace
+      file:
+        path: /home/pi/workspace
+        state: directory
+        owner: pi
+        mode: "0755"
+
+    - name: Restart containers
+      community.docker.docker_compose_v2:
+        project_src: /opt/redwing/docker
+        state: present

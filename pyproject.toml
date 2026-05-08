@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "redwing"
+version = "0.1.0"
+description = "Robotics platform library for introductory high school courses"
+requires-python = ">=3.10"
+dependencies = [
+    "pyzmq>=26.0",
+    "numpy>=1.24",
+    "opencv-python>=4.8",
+]
+
+[project.optional-dependencies]
+daemon = [
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.30",
+    "pyzmq>=26.0",
+    "pyserial>=3.5",
+    "pyserial-asyncio>=0.6",
+    "numpy>=1.24",
+    "opencv-python>=4.8",
+    "websockets>=12.0",
+]
+lidar = [
+    "rplidar-roboticia>=0.9",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["redwing*"]

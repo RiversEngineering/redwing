@@ -1,0 +1,68 @@
+#include "motor.h"
+#include "hardware/pwm.h"
+#include "hardware/gpio.h"
+#include "pico/stdlib.h"
+#include "../protocol.h"
+
+// PWM frequency target: 20 kHz.
+// System clock = 125 MHz.  Divider 1, wrap = 125000000/20000 - 1 = 6249.
+#define PWM_FREQ_HZ     20000
+#define SYS_CLK_HZ      125000000
+#define PWM_WRAP        ((SYS_CLK_HZ / PWM_FREQ_HZ) - 1)  // 6249
+
+static void pwm_gpio_init_20khz(uint8_t gpio) {
+    gpio_set_function(gpio, GPIO_FUNC_PWM);
+    uint slice = pwm_gpio_to_slice_num(gpio);
+    pwm_config cfg = pwm_get_default_config();
+    pwm_config_set_clkdiv_int(&cfg, 1);
+    pwm_config_set_wrap(&cfg, PWM_WRAP);
+    pwm_init(slice, &cfg, true);
+    pwm_set_gpio_level(gpio, 0);
+}
+
+// Convert -10000..+10000 to a PWM level 0..PWM_WRAP
+static uint16_t value_to_level(int16_t value) {
+    if (value < -10000) value = -10000;
+    if (value >  10000) value =  10000;
+    int32_t abs_val = (value < 0) ? -value : value;
+    // Scale to wrap: level = abs_val * PWM_WRAP / 10000
+    return (uint16_t)((abs_val * (int32_t)PWM_WRAP) / 10000);
+}
+
+void motor_sm_init(uint8_t dir_gpio, uint8_t pwm_gpio) {
+    gpio_init(dir_gpio);
+    gpio_set_dir(dir_gpio, GPIO_OUT);
+    gpio_put(dir_gpio, 0);
+    pwm_gpio_init_20khz(pwm_gpio);
+}
+
+void motor_sm_set(uint8_t dir_gpio, uint8_t pwm_gpio, int16_t value) {
+    gpio_put(dir_gpio, value >= 0 ? 1 : 0);  // HIGH = forward
+    pwm_set_gpio_level(pwm_gpio, value_to_level(value));
+}
+
+void motor_lap_init(uint8_t pwm_gpio) {
+    pwm_gpio_init_20khz(pwm_gpio);
+    // 50% duty = stop
+    pwm_set_gpio_level(pwm_gpio, PWM_WRAP / 2);
+}
+
+void motor_lap_set(uint8_t pwm_gpio, int16_t value) {
+    // Map -10000..+10000 to 0..PWM_WRAP around the midpoint
+    if (value < -10000) value = -10000;
+    if (value >  10000) value =  10000;
+    int32_t mid   = PWM_WRAP / 2;
+    int32_t level = mid + ((int32_t)value * mid) / 10000;
+    if (level < 0)          level = 0;
+    if (level > PWM_WRAP)   level = PWM_WRAP;
+    pwm_set_gpio_level(pwm_gpio, (uint16_t)level);
+}
+
+void motor_stop(uint8_t port_type, uint8_t pin_a, uint8_t pin_b) {
+    if (port_type == PORT_MOTOR_SM) {
+        motor_sm_set(pin_a, pin_b, 0);
+    } else {
+        // LAP or MOTOR_SERVO: drive to neutral
+        motor_lap_set(pin_a, 0);
+    }
+}

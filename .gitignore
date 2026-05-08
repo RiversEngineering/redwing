@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+*.egg
+
+# Pico firmware build
+firmware/build/
+
+# Dashboard build
+dashboard/node_modules/
+dashboard/dist/
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/settings.json
+
+# Secrets / env
+.env
+*.local

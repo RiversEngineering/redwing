@@ -1,0 +1,19 @@
+# Ansible inventory — list all robots here.
+# Each robot should have a stable hostname via mDNS (robot1.local, etc.)
+# or a DHCP reservation on your classroom router.
+
+all:
+  vars:
+    ansible_user: pi
+    ansible_ssh_private_key_file: ~/.ssh/redwing_key
+    redwing_password: "redwing"   # code-server password — override per host if needed
+
+  hosts:
+    robot1:
+      ansible_host: robot1.local
+    robot2:
+      ansible_host: robot2.local
+    robot3:
+      ansible_host: robot3.local
+    robot4:
+      ansible_host: robot4.local
