@@ -18,7 +18,7 @@
 #define CMD_SET_SERVO_RANGE 0x0A
 #define CMD_ATTACH_ENC      0x0B
 #define CMD_CONFIG_DONE     0x0C  // finalize port config, validate, lock
-#define CMD_UART_TX         0x0D  // send bytes out UART0 (D7: GP12 TX / GP13 RX)
+#define CMD_UART_TX         0x0D  // send bytes out UART0 (D7: GP12 TX / GP13 RX) or UART1 (D6: GP24 TX / GP25 RX)
 #define CMD_RESET           0x0E  // stop all motors, unlock config, reset all ports
 #define CMD_HEARTBEAT       0x0F  // keepalive — resets the watchdog timer; no reply
 
@@ -26,7 +26,7 @@
 #define RESP_STATE    0x81
 #define RESP_ERROR    0x82
 #define RESP_ACK      0x83
-#define RESP_UART_RX  0x84  // bytes received on UART0 (D7: GP12 TX / GP13 RX)
+#define RESP_UART_RX  0x84  // bytes received on UART0 (D7) or UART1 (D6)
 
 // ─── Port type enum ──────────────────────────────────────────────────────────
 #define PORT_UNCONFIGURED   0x00
@@ -39,7 +39,7 @@
 #define PORT_I2C            0x07
 #define PORT_GPIO_IN        0x08
 #define PORT_GPIO_OUT       0x09
-#define PORT_UART           0x0A  // UART0 bus (claims D7: GP12=TX + GP13=RX)
+#define PORT_UART           0x0A  // UART bus: D7=UART0 (GP12=TX/GP13=RX) or D6=UART1 (GP24=TX/GP25=RX)
 
 // ─── Error codes ─────────────────────────────────────────────────────────────
 #define ERR_UNKNOWN_CMD     0x01
@@ -73,36 +73,43 @@
 //   SINGLE_GPIO[n]    = GPIO pin for single-pin port Sn
 //   DUAL_GPIO[n][0/1] = GPIO pins A / B for dual-pin port Dn
 //
-// PWM partition (zero motor-servo conflicts):
-//   Servos (50 Hz) use slices 0–3: all single-pin ports
-//   Motors (20 kHz) use slices 4–7: all dual-port B pins
+// PWM partition (motor-servo conflicts):
+//   Servos (50 Hz): S0–S4 on slices 0,0,1,1,3 (safe for servo)
+//   S5–S7 (GP26/27/28) are ADC pins on slices 5A/5B/6A — NOT servo-capable;
+//   those slices are used by motor B pins on D2/D3/D7. Configure as GPIO/ADC only.
+//   Motors (20 kHz): all dual-port B pins use slices 4–7
 //
 // Special functions:
-//   I2C port (GP4/GP5) — dedicated I2C0 SDA/SCL; always PORT_I2C, not reconfigurable
-//   D7 (GP12/GP13)     — also UART0 TX/RX; both pins reserved when PORT_UART configured
-//   Analog-capable: GP26 (D5 pin A), GP27 (D6 pin A), GP28 (D4 pin B)
+//   I2C port (GP4/GP5)  — dedicated I2C0 SDA/SCL; always PORT_I2C, not reconfigurable
+//   D7 (GP12/GP13)      — also UART0 TX/RX; both pins reserved when PORT_UART configured
+//   D6 (GP24/GP25)      — also UART1 TX/RX; consecutive pins, PIO encoder works natively.
+//                         When D6 is a motor, B pin (GP25) uses PIO PWM because GP25 shares
+//                         PWM slice 4B with D1-B (GP9). Costs 1 PIO state machine.
+//   ADC-capable singles: S5=GP26 (ADC0), S6=GP27 (ADC1), S7=GP28 (ADC2)
 
 static const uint8_t SINGLE_GPIO[PORT_COUNT_SINGLE] = {
-    0,   // S0 = GP0  (PWM slice 0A)
-    1,   // S1 = GP1  (PWM slice 0B)
-    2,   // S2 = GP2  (PWM slice 1A)
-    3,   // S3 = GP3  (PWM slice 1B)
-    6,   // S4 = GP6  (PWM slice 3A)
-    7,   // S5 = GP7  (PWM slice 3B)
-    20,  // S6 = GP20 (PWM slice 2A)
-    21,  // S7 = GP21 (PWM slice 2B)
+    0,   // S0 = GP0  (PWM slice 0A — servo-capable)
+    1,   // S1 = GP1  (PWM slice 0B — servo-capable)
+    2,   // S2 = GP2  (PWM slice 1A — servo-capable)
+    3,   // S3 = GP3  (PWM slice 1B — servo-capable)
+    6,   // S4 = GP6  (PWM slice 3A — servo-capable)
+    26,  // S5 = GP26 (ADC0, PWM slice 5A — GPIO/ADC only, NOT servo-capable)
+    27,  // S6 = GP27 (ADC1, PWM slice 5B — GPIO/ADC only, NOT servo-capable)
+    28,  // S7 = GP28 (ADC2, PWM slice 6A — GPIO/ADC only, NOT servo-capable)
 };
 
 // [n][0] = pin A (direction / UART TX),  [n][1] = pin B (speed PWM / UART RX)
-// All B pins are on slices 4–7 so motors never conflict with single-port servos.
+// D0–D5 B pins: slices 4A,4B,5A,5B,7B,7A (motor-safe)
+// D6 B pin (GP25, slice 4B) conflicts with D1-B (GP9, slice 4B) — use PIO PWM when motor.
+// D7 B pin (GP13, slice 6B) — no conflicts.
 static const uint8_t DUAL_GPIO[PORT_COUNT_DUAL][2] = {
-    {16,  8},  // D0: A=GP16 (slice 0A), B=GP8  (slice 4A)
-    {17,  9},  // D1: A=GP17 (slice 0B), B=GP9  (slice 4B)
-    {18, 10},  // D2: A=GP18 (slice 1A), B=GP10 (slice 5A)
-    {19, 11},  // D3: A=GP19 (slice 1B), B=GP11 (slice 5B)
-    {22, 28},  // D4: A=GP22 (slice 3A), B=GP28 (slice 6A, ADC2)
-    {26, 14},  // D5: A=GP26 (slice 5A, ADC0), B=GP14 (slice 7A)
-    {27, 15},  // D6: A=GP27 (slice 5B, ADC1), B=GP15 (slice 7B)
+    {16,  8},  // D0: A=GP16, B=GP8  (slice 4A)
+    {17,  9},  // D1: A=GP17, B=GP9  (slice 4B)
+    {18, 10},  // D2: A=GP18, B=GP10 (slice 5A)
+    {19, 11},  // D3: A=GP19, B=GP11 (slice 5B)
+    {22, 15},  // D4: A=GP22, B=GP15 (slice 7B)
+    {20, 14},  // D5: A=GP20, B=GP14 (slice 7A)
+    {24, 25},  // D6: A=GP24 (UART1 TX, slice 4A), B=GP25 (UART1 RX, slice 4B — PIO PWM when motor)
     {12, 13},  // D7: A=GP12 (UART0 TX, slice 6A), B=GP13 (UART0 RX, slice 6B)
 };
 

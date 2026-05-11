@@ -49,14 +49,16 @@ class Robot:
                 right.speed = 60
 
     **Single-pin ports S0–S7** (one wire):
-        Servos, digital I/O, locked-antiphase motors.
-        All single-pin ports use PWM slices 0–3 (50 Hz, servo-safe).
+        S0–S4: servos, digital I/O, locked-antiphase motors (PWM slices 0,0,1,1,3).
+        S5–S7 (GP26/ADC0, GP27/ADC1, GP28/ADC2): digital I/O and analog input only.
+        S5–S7 cannot be servos — their PWM slices conflict with motor ports D2/D3/D7.
 
     **Dual-pin ports D0–D7** (two wires, labeled A and B):
         Sign-magnitude motors, quadrature encoders, ultrasonic sensors.
         All motor speed pins (B) use PWM slices 4–7 (20 kHz), so motors
-        and servos never conflict.  D7 also serves as a UART bus when
-        ``robot.uart()`` is called.
+        and servos (S0–S4) never conflict.
+        D6 (GP24/GP25) also serves as UART1 when ``robot.uart1()`` is called.
+        D7 (GP12/GP13) also serves as UART0 when ``robot.uart()`` is called.
 
     **Dedicated I2C port** (SDA / SCL, always GP4 / GP5):
         Reserved for I2C sensors (IMUs, ToF sensors, etc.).
@@ -117,17 +119,17 @@ class Robot:
 
     @property
     def S5(self) -> Port:
-        """Single-pin port S5 (GP7). PWM slice 3B."""
+        """Single-pin port S5 (GP26 — ADC0). GPIO and analog input only. Not servo-capable."""
         return self._ports[5]
 
     @property
     def S6(self) -> Port:
-        """Single-pin port S6 (GP20). PWM slice 2A."""
+        """Single-pin port S6 (GP27 — ADC1). GPIO and analog input only. Not servo-capable."""
         return self._ports[6]
 
     @property
     def S7(self) -> Port:
-        """Single-pin port S7 (GP21). PWM slice 2B."""
+        """Single-pin port S7 (GP28 — ADC2). GPIO and analog input only. Not servo-capable."""
         return self._ports[7]
 
     # ------------------------------------------------------------------
@@ -157,17 +159,19 @@ class Robot:
 
     @property
     def D4(self) -> Port:
-        """Dual-pin port D4 (GP22 A / GP28 B). B pin: PWM slice 6A. GP28 is ADC2."""
+        """Dual-pin port D4 (GP22 A / GP15 B). B pin: PWM slice 7B."""
         return self._ports[12]
 
     @property
     def D5(self) -> Port:
-        """Dual-pin port D5 (GP26 A / GP14 B). B pin: PWM slice 7A. GP26 is ADC0."""
+        """Dual-pin port D5 (GP20 A / GP14 B). B pin: PWM slice 7A."""
         return self._ports[13]
 
     @property
     def D6(self) -> Port:
-        """Dual-pin port D6 (GP27 A / GP15 B). B pin: PWM slice 7B. GP27 is ADC1."""
+        """Dual-pin port D6 (GP24 A / GP25 B). B pin: PWM slice 4B (PIO PWM when motor).
+        Also serves as UART1 when ``robot.uart1()`` is called (GP24=TX, GP25=RX).
+        """
         return self._ports[14]
 
     @property
@@ -246,6 +250,9 @@ class Robot:
     def servo(self, port: Port) -> Servo:
         """Configure *port* as an RC servo and return a Servo object.
 
+        S5 (GP26/ADC0), S6 (GP27/ADC1), and S7 (GP28/ADC2) cannot be used as servos —
+        they share PWM slices with motor ports D2, D3, and D7 respectively.
+
         Example::
 
             arm = robot.servo(robot.S0)
@@ -253,6 +260,13 @@ class Robot:
             arm.angle = 90
         """
         self._check_not_started("configure a servo")
+        if port._id in (5, 6, 7):
+            names = {5: "S5 (GP26/ADC0)", 6: "S6 (GP27/ADC1)", 7: "S7 (GP28/ADC2)"}
+            raise ValueError(
+                f"{names[port._id]} cannot be used as a servo. "
+                "S5/S6/S7 are ADC pins whose PWM slices conflict with motor ports D2/D3/D7. "
+                "Use S0–S4 for servos, or use this port as digital_input/digital_output."
+            )
         port._configure("servo")
         device = Servo(port._id, self._conn, robot=self)
         port._device = device
