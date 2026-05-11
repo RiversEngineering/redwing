@@ -3,11 +3,15 @@
   import { subscribe, onStatus } from './lib/ws.js';
   import { connected, robotState, pushLog } from './lib/stores.js';
 
-  import TopBar from './components/TopBar.svelte';
+  import TopBar      from './components/TopBar.svelte';
   import CameraPanel from './components/CameraPanel.svelte';
-  import PortGrid from './components/PortGrid.svelte';
-  import GraphPanel from './components/GraphPanel.svelte';
+  import PortGrid    from './components/PortGrid.svelte';
+  import GraphPanel  from './components/GraphPanel.svelte';
   import DebugConsole from './components/DebugConsole.svelte';
+  import DataTab     from './components/DataTab.svelte';
+  import PortsTab    from './components/PortsTab.svelte';
+
+  let activeTab = 'overview';
 
   // Sync connection status into the store
   const unsubStatus = onStatus((v) => connected.set(v));
@@ -25,16 +29,43 @@
     unsubStatus();
     unsubWs();
   });
+
+  const TABS = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'ports',    label: 'Ports' },
+    { id: 'data',     label: 'Data' },
+  ];
 </script>
 
 <div class="flex flex-col h-screen bg-[#161920] text-slate-200 overflow-hidden">
-  <!-- Top bar: fixed height -->
+
+  <!-- Top bar -->
   <TopBar />
 
-  <!-- Main content area: fills remaining space -->
-  <div class="flex flex-1 min-h-0 gap-2 p-2">
+  <!-- Tab bar -->
+  <div class="flex items-end gap-0 px-2 border-b border-[#2e3340] bg-[#1a1d26] flex-shrink-0">
+    {#each TABS as tab}
+      <button
+        class="px-4 py-2 text-xs font-semibold uppercase tracking-widest transition-colors
+               border-b-2 -mb-px
+               {activeTab === tab.id
+                 ? 'border-blue-500 text-blue-400 bg-[#161920]'
+                 : 'border-transparent text-slate-500 hover:text-slate-300 hover:border-slate-600'}"
+        on:click={() => (activeTab = tab.id)}
+      >
+        {tab.label}
+      </button>
+    {/each}
+  </div>
 
-    <!-- Left column: Camera (tall, fixed-ish width) -->
+  <!-- Tab content — both always mounted so data accumulates off-screen -->
+
+  <!-- Overview tab -->
+  <div
+    class="flex flex-1 min-h-0 gap-2 p-2"
+    style="display: {activeTab === 'overview' ? 'flex' : 'none'}"
+  >
+    <!-- Left column: Camera -->
     <div class="flex flex-col w-64 flex-shrink-0 gap-2">
       <CameraPanel />
     </div>
@@ -44,22 +75,36 @@
 
       <!-- Upper row: ports and graphs side by side -->
       <div class="flex flex-1 min-h-0 gap-2">
-        <!-- Port grid -->
         <div class="flex-1 min-w-0">
           <PortGrid />
         </div>
-
-        <!-- Graphs -->
         <div class="w-80 flex-shrink-0">
           <GraphPanel />
         </div>
       </div>
 
-      <!-- Debug console: fixed bottom height -->
+      <!-- Debug console -->
       <div class="h-48 flex-shrink-0">
         <DebugConsole />
       </div>
 
     </div>
   </div>
+
+  <!-- Ports tab -->
+  <div
+    class="flex-1 min-h-0 overflow-hidden"
+    style="display: {activeTab === 'ports' ? 'flex' : 'none'}; flex-direction: column;"
+  >
+    <PortsTab />
+  </div>
+
+  <!-- Data tab -->
+  <div
+    class="flex-1 min-h-0 overflow-hidden"
+    style="display: {activeTab === 'data' ? 'flex' : 'none'}; flex-direction: column;"
+  >
+    <DataTab />
+  </div>
+
 </div>

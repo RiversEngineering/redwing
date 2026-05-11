@@ -19,20 +19,20 @@ export const connected = writable(false);
 export const robotState = writable(null);
 
 /**
- * Derived: flat port map, always 18 entries (IDs 0–17).
- * S0–S9 → IDs 0–9, D0–D7 → IDs 10–17.
+ * Derived: flat port map, always 17 entries (IDs 0–16).
+ * S0–S7 → IDs 0–7, D0–D7 → IDs 8–15, I2C → ID 16.
  * Each entry is null when not configured, or the port data object
  * augmented with a numeric `id` field.
  */
 export const ports = derived(robotState, ($state) => {
   const result = {};
-  for (let i = 0; i < 18; i++) {
+  for (let i = 0; i < 17; i++) {
     result[i] = null;
   }
   if ($state?.ports) {
     for (const [id, data] of Object.entries($state.ports)) {
       const numId = Number(id);
-      if (numId >= 0 && numId < 18) {
+      if (numId >= 0 && numId < 17) {
         result[numId] = { ...data, id: numId };
       }
     }

@@ -1,9 +1,8 @@
 """FastAPI web application — dashboard WebSocket, MJPEG stream, REST."""
 
 import asyncio
-import json
 import logging
-from typing import AsyncIterator
+from typing import AsyncIterator, TYPE_CHECKING
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
@@ -12,6 +11,10 @@ from fastapi.staticfiles import StaticFiles
 from .camera import CameraCapture
 from .config import STREAM_HZ
 from .state import SharedState
+from . import protocol as proto
+
+if TYPE_CHECKING:
+    from .rp2040 import RP2040
 
 log = logging.getLogger(__name__)
 
@@ -19,15 +22,47 @@ BOUNDARY = b"--frame"
 MJPEG_CONTENT_TYPE = "multipart/x-mixed-replace; boundary=frame"
 
 
-def create_app(state: SharedState, camera: CameraCapture) -> FastAPI:
+def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastAPI:
     app = FastAPI(title="Redwing Dashboard")
 
     ws_clients: set[WebSocket] = set()
     log_clients: set[WebSocket] = set()
 
     # ------------------------------------------------------------------
-    # WebSocket — real-time state stream to dashboard
+    # WebSocket — real-time state stream + dashboard command receiver
     # ------------------------------------------------------------------
+
+    async def _handle_ws_command(msg: dict) -> None:
+        """Route a JSON command received from the dashboard to the RP2040."""
+        cmd = msg.get("cmd")
+        try:
+            if cmd == "set_motor":
+                port = int(msg["port"])
+                # value_pct is -100.0..+100.0 → RP2040 expects -10000..+10000
+                value = int(max(-10000, min(10000, float(msg.get("value_pct", 0)) * 100)))
+                rp.enqueue(proto.cmd_set_motor(port, value))
+
+            elif cmd == "set_servo":
+                port = int(msg["port"])
+                # angle_deg is 0..180 → centidegrees for the firmware
+                centideg = int(max(0, min(18000, float(msg.get("angle_deg", 90)) * 100)))
+                rp.enqueue(proto.cmd_set_servo(port, centideg))
+
+            elif cmd == "set_gpio":
+                port = int(msg["port"])
+                rp.enqueue(proto.cmd_set_gpio(port, 1 if msg.get("state") else 0))
+
+            elif cmd == "reset_encoder":
+                port = int(msg["port"])
+                rp.enqueue(proto.cmd_reset_encoder(port))
+
+            elif cmd == "stop_all":
+                rp.enqueue(proto.cmd_stop_all())
+
+            else:
+                log.warning(f"Unknown dashboard command: {cmd!r}")
+        except (KeyError, ValueError, TypeError) as exc:
+            log.warning(f"Malformed dashboard command {msg!r}: {exc}")
 
     @app.websocket("/ws")
     async def websocket_endpoint(ws: WebSocket):
@@ -36,8 +71,13 @@ def create_app(state: SharedState, camera: CameraCapture) -> FastAPI:
         log.info(f"Dashboard connected: {ws.client}")
         try:
             while True:
-                # Send a keepalive ping — actual state is pushed by the broadcast task
-                await asyncio.sleep(30)
+                # Wait up to 30 s for an incoming message (acts as keepalive timeout).
+                # Outbound state is pushed by the broadcast tasks in separate coroutines.
+                try:
+                    msg = await asyncio.wait_for(ws.receive_json(), timeout=30.0)
+                    await _handle_ws_command(msg)
+                except asyncio.TimeoutError:
+                    pass  # No message — connection still alive
         except WebSocketDisconnect:
             pass
         finally:

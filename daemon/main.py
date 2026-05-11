@@ -45,7 +45,7 @@ async def main():
     rp     = RP2040(state)
     camera = CameraCapture(state)
     ipc    = IPCServer(state, rp)
-    app    = create_app(state, camera)
+    app    = create_app(state, camera, rp)
 
     config = uvicorn.Config(
         app,

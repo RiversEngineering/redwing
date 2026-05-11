@@ -78,6 +78,13 @@ function scheduleReconnect() {
   }, delay);
 }
 
+/** Send a JSON command to the daemon. Silently dropped when not connected. */
+export function send(msg) {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify(msg));
+  }
+}
+
 /** Add a message listener. Returns an unsubscribe function. */
 export function subscribe(fn) {
   listeners.add(fn);

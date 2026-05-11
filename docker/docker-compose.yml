@@ -11,10 +11,12 @@ services:
     devices:
       # RP2040 over USB serial — udev rule creates stable symlink /dev/rp2040
       - /dev/rp2040:/dev/rp2040
+      # webcam
+      - /dev/video0:/dev/video0
     device_cgroup_rules:
       - "c 166:* rmw"   # ttyACM devices
+      - "c 81:* rmw"    # Video4Linux devices
     volumes:
-      - /dev/video0:/dev/video0     # webcam
       - student_workspace:/workspace
     environment:
       REDWING_SERIAL: /dev/rp2040
@@ -33,7 +35,7 @@ services:
     restart: unless-stopped
     volumes:
       - student_workspace:/home/coder/project
-      - /app/redwing:/home/coder/redwing:ro   # read-only lib for import
+      - /opt/redwing/redwing:/home/coder/redwing:ro   # read-only lib for import
     environment:
       PASSWORD: "redwing"     # change per-robot in ansible vars
     ports:

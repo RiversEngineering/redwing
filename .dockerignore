@@ -1,0 +1,12 @@
+.git
+.venv
+*.egg-info
+__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+node_modules
+dashboard/node_modules
+dashboard/dist
+firmware/build
+ansible

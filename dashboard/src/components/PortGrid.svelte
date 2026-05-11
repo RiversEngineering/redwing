@@ -2,9 +2,9 @@
   import { ports } from '../lib/stores.js';
   import PortCard from './PortCard.svelte';
 
-  // Single-pin ports S0–S9 (IDs 0–9), dual-pin ports D0–D7 (IDs 10–17)
-  const SINGLE_PORTS = Array.from({ length: 10 }, (_, i) => ({ id: i,      label: `S${i}` }));
-  const DUAL_PORTS   = Array.from({ length:  8 }, (_, i) => ({ id: i + 10, label: `D${i}` }));
+  // Single-pin ports S0–S7 (IDs 0–7), dual-pin ports D0–D7 (IDs 8–15)
+  const SINGLE_PORTS = Array.from({ length: 8 }, (_, i) => ({ id: i,     label: `S${i}` }));
+  const DUAL_PORTS   = Array.from({ length: 8 }, (_, i) => ({ id: i + 8, label: `D${i}` }));
 </script>
 
 <div class="flex flex-col h-full bg-[#1e2129] rounded-lg border border-[#2e3340] overflow-hidden">
@@ -24,7 +24,7 @@
       </span>
       <span class="flex items-center gap-1">
         <span class="w-1.5 h-3 rounded-sm bg-slate-800 inline-block"></span>
-        Single S0–S9
+        Single S0–S7
       </span>
     </div>
   </div>
@@ -42,7 +42,7 @@
   <!-- Single-pin ports: single row of 10 -->
   <div class="px-2 pt-2 pb-2 flex-1">
     <div class="text-[9px] text-slate-600 uppercase tracking-widest mb-1 px-0.5">Single-pin</div>
-    <div class="grid grid-cols-10 gap-1.5">
+    <div class="grid grid-cols-8 gap-1.5">
       {#each SINGLE_PORTS as p}
         <PortCard portId={p.id} portLabel={p.label} isDual={false} data={$ports[p.id]} />
       {/each}
