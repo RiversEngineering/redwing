@@ -62,6 +62,10 @@ export function clearLogs() {
   logs.set([]);
 }
 
+// ── Camera ────────────────────────────────────────────────────────────────────
+/** Latest camera frame as a base64 JPEG string, or '' if none yet. */
+export const cameraFrame = writable('');
+
 // ── Uptime ────────────────────────────────────────────────────────────────────
 /** Latest uptime value in seconds (float). */
 export const uptime = derived(robotState, ($s) => $s?.uptime ?? null);

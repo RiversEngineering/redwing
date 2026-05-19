@@ -8,7 +8,7 @@ class DigitalInput:
 
     Example::
 
-        button = robot.digital_input(robot.S1)
+        button = robot.S1.digital_input()
         if button.value:
             robot.log("Button pressed!")
     """
@@ -39,10 +39,10 @@ class DigitalOutput:
 
     Example::
 
-        led = robot.digital_output(robot.S2)
+        led = robot.S2.digital_output()
         led.on()
         led.off()
-        led.value = True   # same as on()
+        led.toggle()
     """
 
     def __init__(self, port_id: int, conn, robot=None):
@@ -55,26 +55,24 @@ class DigitalOutput:
         if self._robot is not None and not self._robot._started:
             raise RuntimeError("Call robot.start() before controlling digital outputs.")
 
+    def _send(self, state: bool):
+        self._check_started()
+        self._state = state
+        self._conn.send_command(cmd="set_gpio", port=self._id, state=int(state))
+
     @property
     def value(self) -> bool:
         """Current output state."""
         return self._state
 
-    @value.setter
-    def value(self, state: bool):
-        """Set output HIGH (True) or LOW (False)."""
-        self._check_started()
-        self._state = bool(state)
-        self._conn.send_command(cmd="set_gpio", port=self._id, state=int(self._state))
-
     def on(self):
         """Set output HIGH."""
-        self.value = True
+        self._send(True)
 
     def off(self):
         """Set output LOW."""
-        self.value = False
+        self._send(False)
 
     def toggle(self):
         """Toggle the output state."""
-        self.value = not self._state
+        self._send(not self._state)

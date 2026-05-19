@@ -1,0 +1,27 @@
+FROM codercom/code-server:latest
+
+USER root
+
+# Install Python, the redwing library, and gosu (for privilege drop in entrypoint)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3 python3-pip gosu \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml /tmp/redwing_build/
+COPY redwing/       /tmp/redwing_build/redwing/
+RUN pip3 install --no-cache-dir --break-system-packages /tmp/redwing_build \
+    && rm -rf /tmp/redwing_build
+
+RUN mkdir -p /home/coder/.local/share/code-server/User \
+    && chown -R coder:coder /home/coder/.local
+
+USER coder
+RUN code-server --install-extension ms-python.python
+USER root
+COPY --chown=coder:coder docker/code-server-settings.json \
+    /home/coder/.local/share/code-server/User/settings.json
+
+COPY docker/entrypoint-code-server.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

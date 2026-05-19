@@ -14,7 +14,7 @@ typedef struct {
     int16_t  motor_value;    // -10000 to +10000
 
     // Servo
-    uint16_t servo_angle_cd; // centidegrees
+    uint16_t servo_pulse_us; // last commanded pulse width in microseconds
     uint16_t servo_min_us;
     uint16_t servo_max_us;
 
@@ -73,8 +73,8 @@ uint8_t port_uart_rx(uint8_t *buf);
 // Set motor power (-10000 to +10000).  Handles SM, LAP, SERVO_SIG.
 void port_set_motor(uint8_t port_id, int16_t value);
 
-// Set servo angle (centidegrees).
-void port_set_servo(uint8_t port_id, uint16_t angle_cd);
+// Set servo pulse width in microseconds (clamped to 500–2500).
+void port_set_servo(uint8_t port_id, uint16_t pulse_us);
 
 // Set servo pulse range.
 void port_set_servo_range(uint8_t port_id, uint16_t min_us, uint16_t max_us);

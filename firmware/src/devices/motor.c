@@ -7,7 +7,6 @@
 // PWM frequency target: 20 kHz.
 // System clock = 125 MHz.  Divider 1, wrap = 125000000/20000 - 1 = 6249.
 #define PWM_FREQ_HZ     20000
-#define SYS_CLK_HZ      125000000
 #define PWM_WRAP        ((SYS_CLK_HZ / PWM_FREQ_HZ) - 1)  // 6249
 
 static void pwm_gpio_init_20khz(uint8_t gpio) {

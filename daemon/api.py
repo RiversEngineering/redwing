@@ -1,6 +1,7 @@
 """FastAPI web application — dashboard WebSocket, MJPEG stream, REST."""
 
 import asyncio
+import base64
 import logging
 from typing import AsyncIterator, TYPE_CHECKING
 
@@ -44,9 +45,10 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
 
             elif cmd == "set_servo":
                 port = int(msg["port"])
-                # angle_deg is 0..180 → centidegrees for the firmware
-                centideg = int(max(0, min(18000, float(msg.get("angle_deg", 90)) * 100)))
-                rp.enqueue(proto.cmd_set_servo(port, centideg))
+                # angle_deg 0..300 → pulse_us 500..2500 µs (default 300° servo range)
+                angle = max(0.0, min(300.0, float(msg.get("angle_deg", 150))))
+                pulse_us = int(500 + angle / 300.0 * 2000)
+                rp.enqueue(proto.cmd_set_servo(port, pulse_us))
 
             elif cmd == "set_gpio":
                 port = int(msg["port"])
@@ -92,6 +94,7 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
     async def start_broadcast():
         asyncio.create_task(_broadcast_state())
         asyncio.create_task(_broadcast_logs())
+        asyncio.create_task(_broadcast_camera())
 
     async def _broadcast_state():
         interval = 1.0 / min(STREAM_HZ, 30)  # cap dashboard at 30fps
@@ -105,8 +108,24 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
                         await ws.send_json(msg)
                     except Exception:
                         dead.add(ws)
-                ws_clients -= dead
+                ws_clients.difference_update(dead)
             await asyncio.sleep(interval)
+
+    async def _broadcast_camera():
+        """Push camera frames to dashboard clients at ~10 fps via WebSocket."""
+        while True:
+            if ws_clients:
+                jpeg = camera.get_current_jpeg()
+                if jpeg:
+                    msg = {"type": "frame", "data": base64.b64encode(jpeg).decode()}
+                    dead = set()
+                    for ws in list(ws_clients):
+                        try:
+                            await ws.send_json(msg)
+                        except Exception:
+                            dead.add(ws)
+                    ws_clients.difference_update(dead)
+            await asyncio.sleep(0.1)  # 10 fps
 
     async def _broadcast_logs():
         """Tail new log entries and push to all dashboard clients."""
@@ -125,7 +144,7 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
                         except Exception:
                             dead.add(ws)
                             break
-                ws_clients -= dead
+                ws_clients.difference_update(dead)
 
             await asyncio.sleep(0.1)
 
@@ -147,7 +166,8 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
             if jpeg:
                 yield (
                     BOUNDARY + b"\r\n"
-                    b"Content-Type: image/jpeg\r\n\r\n"
+                    b"Content-Type: image/jpeg\r\n"
+                    + f"Content-Length: {len(jpeg)}\r\n\r\n".encode()
                     + jpeg
                     + b"\r\n"
                 )

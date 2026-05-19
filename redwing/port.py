@@ -92,16 +92,39 @@ class Port:
         self._device = Motor(self._id, self._conn, port_type)
         return self._device
 
-    def servo(self) -> Servo:
+    def servo(
+        self,
+        min_deg: float = 0.0,
+        max_deg: float = 300.0,
+        min_us: int = 500,
+        max_us: int = 2500,
+    ) -> Servo:
         """Configure this port as an RC servo output and return a Servo object.
 
-        Example::
+        Parameters
+        ----------
+        min_deg / max_deg:
+            Degree range of the servo (default 0–300 for Redwing's servo).
+            Use ``max_deg=180`` for a standard hobby servo.
+        min_us / max_us:
+            Pulse width in microseconds at the two extremes.
 
-            arm = robot.port5.servo()
+        Example — default 300° servo::
+
+            arm = robot.S0.servo()
+            arm.angle = 150  # center
+
+        Example — standard 180° servo::
+
+            arm = robot.S0.servo(max_deg=180, min_us=1000, max_us=2000)
             arm.angle = 90
         """
         self._configure("servo")
-        self._device = Servo(self._id, self._conn)
+        self._device = Servo(
+            self._id, self._conn,
+            min_deg=min_deg, max_deg=max_deg,
+            min_us=min_us, max_us=max_us,
+        )
         return self._device
 
     def encoder(self) -> Encoder:

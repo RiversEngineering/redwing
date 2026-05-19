@@ -1,8 +1,6 @@
-version: "3.9"
-
 services:
   daemon:
-    image: redwing:latest
+    image: ghcr.io/riversengineering/redwing:latest
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -10,6 +8,7 @@ services:
     privileged: false
     devices:
       # RP2040 over USB serial — udev rule creates stable symlink /dev/rp2040
+      # See docs/pi-setup.md for the udev rule.
       - /dev/rp2040:/dev/rp2040
       # webcam
       - /dev/video0:/dev/video0
@@ -21,26 +20,21 @@ services:
     environment:
       REDWING_SERIAL: /dev/rp2040
       REDWING_HOST:   "0.0.0.0"
-      REDWING_PORT:   "8080"
+      REDWING_PORT:   "8000"
       REDWING_HZ:     "50"
-    ports:
-      - "8080:8080"   # dashboard + API
-      - "5555:5555"   # ZMQ PUB  (student library)
-      - "5556:5556"   # ZMQ PULL
-      - "5557:5557"   # ZMQ REP
-    network_mode: host   # simplest for classroom WiFi — exposes all ports directly
+    network_mode: host   # ports: is redundant with host networking
 
   code-server:
-    image: codercom/code-server:latest
+    image: ghcr.io/riversengineering/redwing-code-server:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.code-server
     restart: unless-stopped
     volumes:
       - student_workspace:/home/coder/project
-      - /opt/redwing/redwing:/home/coder/redwing:ro   # read-only lib for import
     environment:
       PASSWORD: "redwing"     # change per-robot in ansible vars
-    ports:
-      - "8443:8080"    # code-server UI (different port from daemon dashboard)
-    network_mode: host
+    network_mode: host   # listens on port 8080 (code-server default)
 
 volumes:
   student_workspace:

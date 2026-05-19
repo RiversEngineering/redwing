@@ -52,8 +52,8 @@
         return `${cm} cm`;
       }
       case 'servo': {
-        // angle in centi-degrees → degrees
-        const deg = (d.angle / 100).toFixed(1);
+        // pulse_us 500–2500 µs → 0–300° (default 300° servo range)
+        const deg = (((d.pulse_us ?? 1500) - 500) / 2000 * 300).toFixed(1);
         return `${deg}°`;
       }
       case 'gpio_in':

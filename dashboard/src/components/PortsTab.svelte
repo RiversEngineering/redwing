@@ -20,14 +20,14 @@
 
   // ── Control state (local; does not track live RP2040 state) ──────────────────
   let motorSpeed = 0;   // -100..+100 (%)
-  let servoAngle = 90;  // degrees
+  let servoAngle = 150;  // degrees (default center of 300° range)
 
   function selectPort(id) {
     selectedId = id;
     const d = $ports[id];
     if (!d) return;
     if (isMotor(d.type)) motorSpeed = +(d.value / 100).toFixed(1);
-    if (d.type === 'servo') servoAngle = +(d.angle / 100).toFixed(1);
+    if (d.type === 'servo') servoAngle = +(((d.pulse_us ?? 1500) - 500) / 2000 * 300).toFixed(1);
   }
 
   // ── Type helpers ─────────────────────────────────────────────────────────────
@@ -46,7 +46,7 @@
     switch (d.type) {
       case 'encoder':    return `${(d.count ?? 0).toLocaleString()} cnt`;
       case 'ultrasonic': return d.valid ? `${(d.distance_mm / 10).toFixed(1)} cm` : 'OOB';
-      case 'servo':      return `${((d.angle ?? 0) / 100).toFixed(1)}°`;
+      case 'servo':      return `${(((d.pulse_us ?? 1500) - 500) / 2000 * 300).toFixed(1)}°`;
       case 'gpio_in':
       case 'gpio_out':   return d.state ? 'HIGH' : 'LOW';
       default:           return null;
@@ -85,7 +85,7 @@
 
   // ── Servo commands ────────────────────────────────────────────────────────────
   function sendServo(deg) {
-    servoAngle = Math.max(0, Math.min(180, deg));
+    servoAngle = Math.max(0, Math.min(300, deg));
     send({ cmd: 'set_servo', port: selectedId, angle_deg: servoAngle });
   }
 
@@ -309,7 +309,7 @@
             <!-- Live readout -->
             <div class="flex items-baseline gap-3">
               <span class="text-4xl font-bold tabular-nums text-amber-400">
-                {((selectedData.angle ?? 0) / 100).toFixed(1)}°
+                {(((selectedData.pulse_us ?? 1500) - 500) / 2000 * 300).toFixed(1)}°
               </span>
               <span class="text-sm text-slate-500">actual (from RP2040)</span>
             </div>
@@ -319,10 +319,10 @@
               <div class="flex justify-between text-xs text-slate-500">
                 <span>0°</span>
                 <span class="font-semibold text-slate-300 tabular-nums">{servoAngle.toFixed(1)}°</span>
-                <span>180°</span>
+                <span>300°</span>
               </div>
               <input
-                type="range" min="0" max="180" step="0.5"
+                type="range" min="0" max="300" step="1"
                 value={servoAngle}
                 class="w-full h-2 rounded-full appearance-none cursor-pointer
                        bg-gradient-to-r from-amber-800/40 via-amber-600/20 to-amber-800/40
@@ -333,7 +333,7 @@
 
             <!-- Quick presets -->
             <div class="flex gap-2">
-              {#each [[0, '0°'], [45, '45°'], [90, '90° (center)'], [135, '135°'], [180, '180°']] as [v, label]}
+              {#each [[0, '0°'], [75, '75°'], [150, '150° (center)'], [225, '225°'], [300, '300°']] as [v, label]}
                 <button
                   class="px-3 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
                          text-amber-400 hover:bg-amber-900/20 hover:border-amber-600/40 transition-colors"

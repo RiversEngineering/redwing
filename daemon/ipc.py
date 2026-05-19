@@ -92,7 +92,7 @@ class IPCServer:
             self._rp.enqueue(proto.cmd_set_motor(port, val))
 
         elif c == "set_servo":
-            self._rp.enqueue(proto.cmd_set_servo(cmd["port"], int(cmd["angle"])))
+            self._rp.enqueue(proto.cmd_set_servo(cmd["port"], int(cmd["pulse_us"])))
 
         elif c == "set_velocity":
             port = cmd["port"]

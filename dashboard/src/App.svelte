@@ -1,7 +1,7 @@
 <script>
   import { onDestroy } from 'svelte';
   import { subscribe, onStatus } from './lib/ws.js';
-  import { connected, robotState, pushLog } from './lib/stores.js';
+  import { connected, robotState, pushLog, cameraFrame } from './lib/stores.js';
 
   import TopBar      from './components/TopBar.svelte';
   import CameraPanel from './components/CameraPanel.svelte';
@@ -22,6 +22,8 @@
       robotState.set(msg);
     } else if (msg.type === 'log') {
       pushLog({ level: msg.level, message: msg.message, ts: msg.ts });
+    } else if (msg.type === 'frame') {
+      cameraFrame.set(msg.data);
     }
   });
 

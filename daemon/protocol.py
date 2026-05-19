@@ -104,37 +104,37 @@ def build_packet(msg_type: int, payload: bytes = b"") -> bytes:
 # -------------------------------------------------------------------
 
 def cmd_configure(port_id: int, port_type: int) -> bytes:
-    return build_packet(CMD_CONFIGURE, struct.pack("BB", port_id, port_type))
+    return build_packet(CMD_CONFIGURE, struct.pack("<BB", port_id, port_type))
 
 def cmd_set_motor(port_id: int, value: int) -> bytes:
-    return build_packet(CMD_SET_MOTOR, struct.pack("Bh", port_id, value))
+    return build_packet(CMD_SET_MOTOR, struct.pack("<Bh", port_id, value))
 
-def cmd_set_servo(port_id: int, angle_centideg: int) -> bytes:
-    return build_packet(CMD_SET_SERVO, struct.pack("BH", port_id, angle_centideg))
+def cmd_set_servo(port_id: int, pulse_us: int) -> bytes:
+    return build_packet(CMD_SET_SERVO, struct.pack("<BH", port_id, pulse_us))
 
 def cmd_set_velocity(port_id: int, velocity_x10: int) -> bytes:
-    return build_packet(CMD_SET_VELOCITY, struct.pack("Bi", port_id, velocity_x10))
+    return build_packet(CMD_SET_VELOCITY, struct.pack("<Bi", port_id, velocity_x10))
 
 def cmd_set_pid(port_id: int, kp: float, ki: float, kd: float) -> bytes:
-    return build_packet(CMD_SET_PID, struct.pack("Bfff", port_id, kp, ki, kd))
+    return build_packet(CMD_SET_PID, struct.pack("<Bfff", port_id, kp, ki, kd))
 
 def cmd_reset_encoder(port_id: int) -> bytes:
-    return build_packet(CMD_RESET_ENC, struct.pack("B", port_id))
+    return build_packet(CMD_RESET_ENC, struct.pack("<B", port_id))
 
 def cmd_set_gpio(port_id: int, state: int) -> bytes:
-    return build_packet(CMD_SET_GPIO, struct.pack("BB", port_id, state))
+    return build_packet(CMD_SET_GPIO, struct.pack("<BB", port_id, state))
 
 def cmd_set_rate(hz: int) -> bytes:
-    return build_packet(CMD_SET_RATE, struct.pack("H", hz))
+    return build_packet(CMD_SET_RATE, struct.pack("<H", hz))
 
 def cmd_stop_all() -> bytes:
     return build_packet(CMD_STOP_ALL)
 
 def cmd_set_servo_range(port_id: int, min_us: int, max_us: int) -> bytes:
-    return build_packet(CMD_SET_SERVO_RANGE, struct.pack("BHH", port_id, min_us, max_us))
+    return build_packet(CMD_SET_SERVO_RANGE, struct.pack("<BHH", port_id, min_us, max_us))
 
 def cmd_attach_encoder(motor_port: int, encoder_port: int) -> bytes:
-    return build_packet(CMD_ATTACH_ENC, struct.pack("BB", motor_port, encoder_port))
+    return build_packet(CMD_ATTACH_ENC, struct.pack("<BB", motor_port, encoder_port))
 
 def cmd_config_done() -> bytes:
     return build_packet(CMD_CONFIG_DONE)
@@ -250,7 +250,7 @@ class PacketParser:
             if port_type in (PORT_MOTOR_SM, PORT_MOTOR_LAP, PORT_MOTOR_SERVO):
                 parsed["value"] = struct.unpack_from("<h", pdata)[0]
             elif port_type == PORT_SERVO:
-                parsed["angle"] = struct.unpack_from("<H", pdata)[0]
+                parsed["pulse_us"] = struct.unpack_from("<H", pdata)[0]
             elif port_type == PORT_ENCODER:
                 cnt, vel = struct.unpack_from("<ii", pdata)
                 parsed["count"] = cnt

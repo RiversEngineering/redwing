@@ -4,56 +4,64 @@
 class Servo:
     """Controls an RC servo motor.
 
-    Angle ranges from 0 to 180 degrees, with 90 being center.
+    The servo range is configurable. Redwing's default servo has a 300° range
+    (500–2500 µs pulse width). Standard hobby servos typically use 180°
+    (1000–2000 µs).
 
-    Example::
+    Example — default 300° servo::
 
-        arm = robot.port5.servo()
-        arm.angle = 0    # full left
-        arm.angle = 90   # center
-        arm.angle = 180  # full right
+        arm = robot.S0.servo()
+        arm.set_angle(0)    # full counterclockwise
+        arm.set_angle(150)  # center
+        arm.set_angle(300)  # full clockwise
+
+    Example — standard 180° servo::
+
+        arm = robot.S0.servo(max_deg=180, min_us=1000, max_us=2000)
+        arm.set_angle(90)   # center
     """
 
-    def __init__(self, port_id: int, conn, robot=None):
+    def __init__(
+        self,
+        port_id: int,
+        conn,
+        robot=None,
+        min_deg: float = 0.0,
+        max_deg: float = 300.0,
+        min_us: int = 500,
+        max_us: int = 2500,
+    ):
         self._id = port_id
         self._conn = conn
-        self._angle = 90.0
-        self._min_pulse_us = 1000
-        self._max_pulse_us = 2000
         self._robot = robot
+        self._min_deg = float(min_deg)
+        self._max_deg = float(max_deg)
+        self._min_us = int(min_us)
+        self._max_us = int(max_us)
+        self._angle = (self._min_deg + self._max_deg) / 2
+
+    def _deg_to_us(self, deg: float) -> int:
+        deg = max(self._min_deg, min(self._max_deg, deg))
+        t = (deg - self._min_deg) / (self._max_deg - self._min_deg)
+        return int(self._min_us + t * (self._max_us - self._min_us))
 
     def _check_started(self):
         if self._robot is not None and not self._robot._started:
-            raise RuntimeError("Call robot.start() before setting servo angle.")
+            raise RuntimeError("Call robot.start() before commanding the servo.")
 
     @property
     def angle(self) -> float:
-        """Current servo angle in degrees (0–180)."""
+        """Last commanded angle in degrees."""
         return self._angle
 
-    @angle.setter
-    def angle(self, value: float):
-        """Set servo angle in degrees. 0 = full left, 90 = center, 180 = full right."""
+    def set_angle(self, deg: float):
+        """Command the servo to move to the given angle in degrees."""
         self._check_started()
-        value = max(0.0, min(180.0, float(value)))
-        self._angle = value
-        self._conn.send_command(cmd="set_servo", port=self._id, angle=int(value * 100))
+        self._angle = max(self._min_deg, min(self._max_deg, float(deg)))
+        self._conn.send_command(
+            cmd="set_servo", port=self._id, pulse_us=self._deg_to_us(self._angle)
+        )
 
     def center(self):
-        """Move the servo to the center position (90 degrees)."""
-        self.angle = 90.0
-
-    def set_pulse_range(self, min_us: int = 1000, max_us: int = 2000):
-        """Configure the servo pulse width range in microseconds.
-
-        Most servos use 1000–2000 µs (the default). Some use 500–2500 µs.
-        Adjust this if your servo does not reach its full range of motion.
-        """
-        self._min_pulse_us = min_us
-        self._max_pulse_us = max_us
-        self._conn.send_command(
-            cmd="set_servo_range",
-            port=self._id,
-            min_us=min_us,
-            max_us=max_us,
-        )
+        """Move the servo to the center of its configured range."""
+        self.set_angle((self._min_deg + self._max_deg) / 2)

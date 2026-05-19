@@ -33,8 +33,9 @@ class SharedState:
         # Latest LIDAR scan: list of (angle_deg, distance_cm) tuples, or None
         self.lidar_scan: list | None = None
 
-        # Latest camera frame as JPEG bytes (None = no camera)
+        # Latest camera frame as JPEG bytes (seeded with placeholder by CameraCapture)
         self.camera_frame: bytes | None = None
+        self.camera_frame_b64: str = ""   # base64-encoded version for student library
         # If student called camera_show(frame), this holds the override frame
         self.camera_override: bytes | None = None
         self.show_raw: bool = True   # True = show live feed; False = show override

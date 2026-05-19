@@ -3,6 +3,7 @@
 import asyncio
 import base64
 import logging
+import time
 
 import cv2
 import numpy as np
@@ -15,10 +16,9 @@ from .state import SharedState
 log = logging.getLogger(__name__)
 
 _JPEG_PARAMS = [cv2.IMWRITE_JPEG_QUALITY, MJPEG_QUALITY]
-_NO_CAMERA_FRAME: bytes | None = None
 
 
-def _make_no_camera_frame() -> bytes:
+def _make_placeholder() -> bytes:
     img = np.zeros((CAMERA_HEIGHT, CAMERA_WIDTH, 3), dtype=np.uint8)
     cv2.putText(
         img, "No Camera", (CAMERA_WIDTH // 2 - 90, CAMERA_HEIGHT // 2),
@@ -31,6 +31,8 @@ def _make_no_camera_frame() -> bytes:
 class CameraCapture:
     def __init__(self, state: SharedState):
         self._state = state
+        # Seed with placeholder so get_current_jpeg() never returns empty bytes.
+        self._state.camera_frame = _make_placeholder()
 
     async def run(self):
         """Run camera capture in a thread pool executor (OpenCV blocks)."""
@@ -38,22 +40,19 @@ class CameraCapture:
         await loop.run_in_executor(None, self._capture_loop)
 
     def _capture_loop(self):
-        global _NO_CAMERA_FRAME
-        _NO_CAMERA_FRAME = _make_no_camera_frame()
+        interval = 1.0 / CAMERA_FPS
 
         cap = cv2.VideoCapture(CAMERA_INDEX)
         if not cap.isOpened():
-            log.warning(f"Camera {CAMERA_INDEX} not available — dashboard will show placeholder")
-            asyncio.get_event_loop().run_until_complete(self._set_frame(_NO_CAMERA_FRAME))
-            return
+            log.warning(f"Camera {CAMERA_INDEX} not available — serving placeholder")
+            # Keep the thread alive; placeholder was already set in __init__.
+            while True:
+                time.sleep(1.0)
 
         cap.set(cv2.CAP_PROP_FRAME_WIDTH,  CAMERA_WIDTH)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
         cap.set(cv2.CAP_PROP_FPS,          CAMERA_FPS)
         log.info(f"Camera {CAMERA_INDEX} opened at {CAMERA_WIDTH}×{CAMERA_HEIGHT} {CAMERA_FPS}fps")
-
-        import time
-        interval = 1.0 / CAMERA_FPS
 
         while True:
             t0 = time.monotonic()
@@ -66,30 +65,18 @@ class CameraCapture:
             _, buf = cv2.imencode(".jpg", frame, _JPEG_PARAMS)
             jpeg_bytes = bytes(buf)
 
-            # Also store a base64 version in state so library can read()
-            b64 = base64.b64encode(jpeg_bytes).decode()
-
-            loop = asyncio.new_event_loop()
-            loop.run_until_complete(self._store_raw(jpeg_bytes, b64))
-            loop.close()
+            # Direct assignment is safe: CPython's GIL makes a single pointer
+            # swap atomic, which is sufficient for a video feed.
+            self._state.camera_frame = jpeg_bytes
+            self._state.camera_frame_b64 = base64.b64encode(jpeg_bytes).decode()
 
             elapsed = time.monotonic() - t0
-            sleep_time = max(0.0, interval - elapsed)
-            time.sleep(sleep_time)
+            time.sleep(max(0.0, interval - elapsed))
 
-        cap.release()
-
-    async def _store_raw(self, jpeg_bytes: bytes, b64: str):
-        async with self._state.lock:
-            self._state.camera_frame = jpeg_bytes
-
-    async def _set_frame(self, jpeg_bytes: bytes):
-        async with self._state.lock:
-            self._state.camera_frame = jpeg_bytes
+        cap.release()  # unreachable, but documents intent
 
     def get_current_jpeg(self) -> bytes:
         """Return the JPEG to serve to MJPEG clients right now."""
-        # show_raw controls whether to serve raw camera or student-overridden frame
         if self._state.show_raw or self._state.camera_override is None:
-            return self._state.camera_frame or (_NO_CAMERA_FRAME or b"")
+            return self._state.camera_frame or b""
         return self._state.camera_override

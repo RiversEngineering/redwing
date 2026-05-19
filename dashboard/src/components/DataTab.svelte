@@ -116,7 +116,7 @@
         key:      `servo_${portId}`,
         label:    `${pl} servo`,
         unit:     '°',
-        getValue: () => +((portData.angle ?? 0) / 100).toFixed(1),
+        getValue: () => +(((portData.pulse_us ?? 1500) - 500) / 2000 * 300).toFixed(1),
       }];
     }
 
@@ -137,7 +137,7 @@
   const unsubState = robotState.subscribe((state) => {
     if (!state?.ports) return;
 
-    const ts = state.ts !== undefined ? state.ts / 1000 : Date.now() / 1000;
+    const ts = Date.now() / 1000;
 
     // 1. Append to shared timeline
     timeline.push(ts);

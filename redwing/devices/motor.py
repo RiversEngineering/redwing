@@ -8,9 +8,9 @@ class Motor:
 
     Example::
 
-        left = robot.port1.motor()
-        left.speed = 75    # 75% forward
-        left.speed = -50   # 50% reverse
+        left = robot.D0.motor()
+        left.set_speed(75)   # 75% forward
+        left.set_speed(-50)  # 50% reverse
         left.stop()
     """
 
@@ -31,12 +31,11 @@ class Motor:
 
     @property
     def speed(self) -> float:
-        """Motor speed as a percentage from -100 to 100."""
+        """Last commanded speed as a percentage from -100 to 100."""
         return self._speed
 
-    @speed.setter
-    def speed(self, value: float):
-        """Set motor speed. Negative values run the motor in reverse."""
+    def set_speed(self, value: float):
+        """Set motor speed as a percentage from -100 (full reverse) to 100 (full forward)."""
         self._check_started()
         value = max(-100.0, min(100.0, float(value)))
         if self._inverted:
@@ -56,17 +55,17 @@ class Motor:
 
     def stop(self):
         """Stop this motor immediately."""
-        self.speed = 0
+        self.set_speed(0)
 
     def attach_encoder(self, encoder):
         """Attach a quadrature encoder to enable closed-loop velocity control.
 
         Example::
 
-            left_motor = robot.port1.motor()
-            left_enc   = robot.port2.encoder()
+            left_motor = robot.D0.motor()
+            left_enc   = robot.D1.encoder()
             left_motor.attach_encoder(left_enc)
-            left_motor.velocity = 300   # ticks per second
+            left_motor.set_velocity(300)   # ticks per second
         """
         self._encoder = encoder
         self._conn.send_command(
@@ -85,9 +84,8 @@ class Motor:
             )
         return self._conn.get_port_state(self._id).get("target_velocity", 0.0)
 
-    @velocity.setter
-    def velocity(self, value: float):
-        """Set target velocity in encoder ticks per second."""
+    def set_velocity(self, value: float):
+        """Set target velocity in encoder ticks per second (closed-loop control)."""
         self._check_started()
         if self._encoder is None:
             raise RuntimeError(

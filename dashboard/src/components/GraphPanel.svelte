@@ -30,7 +30,7 @@
     if (!state?.ports) return;
 
     // ts field from daemon is integer ms (RP2040 uptime tick); fall back to wall clock
-    const nowSec = state.ts !== undefined ? state.ts / 1000 : Date.now() / 1000;
+    const nowSec = Date.now() / 1000;
 
     let listChanged = false;
 
@@ -52,10 +52,14 @@
         unit  = 'cm';
       } else if (type === 'motor_sm' || type === 'motor_lap' || type === 'motor_servo_signal') {
         key   = `motor_${portId}`;
-        // value is ±10000 = ±100%
         value = +((portData.value ?? 0) / 100).toFixed(1);
         label = `P${portId} motor`;
         unit  = '%';
+      } else if (type === 'servo') {
+        key   = `servo_${portId}`;
+        value = +(((portData.pulse_us ?? 1500) - 500) / 2000 * 300).toFixed(1);
+        label = `P${portId} servo`;
+        unit  = '°';
       } else {
         continue;
       }

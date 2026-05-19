@@ -51,7 +51,7 @@ static void handle_command(uint8_t type, const uint8_t *payload, uint8_t len) {
             const CmdConfigure *cmd = (const CmdConfigure *)payload;
             bool ok;
             if (cmd->port_type == PORT_UART) {
-                uint32_t baud = UART_DEFAULT_BAUD;
+                uint32_t baud = 0;  // 0 → port_configure_uart uses its default
                 if (len >= sizeof(CmdConfigureUart)) {
                     baud = ((const CmdConfigureUart *)payload)->baud;
                 }

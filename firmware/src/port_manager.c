@@ -17,7 +17,7 @@ PortState ports[PORT_COUNT_TOTAL];
 bool config_locked = false;
 
 // UART0 is wired to D7: GP12 = TX (pin A), GP13 = RX (pin B)
-#define UART_INSTANCE     uart0
+#define PM_UART_INST      uart0
 #define UART_PORT_ID      15u   // D7 — the dual port used for UART
 #define UART_DEFAULT_BAUD 115200u
 #define UART_RX_BUF_MAX   64u
@@ -130,6 +130,7 @@ bool port_configure(uint8_t id, uint8_t port_type) {
             break;
 
         case PORT_SERVO:
+            p->servo_pulse_us = 1500;  // start at midpoint
             servo_init(a, p->servo_min_us, p->servo_max_us);
             break;
 
@@ -185,7 +186,7 @@ bool port_configure_uart(uint32_t baud) {
     // Claim D7 (port 15): GP12 = UART0 TX (pin A), GP13 = UART0 RX (pin B)
     port_deinit(UART_PORT_ID);
 
-    uart_init(UART_INSTANCE, actual_baud);
+    uart_init(PM_UART_INST, actual_baud);
     gpio_set_function(DUAL_GPIO[7][0], GPIO_FUNC_UART);   // GP12 = TX
     gpio_set_function(DUAL_GPIO[7][1], GPIO_FUNC_UART);   // GP13 = RX
 
@@ -232,14 +233,14 @@ bool port_config_done(void) {
 
 void port_uart_tx(const uint8_t *data, uint8_t len) {
     if (ports[UART_PORT_ID].type != PORT_UART) return;
-    uart_write_blocking(UART_INSTANCE, data, len);
+    uart_write_blocking(PM_UART_INST, data, len);
 }
 
 uint8_t port_uart_rx(uint8_t *buf) {
     if (ports[UART_PORT_ID].type != PORT_UART) return 0;
     uint8_t n = 0;
-    while (n < UART_RX_BUF_MAX && uart_is_readable(UART_INSTANCE)) {
-        buf[n++] = (uint8_t)uart_getc(UART_INSTANCE);
+    while (n < UART_RX_BUF_MAX && uart_is_readable(PM_UART_INST)) {
+        buf[n++] = (uint8_t)uart_getc(PM_UART_INST);
     }
     return n;
 }
@@ -273,12 +274,12 @@ void port_set_motor(uint8_t id, int16_t value) {
     }
 }
 
-void port_set_servo(uint8_t id, uint16_t angle_cd) {
+void port_set_servo(uint8_t id, uint16_t pulse_us) {
     if (!valid_port(id)) return;
     PortState *p = &ports[id];
     if (p->type != PORT_SERVO) return;
-    p->servo_angle_cd = angle_cd;
-    servo_set(p->pin_a, angle_cd, p->servo_min_us, p->servo_max_us);
+    p->servo_pulse_us = pulse_us;
+    servo_set_raw_us(p->pin_a, pulse_us, 500, 2500);
 }
 
 void port_set_servo_range(uint8_t id, uint16_t min_us, uint16_t max_us) {
@@ -287,7 +288,7 @@ void port_set_servo_range(uint8_t id, uint16_t min_us, uint16_t max_us) {
     p->servo_min_us = min_us;
     p->servo_max_us = max_us;
     if (p->type == PORT_SERVO) {
-        servo_set(p->pin_a, p->servo_angle_cd, min_us, max_us);
+        servo_set_raw_us(p->pin_a, p->servo_pulse_us, min_us, max_us);
     }
 }
 
@@ -458,9 +459,9 @@ void port_send_state(void) {
                 break;
             }
             case PORT_SERVO: {
-                uint16_t a = p->servo_angle_cd;
-                buf[pos++] = (uint8_t)(a);
-                buf[pos++] = (uint8_t)(a >> 8);
+                uint16_t us = p->servo_pulse_us;
+                buf[pos++] = (uint8_t)(us);
+                buf[pos++] = (uint8_t)(us >> 8);
                 break;
             }
             case PORT_ENCODER: {

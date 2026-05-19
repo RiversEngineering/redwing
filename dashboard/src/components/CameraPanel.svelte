@@ -1,30 +1,5 @@
 <script>
-  import { connected } from '../lib/stores.js';
-
-  // Build camera URL from current host
-  const cameraUrl = `http://${location.host}/camera`;
-
-  let imgEl;
-  let imgError = false;
-
-  function handleError() {
-    imgError = true;
-  }
-
-  function handleLoad() {
-    imgError = false;
-  }
-
-  // When we reconnect, refresh the MJPEG src to re-establish the stream
-  $: if ($connected) {
-    imgError = false;
-    if (imgEl) {
-      // Force reload by toggling src
-      const src = cameraUrl;
-      imgEl.src = '';
-      requestAnimationFrame(() => { imgEl.src = src; });
-    }
-  }
+  import { connected, cameraFrame } from '../lib/stores.js';
 </script>
 
 <div class="flex flex-col h-full bg-[#1e2129] rounded-lg border border-[#2e3340] overflow-hidden">
@@ -36,44 +11,27 @@
       <circle cx="12.5" cy="5" r="1" fill="currentColor"/>
     </svg>
     <span class="text-xs font-semibold uppercase tracking-widest text-slate-400">Camera</span>
-    {#if $connected && !imgError}
+    {#if $connected && $cameraFrame}
       <span class="ml-auto text-[10px] text-emerald-400 font-mono">LIVE</span>
     {/if}
   </div>
 
   <!-- Video area -->
   <div class="relative flex-1 flex items-center justify-center bg-black overflow-hidden min-h-0">
-    {#if $connected}
-      <!-- MJPEG stream -->
+    {#if $connected && $cameraFrame}
       <img
-        bind:this={imgEl}
-        src={cameraUrl}
+        src="data:image/jpeg;base64,{$cameraFrame}"
         alt="Robot camera feed"
-        on:error={handleError}
-        on:load={handleLoad}
         class="w-full h-full object-contain"
-        class:hidden={imgError}
       />
-      {#if imgError}
-        <div class="flex flex-col items-center gap-2 text-slate-500">
-          <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="4" width="20" height="15" rx="2" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M8 19v2M16 19v2M5 21h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            <path d="M9 10l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <span class="text-sm">No camera signal</span>
-        </div>
-      {/if}
     {:else}
-      <!-- Disconnected placeholder -->
       <div class="flex flex-col items-center gap-3 text-slate-600">
         <svg class="w-12 h-12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="2" y="4" width="20" height="15" rx="2" stroke="currentColor" stroke-width="1.5"/>
           <path d="M8 19v2M16 19v2M5 21h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
-        <span class="text-sm font-medium">No camera</span>
-        <span class="text-xs text-slate-700">Waiting for connection…</span>
+        <span class="text-sm font-medium">{$connected ? 'No camera signal' : 'Waiting for connection…'}</span>
       </div>
     {/if}
   </div>
