@@ -5,8 +5,9 @@ set -e
 # a `git pull` + `docker compose restart code-server` picks up any changes
 # without needing a full image rebuild.
 if [ -f /opt/redwing/pyproject.toml ]; then
-    pip3 install --break-system-packages --no-cache-dir --quiet \
-        --force-reinstall --no-deps /opt/redwing
+    pip3 install --break-system-packages --no-cache-dir \
+        --force-reinstall --no-deps /opt/redwing \
+        || echo "WARNING: redwing library reinstall failed, using baked-in version"
 fi
 
 chown -R coder:coder /home/coder/project 2>/dev/null || true
