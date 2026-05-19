@@ -58,7 +58,10 @@
       padding: [6, 8, 0, 0],
       scales: {
         x: { time: true },
-        y: { auto: true },
+        y: {
+          auto: true,
+          range: (u, min, max) => min === max ? [min - 1, max + 1] : [min, max],
+        },
       },
       axes: [
         {
@@ -255,9 +258,7 @@
     {/if}
 
     <!-- uPlot container + empty-state overlay -->
-    <div class="flex-1 min-h-0 relative bg-[#0f1117]">
-      <div bind:this={containerEl} class="w-full h-full"></div>
-
+    <div bind:this={containerEl} class="flex-1 min-h-0 relative bg-[#0f1117] overflow-hidden">
       {#if selectedKeys.size === 0}
         <div class="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-700 pointer-events-none">
           <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
