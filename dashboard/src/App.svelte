@@ -67,29 +67,24 @@
     class="flex flex-1 min-h-0 gap-2 p-2"
     style="display: {activeTab === 'overview' ? 'flex' : 'none'}"
   >
-    <!-- Left column: Camera -->
-    <div class="flex flex-col w-64 flex-shrink-0 gap-2">
-      <CameraPanel />
+    <!-- Left column: camera + graph stacked, wider -->
+    <div class="w-80 flex-shrink-0 flex flex-col gap-2">
+      <div class="h-52 flex-shrink-0">
+        <CameraPanel />
+      </div>
+      <div class="flex-1 min-h-0">
+        <GraphPanel />
+      </div>
     </div>
 
-    <!-- Center + Right: port grid, graphs, console stacked -->
+    <!-- Right column: ports (natural height) + debug console (fills rest) -->
     <div class="flex flex-col flex-1 min-w-0 gap-2">
-
-      <!-- Upper row: ports and graphs side by side -->
-      <div class="flex flex-1 min-h-0 gap-2">
-        <div class="flex-1 min-w-0">
-          <PortGrid />
-        </div>
-        <div class="w-80 flex-shrink-0">
-          <GraphPanel />
-        </div>
+      <div class="flex-shrink-0">
+        <PortGrid />
       </div>
-
-      <!-- Debug console -->
-      <div class="h-48 flex-shrink-0">
+      <div class="flex-1 min-h-0">
         <DebugConsole />
       </div>
-
     </div>
   </div>
 

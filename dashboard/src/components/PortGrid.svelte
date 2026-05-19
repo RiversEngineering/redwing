@@ -7,7 +7,7 @@
   const DUAL_PORTS   = Array.from({ length: 8 }, (_, i) => ({ id: i + 8, label: `D${i}` }));
 </script>
 
-<div class="flex flex-col h-full bg-[#1e2129] rounded-lg border border-[#2e3340] overflow-hidden">
+<div class="flex flex-col bg-[#1e2129] rounded-lg border border-[#2e3340] overflow-hidden">
   <!-- Header -->
   <div class="flex items-center gap-2 px-3 py-2 border-b border-[#2e3340] flex-shrink-0">
     <svg class="w-4 h-4 text-slate-400" viewBox="0 0 16 16" fill="none">
@@ -40,7 +40,7 @@
   </div>
 
   <!-- Single-pin ports: single row of 10 -->
-  <div class="px-2 pt-2 pb-2 flex-1">
+  <div class="px-2 pt-2 pb-2">
     <div class="text-[9px] text-slate-600 uppercase tracking-widest mb-1 px-0.5">Single-pin</div>
     <div class="grid grid-cols-8 gap-1.5">
       {#each SINGLE_PORTS as p}
