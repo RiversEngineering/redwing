@@ -157,10 +157,21 @@
     const selected = getSelectedSeries();
     if (!selected.length) return;
     const data = buildData(selected);
-    console.log(`[DataGraph ${graphLabel}] updateData`, { timePoints: data[0].length, sampleY: data[1]?.[data[1].length - 1], canvasH: containerEl?.clientHeight });
     plot.setData(data);
     const now = nowSec || Date.now() / 1000;
     plot.setScale('x', { min: now - windowSec, max: now });
+    const nanCount = data[1] ? Array.from(data[1]).filter(v => isNaN(v)).length : -1;
+    console.log(`[DataGraph ${graphLabel}] updateData`, {
+      seriesInPlot: plot.series.length,
+      timePoints: data[0].length,
+      yFirst: data[1]?.[0],
+      yLast: data[1]?.[data[1].length - 1],
+      nanCount,
+      yScaleMin: plot.scales?.y?.min,
+      yScaleMax: plot.scales?.y?.max,
+      xScaleMin: plot.scales?.x?.min,
+      xScaleMax: plot.scales?.x?.max,
+    });
   }
 
   // New data arrived
