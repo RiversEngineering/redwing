@@ -373,11 +373,6 @@ void port_reset(void) {
     for (uint8_t i = 0; i < PORT_COUNT_TOTAL; i++) {
         if (IS_I2C_PORT(i)) continue;   // dedicated I2C always stays reserved
         PortState *p = &ports[i];
-        if (p->type == PORT_SERVO) {
-            // Don't touch servo type or angle — PWM stays active.
-            // Motor/encoder/GPIO fields are irrelevant for servos.
-            continue;
-        }
         port_deinit(i);   // clean up encoder PIO, ultrasonic, GPIO state
         p->type           = PORT_UNCONFIGURED;
         p->motor_value    = 0;
