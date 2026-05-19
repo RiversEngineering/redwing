@@ -32,6 +32,7 @@ services:
     restart: unless-stopped
     volumes:
       - student_workspace:/home/coder/project
+      - ..:/opt/redwing:ro
     environment:
       PASSWORD: "redwing"     # change per-robot in ansible vars
     network_mode: host   # listens on port 8080 (code-server default)
