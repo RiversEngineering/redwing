@@ -197,32 +197,59 @@ bool port_configure_uart(uint32_t baud) {
 
 // ─── Config finalisation and lock ─────────────────────────────────────────────
 
+// PWM frequency groups — ports in different groups cannot share a slice.
+// 0 = 50 Hz  (PORT_SERVO, PORT_MOTOR_SERVO)
+// 1 = 20 kHz (PORT_MOTOR_LAP, PORT_MOTOR_SM)
+static uint8_t pwm_freq_group(uint8_t type) {
+    return (type == PORT_MOTOR_LAP || type == PORT_MOTOR_SM) ? 1u : 0u;
+}
+
 bool port_config_done(void) {
     if (config_locked) return true;  // idempotent
 
-    // Build a map of which port owns each PWM slice.
-    // 0xFF = unowned; any other value = port index that claimed it.
-    uint8_t slice_owner[8];
+    // Per-slice: 0xFF = unowned; low nibble = freq group (0/1); high nibble = port index.
+    // Use separate arrays for clarity.
+    uint8_t slice_freq[8];   // freq group that claimed the slice
+    uint8_t slice_owner[8];  // port index that claimed the slice
+    memset(slice_freq,  0xFF, sizeof(slice_freq));
     memset(slice_owner, 0xFF, sizeof(slice_owner));
 
     for (uint8_t i = 0; i < PORT_COUNT_TOTAL; i++) {
-        if (!type_uses_pwm(ports[i].type)) continue;
+        PortState *p = &ports[i];
+        uint8_t pwm_gpio;
+        uint8_t freq;
 
-        // Check both pins (pin B may be NO_PIN for single-pin ports)
-        uint8_t pins[2] = { ports[i].pin_a, ports[i].pin_b };
-        uint8_t npin    = (ports[i].pin_b != NO_PIN) ? 2u : 1u;
-
-        for (uint8_t p = 0; p < npin; p++) {
-            uint8_t slice = gpio_to_pwm_slice(pins[p]);
-            if (slice_owner[slice] != 0xFF && slice_owner[slice] != i) {
-                char msg[40];
-                snprintf(msg, sizeof(msg), "PWM conflict P%u+P%u slice %u",
-                         (unsigned)slice_owner[slice], (unsigned)i, (unsigned)slice);
-                usb_comm_send_error(ERR_PORT_CONFLICT, msg);
-                return false;
-            }
-            slice_owner[slice] = i;
+        // Determine which GPIO actually carries PWM and its frequency group.
+        switch (p->type) {
+            case PORT_SERVO:
+            case PORT_MOTOR_SERVO:
+                pwm_gpio = p->pin_a;
+                freq     = 0;   // 50 Hz
+                break;
+            case PORT_MOTOR_LAP:
+                pwm_gpio = p->pin_a;
+                freq     = 1;   // 20 kHz
+                break;
+            case PORT_MOTOR_SM:
+                // pin_a is a direction GPIO, not PWM — only pin_b is the PWM speed pin.
+                if (p->pin_b == NO_PIN) continue;
+                pwm_gpio = p->pin_b;
+                freq     = 1;   // 20 kHz
+                break;
+            default:
+                continue;   // no PWM
         }
+
+        uint8_t slice = gpio_to_pwm_slice(pwm_gpio);
+        if (slice_freq[slice] != 0xFF && slice_freq[slice] != freq) {
+            char msg[40];
+            snprintf(msg, sizeof(msg), "PWM conflict P%u+P%u slice %u",
+                     (unsigned)slice_owner[slice], (unsigned)i, (unsigned)slice);
+            usb_comm_send_error(ERR_PORT_CONFLICT, msg);
+            return false;
+        }
+        slice_freq[slice]  = freq;
+        slice_owner[slice] = i;
     }
 
     config_locked = true;
