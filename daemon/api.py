@@ -61,6 +61,34 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
             elif cmd == "stop_all":
                 rp.enqueue(proto.cmd_stop_all())
 
+            elif cmd == "configure_port":
+                port = int(msg["port"])
+                port_type = str(msg["type"])
+                if port_type not in proto.PORT_TYPE_IDS:
+                    async with state.lock:
+                        state.add_log("error", f"[Dashboard] Unknown port type: {port_type!r}")
+                    return
+                async with state.lock:
+                    if state.config_finalized:
+                        state.add_log("warning", "[Dashboard] Cannot configure: student code locked the configuration. Reset ports first.")
+                        return
+                ok = await rp.configure_port(port, port_type)
+                async with state.lock:
+                    if ok:
+                        state.port_config[str(port)] = port_type
+                        state.ports.setdefault(str(port), {})["type"] = port_type
+                        state.add_log("info", f"[Dashboard] P{port} configured as {port_type}")
+                    else:
+                        state.add_log("error", f"[Dashboard] Failed to configure P{port} as {port_type}")
+
+            elif cmd == "reset_ports":
+                ok = await rp.reset()
+                async with state.lock:
+                    state.config_finalized = False
+                    state.port_config.clear()
+                    state.ports.clear()
+                    state.add_log("info", "[Dashboard] All ports reset")
+
             else:
                 log.warning(f"Unknown dashboard command: {cmd!r}")
         except (KeyError, ValueError, TypeError) as exc:

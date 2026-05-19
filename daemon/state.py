@@ -20,6 +20,7 @@ class SharedState:
 
         # Port configuration metadata (set by IPC handler on CONFIGURE)
         self.port_config: dict[str, str] = {}   # port_id → type string
+        self.config_finalized: bool = False      # True after CMD_CONFIG_DONE is ACKed
 
         # Encoder → motor attachment map (motor_port → encoder_port)
         self.encoder_map: dict[int, int] = {}
@@ -73,6 +74,7 @@ class SharedState:
             "ts": self.rp2040_ts,
             "uptime": round(self.uptime, 1),
             "ports": dict(self.ports),
+            "config_finalized": self.config_finalized,
         }
         if self.lidar_scan is not None:
             msg["lidar"] = self.lidar_scan

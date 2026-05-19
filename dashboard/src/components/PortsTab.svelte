@@ -5,7 +5,7 @@
    * Left column: compact clickable list of all port slots.
    * Right panel: context-sensitive controls (outputs) or readings (inputs).
    */
-  import { ports } from '../lib/stores.js';
+  import { ports, robotState } from '../lib/stores.js';
   import { send } from '../lib/ws.js';
 
   // ── Port directory ────────────────────────────────────────────────────────────
@@ -17,6 +17,35 @@
 
   $: selectedData = selectedId !== null ? $ports[selectedId] : null;
   $: selectedPort = selectedId !== null ? ALL_PORTS.find((p) => p.id === selectedId) : null;
+
+  // ── Config finalization status ────────────────────────────────────────────────
+  $: configFinalized = $robotState?.config_finalized ?? false;
+
+  // ── Port type definitions for the configure picker ────────────────────────────
+  const TYPE_DEFS = [
+    { id: 'motor_sm',           label: 'Motor',        sub: 'Sign-Magnitude',  group: 'Motor',  dualOnly: true,  d7Only: false },
+    { id: 'motor_lap',          label: 'Motor',        sub: 'Locked Anti-Phase', group: 'Motor', dualOnly: false, d7Only: false },
+    { id: 'motor_servo_signal', label: 'Motor',        sub: 'Servo Signal',    group: 'Motor',  dualOnly: false, d7Only: false },
+    { id: 'servo',              label: 'Servo',        sub: null,              group: 'Servo',  dualOnly: false, d7Only: false },
+    { id: 'encoder',            label: 'Encoder',      sub: null,              group: 'Sensor', dualOnly: true,  d7Only: false },
+    { id: 'ultrasonic',         label: 'Ultrasonic',   sub: null,              group: 'Sensor', dualOnly: true,  d7Only: false },
+    { id: 'gpio_in',            label: 'Digital In',   sub: null,              group: 'GPIO',   dualOnly: false, d7Only: false },
+    { id: 'gpio_out',           label: 'Digital Out',  sub: null,              group: 'GPIO',   dualOnly: false, d7Only: false },
+    { id: 'uart',               label: 'UART Serial',  sub: 'D7 only',         group: 'Bus',    dualOnly: true,  d7Only: true  },
+  ];
+
+  $: availableTypes = TYPE_DEFS.filter((t) => {
+    if (t.d7Only && selectedId !== 15) return false;
+    if (t.dualOnly && !(selectedPort?.dual)) return false;
+    return true;
+  });
+
+  // pendingType: the type the user has selected in the picker but not yet sent
+  let pendingType = null;
+  $: if (selectedId !== null) pendingType = null;  // clear when port changes
+
+  // reset confirmation state
+  let confirmReset = false;
 
   // ── Control state (local; does not track live RP2040 state) ──────────────────
   let motorSpeed = 0;   // -100..+100 (%)
@@ -101,6 +130,18 @@
   // ── Encoder commands ──────────────────────────────────────────────────────────
   function resetEncoder() {
     send({ cmd: 'reset_encoder', port: selectedId });
+  }
+
+  // ── Port configure / reset ────────────────────────────────────────────────────
+  function configurePort() {
+    if (!pendingType || selectedId === null) return;
+    send({ cmd: 'configure_port', port: selectedId, type: pendingType });
+    pendingType = null;
+  }
+
+  function doResetPorts() {
+    send({ cmd: 'reset_ports' });
+    confirmReset = false;
   }
 
   // ── Global ────────────────────────────────────────────────────────────────────
@@ -222,25 +263,102 @@
           <span class="text-sm text-slate-600 italic">not configured</span>
         {/if}
 
-        <!-- Stop All — always accessible -->
-        <button
-          class="ml-auto px-3 py-1 rounded text-xs font-semibold bg-red-600/20 text-red-400
-                 border border-red-600/30 hover:bg-red-600/40 transition-colors"
-          on:click={stopAll}
-        >
-          Stop All Motors
-        </button>
+        <!-- Reset / Stop All — always accessible -->
+        <div class="ml-auto flex items-center gap-2">
+          {#if confirmReset}
+            <span class="text-xs text-amber-400">Reset all ports?</span>
+            <button
+              class="px-3 py-1 rounded text-xs font-semibold bg-amber-600/20 text-amber-400
+                     border border-amber-600/40 hover:bg-amber-600/40 transition-colors"
+              on:click={doResetPorts}
+            >Confirm</button>
+            <button
+              class="px-3 py-1 rounded text-xs text-slate-500 border border-[#2e3340]
+                     hover:text-slate-300 transition-colors"
+              on:click={() => confirmReset = false}
+            >Cancel</button>
+          {:else}
+            <button
+              class="px-3 py-1 rounded text-xs font-semibold bg-slate-700/40 text-slate-400
+                     border border-[#2e3340] hover:bg-slate-600/40 hover:text-slate-300 transition-colors"
+              on:click={() => confirmReset = true}
+            >Reset All Ports</button>
+            <button
+              class="px-3 py-1 rounded text-xs font-semibold bg-red-600/20 text-red-400
+                     border border-red-600/30 hover:bg-red-600/40 transition-colors"
+              on:click={stopAll}
+            >Stop All Motors</button>
+          {/if}
+        </div>
       </div>
 
       <!-- Control body -->
       <div class="flex-1 overflow-y-auto p-6">
 
         {#if !selectedData}
-          <!-- Unconfigured -->
-          <div class="flex flex-col items-center justify-center h-full gap-2 text-slate-700">
-            <span class="text-sm">Port not configured</span>
-            <span class="text-xs">Configure it with robot.motor(), robot.servo(), etc. in your code.</span>
-          </div>
+          <!-- Unconfigured — show type picker or locked message -->
+          {#if configFinalized}
+            <div class="flex flex-col items-center justify-center h-full gap-3 text-slate-600">
+              <svg class="w-8 h-8 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                <rect x="5" y="11" width="14" height="10" rx="2"/>
+                <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+              </svg>
+              <p class="text-sm text-center">Configuration is locked by student code.</p>
+              <p class="text-xs text-slate-700 text-center">Click <strong class="text-slate-500">Reset All Ports</strong> in the header to start fresh.</p>
+            </div>
+          {:else}
+            <div class="max-w-md space-y-5">
+              <div>
+                <p class="text-sm font-semibold text-slate-300 mb-1">Choose a device type</p>
+                <p class="text-xs text-slate-600">
+                  {selectedPort?.dual ? 'Dual-pin port' : 'Single-pin port'} —
+                  {selectedPort?.dual ? 'all types available' : 'single-pin types only'}
+                </p>
+              </div>
+
+              <!-- Type cards grouped by category -->
+              {#each ['Motor', 'Servo', 'Sensor', 'GPIO', 'Bus'] as group}
+                {@const groupTypes = availableTypes.filter((t) => t.group === group)}
+                {#if groupTypes.length > 0}
+                  <div>
+                    <div class="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-1.5">{group}</div>
+                    <div class="flex flex-wrap gap-1.5">
+                      {#each groupTypes as t}
+                        <button
+                          class="flex flex-col items-start px-3 py-2 rounded-lg border transition-all text-left
+                                 {pendingType === t.id
+                                   ? 'bg-blue-600/20 border-blue-500/60 text-blue-300'
+                                   : 'bg-[#1e2129] border-[#2e3340] text-slate-400 hover:border-slate-500 hover:text-slate-300'}"
+                          on:click={() => pendingType = t.id}
+                        >
+                          <span class="text-xs font-semibold leading-tight">{t.label}</span>
+                          {#if t.sub}
+                            <span class="text-[10px] {pendingType === t.id ? 'text-blue-400/70' : 'text-slate-600'} leading-tight mt-0.5">{t.sub}</span>
+                          {/if}
+                        </button>
+                      {/each}
+                    </div>
+                  </div>
+                {/if}
+              {/each}
+
+              <!-- Configure button -->
+              <div class="pt-1">
+                <button
+                  disabled={!pendingType}
+                  class="px-5 py-2 rounded-lg text-sm font-semibold transition-all
+                         {pendingType
+                           ? 'bg-blue-600/30 border border-blue-500/50 text-blue-300 hover:bg-blue-600/50 cursor-pointer'
+                           : 'bg-[#1e2129] border border-[#2e3340] text-slate-700 cursor-not-allowed'}"
+                  on:click={configurePort}
+                >
+                  {pendingType
+                    ? `Configure ${selectedPort?.label} as ${TYPE_DEFS.find(t => t.id === pendingType)?.label}${TYPE_DEFS.find(t => t.id === pendingType)?.sub ? ' (' + TYPE_DEFS.find(t => t.id === pendingType)?.sub + ')' : ''}`
+                    : 'Select a type above'}
+                </button>
+              </div>
+            </div>
+          {/if}
 
         {:else if isMotor(selectedData.type)}
           <!-- ── Motor control ── -->

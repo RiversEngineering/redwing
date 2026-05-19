@@ -41,8 +41,6 @@ class IPCServer:
         self._pull.bind(f"tcp://*:{ZMQ_PULL_PORT}")
         self._rep.bind(f"tcp://*:{ZMQ_REP_PORT}")
 
-        self._config_finalized = False
-
         log.info(
             f"ZeroMQ: PUB={ZMQ_PUB_PORT}, PULL={ZMQ_PULL_PORT}, REP={ZMQ_REP_PORT}"
         )
@@ -172,16 +170,15 @@ class IPCServer:
         if port_type not in proto.PORT_TYPE_IDS:
             return {"ok": False, "error": f"Unknown port type '{port_type}'"}
 
-        if self._config_finalized:
-            return {
-                "ok": False,
-                "error": (
-                    "Cannot configure ports after robot.start(). "
-                    "Move all device setup calls above robot.start()."
-                ),
-            }
-
         async with self._state.lock:
+            if self._state.config_finalized:
+                return {
+                    "ok": False,
+                    "error": (
+                        "Cannot configure ports after robot.start(). "
+                        "Move all device setup calls above robot.start()."
+                    ),
+                }
             if str(port_id) in self._state.port_config:
                 existing = self._state.port_config[str(port_id)]
                 return {
@@ -203,11 +200,13 @@ class IPCServer:
         return {"ok": ok, "error": "" if ok else "RP2040 did not accept configuration"}
 
     async def _do_finalize(self) -> dict:
-        if self._config_finalized:
-            return {"ok": True}
+        async with self._state.lock:
+            if self._state.config_finalized:
+                return {"ok": True}
         ok = await self._rp.finalize_config()
         if ok:
-            self._config_finalized = True
+            async with self._state.lock:
+                self._state.config_finalized = True
         else:
             log.error(
                 "RP2040 rejected configuration — check for PWM slice conflicts."
@@ -222,9 +221,10 @@ class IPCServer:
 
     async def _do_reset(self) -> dict:
         ok = await self._rp.reset()
-        self._config_finalized = False
         async with self._state.lock:
+            self._state.config_finalized = False
             self._state.port_config.clear()
+            self._state.ports.clear()
         if not ok:
             log.warning("CMD_RESET timed out — RP2040 may not be connected yet")
         return {"ok": True}   # best-effort: always let the student program continue
