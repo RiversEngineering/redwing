@@ -92,10 +92,10 @@
         {},
         ...selected.map((s) => ({
           label: s.label,
-          stroke: s.color,
-          width: 1.5,
-          fill: `${s.color}12`,
-          points: { show: false },
+          stroke: 'lime',
+          width: 6,
+          fill: 'rgba(0,255,0,0.1)',
+          points: { show: true },
           spanGaps: false,
         })),
       ],
@@ -160,17 +160,19 @@
     plot.setData(data);
     const now = nowSec || Date.now() / 1000;
     plot.setScale('x', { min: now - windowSec, max: now });
-    const nanCount = data[1] ? Array.from(data[1]).filter(v => isNaN(v)).length : -1;
-    console.log(`[DataGraph ${graphLabel}] updateData`, {
-      seriesInPlot: plot.series.length,
-      timePoints: data[0].length,
-      yFirst: data[1]?.[0],
-      yLast: data[1]?.[data[1].length - 1],
-      nanCount,
+    const canvas = containerEl?.querySelector('canvas');
+    const rect = canvas?.getBoundingClientRect();
+    console.log(`[DataGraph ${graphLabel}] canvas`, {
+      attrW: canvas?.width,
+      attrH: canvas?.height,
+      cssW: canvas?.style?.width,
+      cssH: canvas?.style?.height,
+      rectTop: rect?.top?.toFixed(0),
+      rectLeft: rect?.left?.toFixed(0),
+      rectW: rect?.width?.toFixed(0),
+      rectH: rect?.height?.toFixed(0),
       yScaleMin: plot.scales?.y?.min,
       yScaleMax: plot.scales?.y?.max,
-      xScaleMin: plot.scales?.x?.min,
-      xScaleMax: plot.scales?.x?.max,
     });
   }
 
