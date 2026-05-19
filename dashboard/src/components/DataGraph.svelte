@@ -60,7 +60,10 @@
         x: { time: true },
         y: {
           auto: true,
-          range: (u, min, max) => min === max ? [min - 1, max + 1] : [min, max],
+          range: (u, min, max) => {
+            const pad = Math.max(1, (max - min) * 0.1) || 1;
+            return [min - pad, max + pad];
+          },
         },
       },
       axes: [
@@ -142,6 +145,7 @@
     const selected = getSelectedSeries();
     const { w, h } = getSize();
     const data = buildData(selected);
+    console.log(`[DataGraph ${graphLabel}] rebuildPlot`, { selectedCount: selected.length, w, h, timePoints: data[0].length, sampleY: data[1]?.[0] });
     plot = new uPlot(buildOpts(selected, w, h), data, containerEl);
 
     const now = nowSec || Date.now() / 1000;
@@ -153,6 +157,7 @@
     const selected = getSelectedSeries();
     if (!selected.length) return;
     const data = buildData(selected);
+    console.log(`[DataGraph ${graphLabel}] updateData`, { timePoints: data[0].length, sampleY: data[1]?.[data[1].length - 1], canvasH: containerEl?.clientHeight });
     plot.setData(data);
     const now = nowSec || Date.now() / 1000;
     plot.setScale('x', { min: now - windowSec, max: now });
@@ -274,6 +279,7 @@
 
 <style>
   :global(.uplot) {
+    display: block !important;
     width: 100% !important;
   }
 </style>
