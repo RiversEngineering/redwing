@@ -394,7 +394,7 @@
             </div>
 
             <!-- Quick presets -->
-            <div class="flex gap-2 flex-wrap">
+            <div class="flex gap-2">
               {#each [[-100, '−100%'], [-75, '−75%'], [-50, '−50%'], [-25, '−25%']] as [v, label]}
                 <button
                   class="px-3 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]

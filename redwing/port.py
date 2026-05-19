@@ -58,22 +58,25 @@ class Port:
     # Device factory methods
     # ------------------------------------------------------------------
 
-    def motor(self, type: str = "sign_magnitude") -> Motor:
+    def motor(self, type: str = None) -> Motor:
         """Configure this port as a motor output and return a Motor object.
 
         Parameters
         ----------
         type:
-            ``"sign_magnitude"`` (default) — two-wire direction + PWM signal.
-            ``"locked_antiphase"``          — single PWM wire, duty cycle sets direction.
-            ``"servo_signal"``              — RC servo PWM (for motor controllers
-                                             that accept a servo signal).
+            ``"sign_magnitude"`` (default on dual-pin ports) — two-wire direction + PWM.
+            ``"servo_signal"``   (default on single-pin ports) — RC servo PWM signal,
+                                  for motor controllers that accept a servo input.
+            ``"locked_antiphase"`` — single PWM wire, duty cycle sets direction.
 
         Example::
 
-            left = robot.port1.motor()                      # sign-magnitude
-            right = robot.port2.motor("locked_antiphase")   # LAP
+            left = robot.D0.motor()          # sign-magnitude (dual-pin default)
+            esc  = robot.S0.motor()          # servo signal (single-pin default)
+            right = robot.D1.motor("locked_antiphase")
         """
+        if type is None:
+            type = "servo_signal" if not self._dual else "sign_magnitude"
         type_map = {
             "sign_magnitude": "motor_sm",
             "sm":             "motor_sm",
