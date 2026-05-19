@@ -92,10 +92,10 @@
         {},
         ...selected.map((s) => ({
           label: s.label,
-          stroke: 'lime',
-          width: 6,
-          fill: 'rgba(0,255,0,0.1)',
-          points: { show: true },
+          stroke: s.color,
+          width: 1.5,
+          fill: `${s.color}12`,
+          points: { show: false },
           spanGaps: false,
         })),
       ],
@@ -145,7 +145,6 @@
     const selected = getSelectedSeries();
     const { w, h } = getSize();
     const data = buildData(selected);
-    console.log(`[DataGraph ${graphLabel}] rebuildPlot`, { selectedCount: selected.length, w, h, timePoints: data[0].length, sampleY: data[1]?.[0] });
     plot = new uPlot(buildOpts(selected, w, h), data, containerEl);
 
     const now = nowSec || Date.now() / 1000;
@@ -160,20 +159,6 @@
     plot.setData(data);
     const now = nowSec || Date.now() / 1000;
     plot.setScale('x', { min: now - windowSec, max: now });
-    const canvas = containerEl?.querySelector('canvas');
-    const rect = canvas?.getBoundingClientRect();
-    console.log(`[DataGraph ${graphLabel}] canvas`, {
-      attrW: canvas?.width,
-      attrH: canvas?.height,
-      cssW: canvas?.style?.width,
-      cssH: canvas?.style?.height,
-      rectTop: rect?.top?.toFixed(0),
-      rectLeft: rect?.left?.toFixed(0),
-      rectW: rect?.width?.toFixed(0),
-      rectH: rect?.height?.toFixed(0),
-      yScaleMin: plot.scales?.y?.min,
-      yScaleMax: plot.scales?.y?.max,
-    });
   }
 
   // New data arrived

@@ -2,8 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* uPlot base styles */
-@import 'uplot/dist/uPlot.min.css';
+/* uPlot base styles are imported via main.js to avoid PostCSS @import ordering issues */
 
 /* Reset / global dark defaults */
 *, *::before, *::after {
