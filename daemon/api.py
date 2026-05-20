@@ -157,11 +157,14 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
 
     async def _broadcast_logs():
         """Tail new log entries and push to all dashboard clients."""
-        sent_count = 0
+        sent_total = 0  # absolute count of log entries ever sent
         while True:
             async with state.lock:
-                new_entries = state.logs[sent_count:]
-                sent_count = len(state.logs)
+                total = state._log_total_count
+                trimmed = total - len(state.logs)  # entries dropped from front by trim
+                idx = max(0, sent_total - trimmed)  # our position in the current list
+                new_entries = state.logs[idx:]
+                sent_total = total
 
             if new_entries and ws_clients:
                 dead = set()

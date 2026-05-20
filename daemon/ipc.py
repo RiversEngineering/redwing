@@ -203,20 +203,22 @@ class IPCServer:
         async with self._state.lock:
             if self._state.config_finalized:
                 return {"ok": True}
-        ok = await self._rp.finalize_config()
+        try:
+            ok = await self._rp.finalize_config()
+        except asyncio.TimeoutError:
+            log.warning("finalize_config timed out — RP2040 not responding")
+            async with self._state.lock:
+                self._state.add_log(
+                    "warning",
+                    "[Daemon] RP2040 did not respond to CMD_CONFIG_DONE — "
+                    "check serial connection.",
+                )
+            return {"ok": False, "error": "RP2040 not responding"}
         if ok:
             async with self._state.lock:
                 self._state.config_finalized = True
         else:
-            log.error(
-                "RP2040 rejected configuration — check for PWM slice conflicts."
-            )
-            async with self._state.lock:
-                self._state.add_log(
-                    "error",
-                    "[Daemon] Port config rejected — check for PWM conflicts between "
-                    "motors and servos on the same PWM slice.",
-                )
+            log.error("RP2040 rejected configuration — PWM slice conflict (see dashboard log).")
         return {"ok": ok, "error": "" if ok else "RP2040 rejected configuration"}
 
     async def _do_reset(self) -> dict:
@@ -225,6 +227,7 @@ class IPCServer:
             self._state.config_finalized = False
             self._state.port_config.clear()
             self._state.ports.clear()
+            self._state.logs.clear()
         if not ok:
             log.warning("CMD_RESET timed out — RP2040 may not be connected yet")
         return {"ok": True}   # best-effort: always let the student program continue

@@ -136,8 +136,12 @@ class RP2040:
             self.enqueue(proto.cmd_configure(port_id, type_id))
         return True
 
-    async def finalize_config(self, timeout: float = 3.0) -> bool:
-        """Send CMD_CONFIG_DONE and wait for ACK or ERROR. Returns True on success."""
+    async def finalize_config(self, timeout: float = 2.0):
+        """Send CMD_CONFIG_DONE and wait for ACK or ERROR.
+
+        Returns True on success, False on conflict, or raises asyncio.TimeoutError
+        if the RP2040 does not respond within *timeout* seconds.
+        """
         loop = asyncio.get_running_loop()
         self._config_done_future = loop.create_future()
         self.enqueue(proto.cmd_config_done())
@@ -147,7 +151,7 @@ class RP2040:
             )
         except asyncio.TimeoutError:
             log.warning("CONFIG_DONE timed out — RP2040 may not be connected")
-            return False
+            raise
         finally:
             self._config_done_future = None
 

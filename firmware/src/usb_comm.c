@@ -82,9 +82,12 @@ static void rx_feed(uint8_t b) {
 }
 
 bool usb_comm_recv(uint8_t *out_type, uint8_t *out_payload, uint8_t *out_len) {
-    // Drain available USB bytes into the state machine
+    // Feed USB bytes one at a time, stopping once a complete packet is assembled.
+    // Multiple packets may arrive in a single USB transfer; stopping early keeps
+    // the remainder in the hardware FIFO so the next main-loop iteration picks
+    // them up, preventing subsequent packets from being silently discarded.
     int c;
-    while ((c = getchar_timeout_us(0)) != PICO_ERROR_TIMEOUT) {
+    while (!pkt_ready && (c = getchar_timeout_us(0)) != PICO_ERROR_TIMEOUT) {
         rx_feed((uint8_t)c);
     }
 

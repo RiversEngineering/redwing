@@ -443,6 +443,13 @@ void port_pid_update(void) {
             case PORT_MOTOR_LAP:
                 motor_lap_set(p->pin_a, cmd);
                 break;
+            case PORT_MOTOR_SERVO: {
+                uint16_t mid   = (p->servo_min_us + p->servo_max_us) / 2;
+                uint16_t range = (p->servo_max_us - p->servo_min_us) / 2;
+                int32_t  pulse = (int32_t)mid + ((int32_t)cmd * (int32_t)range) / 10000;
+                servo_set_raw_us(p->pin_a, (uint16_t)pulse, p->servo_min_us, p->servo_max_us);
+                break;
+            }
             default: break;
         }
     }

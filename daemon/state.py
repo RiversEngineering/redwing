@@ -44,6 +44,7 @@ class SharedState:
         # Log buffer for the dashboard (newest last)
         self.logs: list[dict] = []
         self._max_logs = 500
+        self._log_total_count = 0  # monotonically increasing; never reset by trim
 
     @property
     def uptime(self) -> float:
@@ -58,6 +59,7 @@ class SharedState:
             "ts": _time.time(),
         }
         self.logs.append(entry)
+        self._log_total_count += 1
         if len(self.logs) > self._max_logs:
             self.logs = self.logs[-self._max_logs:]
 

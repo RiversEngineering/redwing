@@ -98,6 +98,7 @@ class Connection:
 
     def finalize_config(self) -> bool:
         """Send CMD_CONFIG_DONE and wait for the RP2040 to validate the configuration."""
+        self._req.setsockopt(zmq.RCVTIMEO, 8000)
         try:
             self._req.send_json({"cmd": "finalize"})
             reply = self._req.recv_json()
@@ -105,6 +106,8 @@ class Connection:
             raise ConnectionError(
                 "Lost connection to the Redwing daemon during robot.start()."
             ) from e
+        finally:
+            self._req.setsockopt(zmq.RCVTIMEO, CONNECT_TIMEOUT_MS)
         return bool(reply.get("ok", False))
 
     def configure_port(self, port_id: int, port_type: str, **extra):
