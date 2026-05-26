@@ -5,6 +5,7 @@
 #include "devices/servo.h"
 #include "devices/encoder.h"
 #include "devices/ultrasonic.h"
+#include "devices/pio_pwm.h"
 #include "hardware/gpio.h"
 #include "hardware/uart.h"
 #include "pico/stdlib.h"
@@ -43,6 +44,9 @@ static void port_deinit(uint8_t id) {
     PortState *p = &ports[id];
     switch (p->type) {
         case PORT_MOTOR_SM:
+            motor_stop(p->type, p->pin_a, p->pin_b);
+            pio_pwm_stop(p->pin_b);  // no-op for non-PIO pins
+            break;
         case PORT_MOTOR_LAP:
         case PORT_MOTOR_SERVO:
             motor_stop(p->type, p->pin_a, p->pin_b);
@@ -231,8 +235,9 @@ bool port_config_done(void) {
                 freq     = 1;   // 20 kHz
                 break;
             case PORT_MOTOR_SM:
-                // pin_a is a direction GPIO, not PWM — only pin_b is the PWM speed pin.
+                // pin_a is direction GPIO; pin_b carries PWM.
                 if (p->pin_b == NO_PIN) continue;
+                if (pio_pwm_pin(p->pin_b)) continue;  // PIO-managed: no hw slice conflict
                 pwm_gpio = p->pin_b;
                 freq     = 1;   // 20 kHz
                 break;

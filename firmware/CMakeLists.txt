@@ -19,7 +19,11 @@ add_executable(redwing
     src/devices/servo.c
     src/devices/encoder.c
     src/devices/ultrasonic.c
+    src/devices/pio_pwm.c
 )
+
+# Generate C header from PIO assembly
+pico_generate_pio_header(redwing ${CMAKE_CURRENT_LIST_DIR}/src/devices/pio_pwm.pio)
 
 target_include_directories(redwing PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/src
@@ -32,6 +36,7 @@ pico_enable_stdio_uart(redwing 0)
 target_link_libraries(redwing
     pico_stdlib
     hardware_pwm
+    hardware_pio
     hardware_gpio
     hardware_i2c
     hardware_uart

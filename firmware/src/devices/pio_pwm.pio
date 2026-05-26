@@ -1,0 +1,25 @@
+;
+; PIO PWM — ~20 kHz output, non-blocking duty update via TX FIFO.
+;
+; ISR must be preloaded with PIO_PWM_WRAP (2082) before enabling the SM.
+;
+; TX FIFO input: duty threshold.
+;   0             → full ON  (100 %)
+;   PIO_PWM_WRAP  → 1 cycle HIGH per period (≈ 0.05 %)
+;   PIO_PWM_WRAP+1→ full OFF (0 %)
+;
+; Period = 3 (setup) + 3×(PIO_PWM_WRAP+1) = 6252 cycles @125 MHz → 19993 Hz ≈ 20 kHz
+;
+.program pio_pwm
+.side_set 1 opt
+
+    pull noblock    side 0   ; load new duty (keep last if empty); drive LOW
+    mov x, osr               ; x = duty threshold
+    mov y, isr               ; y = period countdown (PIO_PWM_WRAP)
+countloop:
+    jmp x!=y noset           ; if counter != threshold, stay LOW
+    jmp skip        side 1   ; at threshold: drive HIGH for remainder of period
+noset:
+    nop                      ; cycle balance — 3 cycles per iteration either path
+skip:
+    jmp y-- countloop        ; decrement period, loop

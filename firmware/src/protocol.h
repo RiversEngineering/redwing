@@ -73,18 +73,25 @@
 //   SINGLE_GPIO[n]    = GPIO pin for single-pin port Sn
 //   DUAL_GPIO[n][0/1] = GPIO pins A / B for dual-pin port Dn
 //
-// PWM partition (motor-servo conflicts):
-//   Servos (50 Hz): S0–S4 on slices 0,0,1,1,3 (safe for servo)
-//   S5–S7 (GP26/27/28) are ADC pins on slices 5A/5B/6A — NOT servo-capable;
-//   those slices are used by motor B pins on D2/D3/D7. Configure as GPIO/ADC only.
-//   Motors (20 kHz): all dual-port B pins use slices 4–7
+// PWM partition:
+//   S ports (50 Hz servos / motors): S0–S7 all servo-capable.
+//     S0–S4 use hardware PWM (slices 0A,0B,1A,1B,3A).
+//     S5–S7 (GP26/27/28, also ADC0–2) use hardware PWM (slices 5A,5B,6A) — safe
+//     because the D-port B-pins that formerly shared those slices now use PIO PWM.
+//   D ports (20 kHz SM motors): B-pins use either hardware PWM or PIO PWM:
+//     D0-B (GP8,  slice 4A) — hardware PWM
+//     D1-B (GP9,  slice 4B) — hardware PWM
+//     D2-B (GP10, slice 5A) — PIO PWM  (would conflict with S5 on slice 5A)
+//     D3-B (GP11, slice 5B) — PIO PWM  (would conflict with S6 on slice 5B)
+//     D4-B (GP15, slice 7B) — hardware PWM
+//     D5-B (GP14, slice 7A) — hardware PWM
+//     D6-B (GP25, slice 4B) — PIO PWM  (same channel as D1-B GP9)
+//     D7-B (GP13, slice 6B) — PIO PWM  (same slice as S7 GP28 on 6A)
 //
 // Special functions:
 //   I2C port (GP4/GP5)  — dedicated I2C0 SDA/SCL; always PORT_I2C, not reconfigurable
 //   D7 (GP12/GP13)      — also UART0 TX/RX; both pins reserved when PORT_UART configured
-//   D6 (GP24/GP25)      — also UART1 TX/RX; consecutive pins, PIO encoder works natively.
-//                         When D6 is a motor, B pin (GP25) uses PIO PWM because GP25 shares
-//                         PWM slice 4B with D1-B (GP9). Costs 1 PIO state machine.
+//   D6 (GP24/GP25)      — also UART1 TX/RX
 //   ADC-capable singles: S5=GP26 (ADC0), S6=GP27 (ADC1), S7=GP28 (ADC2)
 
 static const uint8_t SINGLE_GPIO[PORT_COUNT_SINGLE] = {
@@ -93,9 +100,9 @@ static const uint8_t SINGLE_GPIO[PORT_COUNT_SINGLE] = {
     2,   // S2 = GP2  (PWM slice 1A — servo-capable)
     3,   // S3 = GP3  (PWM slice 1B — servo-capable)
     6,   // S4 = GP6  (PWM slice 3A — servo-capable)
-    26,  // S5 = GP26 (ADC0, PWM slice 5A — GPIO/ADC only, NOT servo-capable)
-    27,  // S6 = GP27 (ADC1, PWM slice 5B — GPIO/ADC only, NOT servo-capable)
-    28,  // S7 = GP28 (ADC2, PWM slice 6A — GPIO/ADC only, NOT servo-capable)
+    26,  // S5 = GP26 (ADC0, PWM slice 5A — servo-capable; D2-B moved to PIO)
+    27,  // S6 = GP27 (ADC1, PWM slice 5B — servo-capable; D3-B moved to PIO)
+    28,  // S7 = GP28 (ADC2, PWM slice 6A — servo-capable; D7-B moved to PIO)
 };
 
 // [n][0] = pin A (direction / UART TX),  [n][1] = pin B (speed PWM / UART RX)
