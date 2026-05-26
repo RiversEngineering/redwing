@@ -1,3 +1,5 @@
+name: redwing
+
 services:
   daemon:
     image: ghcr.io/riversengineering/redwing:latest

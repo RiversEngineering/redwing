@@ -71,10 +71,10 @@
           - "--exclude=dashboard/node_modules"
           - "--exclude=dashboard/dist"
 
-    - name: Pull and build Docker images
+    - name: Build Docker images from synced source
       community.docker.docker_compose_v2:
         project_src: /opt/redwing/docker
-        pull: always
+        pull: missing
         build: true
         state: present
 
