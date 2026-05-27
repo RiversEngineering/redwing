@@ -23,6 +23,7 @@ import uvicorn
 from .api import create_app
 from .camera import CameraCapture
 from .config import WEB_HOST, WEB_PORT, SERIAL_PORT, LIDAR_PORT
+from .gamepad_reader import gamepad_reader_task
 from .ipc import IPCServer
 from .lidar import LidarCapture
 from .rp2040 import RP2040
@@ -60,7 +61,7 @@ async def main():
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, lambda: asyncio.create_task(_shutdown(server, rp)))
 
-    tasks = [rp.run(), ipc.run(), camera.run(), server.serve()]
+    tasks = [rp.run(), ipc.run(), camera.run(), server.serve(), gamepad_reader_task(state)]
     if LIDAR_PORT:
         tasks.append(LidarCapture(state, LIDAR_PORT).run())
 

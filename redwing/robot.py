@@ -9,6 +9,7 @@ from .connection import Connection
 from .port import Port
 from .devices.camera import Camera
 from .devices.encoder import Encoder
+from .devices.gamepad import Gamepad
 from .devices.gpio import DigitalInput, DigitalOutput
 from .devices.motor import Motor
 from .devices.servo import Servo
@@ -49,9 +50,8 @@ class Robot:
                 right.speed = 60
 
     **Single-pin ports S0–S7** (one wire):
-        S0–S4: servos, digital I/O, locked-antiphase motors (PWM slices 0,0,1,1,3).
-        S5–S7 (GP26/ADC0, GP27/ADC1, GP28/ADC2): digital I/O and analog input only.
-        S5–S7 cannot be servos — their PWM slices conflict with motor ports D2/D3/D7.
+        All S ports are servo-capable (50 Hz hardware PWM).
+        S5–S7 (GP26/ADC0, GP27/ADC1, GP28/ADC2) are also ADC-capable.
 
     **Dual-pin ports D0–D7** (two wires, labeled A and B):
         Sign-magnitude motors, quadrature encoders, ultrasonic sensors.
@@ -80,6 +80,7 @@ class Robot:
         for i in _DUAL_IDS:
             self._ports[i] = Port(i, self._conn, dual_pin=True)
         self._camera = Camera(self._conn)
+        self._gamepad = Gamepad(self._conn)
         self._uart: UartBus | None = None
         self._lidar: Lidar | None = None
         self._started = False
@@ -119,17 +120,17 @@ class Robot:
 
     @property
     def S5(self) -> Port:
-        """Single-pin port S5 (GP26 — ADC0). GPIO and analog input only. Not servo-capable."""
+        """Single-pin port S5 (GP26 — ADC0). PWM slice 5A — servo-capable."""
         return self._ports[5]
 
     @property
     def S6(self) -> Port:
-        """Single-pin port S6 (GP27 — ADC1). GPIO and analog input only. Not servo-capable."""
+        """Single-pin port S6 (GP27 — ADC1). PWM slice 5B — servo-capable."""
         return self._ports[6]
 
     @property
     def S7(self) -> Port:
-        """Single-pin port S7 (GP28 — ADC2). GPIO and analog input only. Not servo-capable."""
+        """Single-pin port S7 (GP28 — ADC2). PWM slice 6A — servo-capable."""
         return self._ports[7]
 
     # ------------------------------------------------------------------
@@ -196,6 +197,23 @@ class Robot:
         """
         return self._camera
 
+    @property
+    def gamepad(self) -> Gamepad:
+        """Access the gamepad controller.
+
+        Works with the virtual controller on the iPad dashboard tab **and**
+        with a physical USB/wireless gamepad (e.g. GameSir Nova Lite)
+        connected to the Pi — no code change needed to switch between them.
+
+        Example::
+
+            while True:
+                left.speed  = robot.gamepad.left_y * 100
+                right.speed = robot.gamepad.left_y * 100
+                robot.sleep(0.02)
+        """
+        return self._gamepad
+
     # ------------------------------------------------------------------
     # Device factory methods — call these during setup, before start()
     # ------------------------------------------------------------------
@@ -260,13 +278,6 @@ class Robot:
             arm.angle = 90
         """
         self._check_not_started("configure a servo")
-        if port._id in (5, 6, 7):
-            names = {5: "S5 (GP26/ADC0)", 6: "S6 (GP27/ADC1)", 7: "S7 (GP28/ADC2)"}
-            raise ValueError(
-                f"{names[port._id]} cannot be used as a servo. "
-                "S5/S6/S7 are ADC pins whose PWM slices conflict with motor ports D2/D3/D7. "
-                "Use S0–S4 for servos, or use this port as digital_input/digital_output."
-            )
         port._configure("servo")
         device = Servo(port._id, self._conn, robot=self)
         port._device = device

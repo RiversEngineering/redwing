@@ -89,6 +89,24 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
                     state.ports.clear()
                     state.add_log("info", "[Dashboard] All ports reset")
 
+            elif cmd == "gamepad":
+                async with state.lock:
+                    gp = state.gamepad
+                    gp.lx = max(-1.0, min(1.0, float(msg.get("lx", 0.0))))
+                    gp.ly = max(-1.0, min(1.0, float(msg.get("ly", 0.0))))
+                    gp.rx = max(-1.0, min(1.0, float(msg.get("rx", 0.0))))
+                    gp.ry = max(-1.0, min(1.0, float(msg.get("ry", 0.0))))
+                    gp.a     = bool(msg.get("a",     False))
+                    gp.b     = bool(msg.get("b",     False))
+                    gp.x     = bool(msg.get("x",     False))
+                    gp.y     = bool(msg.get("y",     False))
+                    gp.up    = bool(msg.get("up",    False))
+                    gp.down  = bool(msg.get("down",  False))
+                    gp.left  = bool(msg.get("left",  False))
+                    gp.right = bool(msg.get("right", False))
+                    gp.connected = True
+                    gp.source = "virtual"
+
             else:
                 log.warning(f"Unknown dashboard command: {cmd!r}")
         except (KeyError, ValueError, TypeError) as exc:

@@ -1,17 +1,39 @@
 <script>
-  import { onDestroy } from 'svelte';
-  import { subscribe, onStatus } from './lib/ws.js';
+  import { onDestroy, onMount } from 'svelte';
+  import { subscribe, onStatus, send } from './lib/ws.js';
   import { connected, robotState, pushLog, cameraFrame } from './lib/stores.js';
 
-  import TopBar      from './components/TopBar.svelte';
-  import CameraPanel from './components/CameraPanel.svelte';
-  import PortGrid    from './components/PortGrid.svelte';
-  import GraphPanel  from './components/GraphPanel.svelte';
-  import DebugConsole from './components/DebugConsole.svelte';
-  import DataTab     from './components/DataTab.svelte';
-  import PortsTab    from './components/PortsTab.svelte';
+  import TopBar        from './components/TopBar.svelte';
+  import CameraPanel   from './components/CameraPanel.svelte';
+  import PortGrid      from './components/PortGrid.svelte';
+  import GraphPanel    from './components/GraphPanel.svelte';
+  import DebugConsole  from './components/DebugConsole.svelte';
+  import DataTab       from './components/DataTab.svelte';
+  import PortsTab      from './components/PortsTab.svelte';
+  import ControllerTab from './components/ControllerTab.svelte';
 
   let activeTab = 'overview';
+  let showController = false;
+
+  onMount(() => {
+    // Show the Controller tab on iPad (any iOS/iPadOS touch tablet).
+    // iPadOS 13+ may report as "MacIntel" with maxTouchPoints > 1.
+    showController =
+      /iPad/.test(navigator.userAgent) ||
+      (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+  });
+
+  // When navigating away from the controller tab, zero out gamepad state
+  // so the robot doesn't keep moving if the student switches tabs.
+  function setTab(id) {
+    if (activeTab === 'controller' && id !== 'controller') {
+      send({ cmd: 'gamepad',
+             lx: 0, ly: 0, rx: 0, ry: 0,
+             a: false, b: false, x: false, y: false,
+             up: false, down: false, left: false, right: false });
+    }
+    activeTab = id;
+  }
 
   // Sync connection status into the store
   const unsubStatus = onStatus((v) => connected.set(v));
@@ -32,11 +54,15 @@
     unsubWs();
   });
 
-  const TABS = [
+  const BASE_TABS = [
     { id: 'overview', label: 'Overview' },
     { id: 'ports',    label: 'Ports' },
     { id: 'data',     label: 'Data' },
   ];
+
+  $: tabs = showController
+    ? [...BASE_TABS, { id: 'controller', label: 'Controller' }]
+    : BASE_TABS;
 </script>
 
 <div class="flex flex-col h-screen bg-[#161920] text-slate-200 overflow-hidden">
@@ -46,14 +72,14 @@
 
   <!-- Tab bar -->
   <div class="flex items-end gap-0 px-2 border-b border-[#2e3340] bg-[#1a1d26] flex-shrink-0">
-    {#each TABS as tab}
+    {#each tabs as tab}
       <button
         class="px-4 py-2 text-xs font-semibold uppercase tracking-widest transition-colors
                border-b-2 -mb-px
                {activeTab === tab.id
                  ? 'border-blue-500 text-blue-400 bg-[#161920]'
                  : 'border-transparent text-slate-500 hover:text-slate-300 hover:border-slate-600'}"
-        on:click={() => (activeTab = tab.id)}
+        on:click={() => setTab(tab.id)}
       >
         {tab.label}
       </button>
@@ -103,5 +129,15 @@
   >
     <DataTab />
   </div>
+
+  <!-- Controller tab (iPad only) -->
+  {#if showController}
+    <div
+      class="flex-1 min-h-0 overflow-hidden"
+      style="display: {activeTab === 'controller' ? 'flex' : 'none'}; flex-direction: column;"
+    >
+      <ControllerTab />
+    </div>
+  {/if}
 
 </div>

@@ -9,6 +9,53 @@ import time
 from typing import Any
 
 
+class GamepadState:
+    """Mutable gamepad snapshot updated by the virtual controller (WebSocket)
+    and the physical controller reader (evdev). Last write wins."""
+
+    __slots__ = (
+        "lx", "ly", "rx", "ry",
+        "a", "b", "x", "y",
+        "up", "down", "left", "right",
+        "connected", "source",
+    )
+
+    def __init__(self):
+        self.lx: float = 0.0
+        self.ly: float = 0.0
+        self.rx: float = 0.0
+        self.ry: float = 0.0
+        self.a: bool = False
+        self.b: bool = False
+        self.x: bool = False
+        self.y: bool = False
+        self.up: bool = False
+        self.down: bool = False
+        self.left: bool = False
+        self.right: bool = False
+        self.connected: bool = False
+        self.source: str = "none"   # "virtual", "physical", or "none"
+
+    def to_dict(self) -> dict:
+        return {
+            "lx": self.lx, "ly": self.ly,
+            "rx": self.rx, "ry": self.ry,
+            "a": self.a, "b": self.b,
+            "x": self.x, "y": self.y,
+            "up": self.up, "down": self.down,
+            "left": self.left, "right": self.right,
+            "connected": self.connected,
+            "source": self.source,
+        }
+
+    def reset(self):
+        self.lx = self.ly = self.rx = self.ry = 0.0
+        self.a = self.b = self.x = self.y = False
+        self.up = self.down = self.left = self.right = False
+        self.connected = False
+        self.source = "none"
+
+
 class SharedState:
     def __init__(self):
         self.lock = asyncio.Lock()
@@ -40,6 +87,9 @@ class SharedState:
         # If student called camera_show(frame), this holds the override frame
         self.camera_override: bytes | None = None
         self.show_raw: bool = True   # True = show live feed; False = show override
+
+        # Gamepad input (virtual iPad controller or physical USB controller)
+        self.gamepad = GamepadState()
 
         # Log buffer for the dashboard (newest last)
         self.logs: list[dict] = []
@@ -80,4 +130,5 @@ class SharedState:
         }
         if self.lidar_scan is not None:
             msg["lidar"] = self.lidar_scan
+        msg["gamepad"] = self.gamepad.to_dict()
         return msg

@@ -32,7 +32,8 @@ RUN pip install --no-cache-dir \
     "pyserial-asyncio>=0.6" \
     "numpy>=1.24" \
     "opencv-python-headless>=4.8" \
-    "websockets>=12.0"
+    "websockets>=12.0" \
+    "evdev>=1.6"
 
 # Install the redwing library itself
 COPY redwing/ ./redwing/
