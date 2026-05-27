@@ -35,6 +35,7 @@ class IPCServer:
 
         self._pub  = self._ctx.socket(zmq.PUB)
         self._pull = self._ctx.socket(zmq.PULL)
+        self._pull.setsockopt(zmq.RCVHWM, 4)  # match library SNDHWM; discard excess commands
         self._rep  = self._ctx.socket(zmq.REP)
 
         self._pub.bind(f"tcp://*:{ZMQ_PUB_PORT}")
