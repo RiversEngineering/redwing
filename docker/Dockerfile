@@ -12,12 +12,14 @@ RUN npm run build
 # ---- Stage 2: Runtime image ----
 FROM python:3.11-slim
 
-# System deps for OpenCV + serial
+# System deps for OpenCV + serial + evdev (evdev needs linux headers + gcc to build from source)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
     libgomp1 \
     udev \
+    gcc \
+    linux-libc-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -33,7 +35,7 @@ RUN pip install --no-cache-dir \
     "numpy>=1.24" \
     "opencv-python-headless>=4.8" \
     "websockets>=12.0" \
-    "evdev-binary"
+    "evdev>=1.6"
 
 # Install the redwing library itself
 COPY redwing/ ./redwing/
