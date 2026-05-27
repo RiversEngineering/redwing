@@ -66,7 +66,7 @@
 <div class="flex h-full bg-[#161920] text-slate-200 overflow-hidden select-none">
 
   <!-- ── Left column: D-pad (top) + left joystick (bottom) ── -->
-  <div class="flex flex-col items-center justify-between py-6 px-4 gap-4"
+  <div class="flex flex-col items-center justify-center py-6 px-4 gap-6"
        style="width: 220px; flex-shrink: 0;">
     <div class="flex flex-col items-center gap-2">
       <span class="text-[10px] text-slate-500 uppercase tracking-widest">D-Pad</span>
@@ -110,7 +110,7 @@
   </div>
 
   <!-- ── Right column: ABXY (top) + right joystick (bottom) ── -->
-  <div class="flex flex-col items-center justify-between py-6 px-4 gap-4"
+  <div class="flex flex-col items-center justify-center py-6 px-4 gap-6"
        style="width: 220px; flex-shrink: 0;">
     <div class="flex flex-col items-center gap-2">
       <span class="text-[10px] text-slate-500 uppercase tracking-widest">Buttons</span>
