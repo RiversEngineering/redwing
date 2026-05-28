@@ -24,7 +24,7 @@ class Connection:
         self._sub.setsockopt(zmq.RCVTIMEO, 100)
 
         self._push = self._ctx.socket(zmq.PUSH)
-        self._push.setsockopt(zmq.SNDHWM, 4)  # drop commands if backlogged; prevents stale queue lag
+        self._push.setsockopt(zmq.SNDHWM, 20)  # allow bursts of ~20 cmds/loop; max lag ≈ 4 ms
         self._push.connect(f"tcp://{host}:{CMD_PORT}")
 
         self._req = self._ctx.socket(zmq.REQ)
