@@ -147,7 +147,7 @@
 <div class="flex h-full bg-[#161920] text-slate-200 overflow-hidden select-none">
 
   <!-- ── Left column: L Shoulder / Left Stick / D-Pad ── -->
-  <div class="flex flex-col items-center justify-between py-5 px-4"
+  <div class="flex flex-col items-center justify-start gap-6 pt-5 px-4"
        style="width: 200px; flex-shrink: 0;"
        style:opacity={usingPhysical ? 0.4 : 1}>
 
@@ -208,7 +208,7 @@
   </div>
 
   <!-- ── Right column: R Shoulder / Right Stick / ABXY ── -->
-  <div class="flex flex-col items-center justify-between py-5 px-4"
+  <div class="flex flex-col items-center justify-start gap-6 pt-5 px-4"
        style="width: 200px; flex-shrink: 0;"
        style:opacity={usingPhysical ? 0.4 : 1}>
 
