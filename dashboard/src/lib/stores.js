@@ -6,6 +6,16 @@
 
 import { writable, derived } from 'svelte/store';
 
+// ── Navigation ────────────────────────────────────────────────────────────────
+/** Currently active tab id. */
+export const activeTab = writable('overview');
+
+/**
+ * Port id to auto-select when the Ports tab opens.
+ * Set by PortGrid when a user clicks a port card; consumed by PortsTab.
+ */
+export const selectedPortId = writable(null);
+
 // ── Connection ────────────────────────────────────────────────────────────────
 /** @type {import('svelte/store').Writable<boolean>} */
 export const connected = writable(false);

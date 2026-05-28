@@ -1,7 +1,7 @@
 <script>
   import { onDestroy } from 'svelte';
   import { subscribe, onStatus, send } from './lib/ws.js';
-  import { connected, robotState, pushLog, cameraFrame } from './lib/stores.js';
+  import { connected, robotState, pushLog, cameraFrame, activeTab } from './lib/stores.js';
 
   import TopBar        from './components/TopBar.svelte';
   import CameraPanel   from './components/CameraPanel.svelte';
@@ -12,19 +12,17 @@
   import PortsTab      from './components/PortsTab.svelte';
   import ControllerTab from './components/ControllerTab.svelte';
 
-  let activeTab = 'overview';
-
   // When navigating away from the controller tab, zero out gamepad state.
   // ControllerTab's onDestroy also sends zero, but this fires first.
   function setTab(id) {
-    if (activeTab === 'controller' && id !== 'controller') {
+    if ($$activeTab === 'controller' && id !== 'controller') {
       send({ cmd: 'gamepad',
              lx: 0, ly: 0, rx: 0, ry: 0,
              a: false, b: false, x: false, y: false,
              up: false, down: false, left: false, right: false,
              lb: false, rb: false, lt: 0, rt: 0 });
     }
-    activeTab = id;
+    $activeTab = id;
   }
 
   // Sync connection status into the store
@@ -65,7 +63,7 @@
       <button
         class="px-4 py-2 text-xs font-semibold uppercase tracking-widest transition-colors
                border-b-2 -mb-px
-               {activeTab === tab.id
+               {$activeTab === tab.id
                  ? 'border-blue-500 text-blue-400 bg-[#161920]'
                  : 'border-transparent text-slate-500 hover:text-slate-300 hover:border-slate-600'}"
         on:click={() => setTab(tab.id)}
@@ -80,7 +78,7 @@
   <!-- Overview tab -->
   <div
     class="flex flex-1 min-h-0 gap-2 p-2"
-    style="display: {activeTab === 'overview' ? 'flex' : 'none'}"
+    style="display: {$activeTab === 'overview' ? 'flex' : 'none'}"
   >
     <!-- Left column: camera + graph stacked, wider -->
     <div class="w-80 flex-shrink-0 flex flex-col gap-2">
@@ -106,7 +104,7 @@
   <!-- Ports tab -->
   <div
     class="flex-1 min-h-0 overflow-hidden"
-    style="display: {activeTab === 'ports' ? 'flex' : 'none'}; flex-direction: column;"
+    style="display: {$activeTab === 'ports' ? 'flex' : 'none'}; flex-direction: column;"
   >
     <PortsTab />
   </div>
@@ -114,13 +112,13 @@
   <!-- Data tab -->
   <div
     class="flex-1 min-h-0 overflow-hidden"
-    style="display: {activeTab === 'data' ? 'flex' : 'none'}; flex-direction: column;"
+    style="display: {$activeTab === 'data' ? 'flex' : 'none'}; flex-direction: column;"
   >
     <DataTab />
   </div>
 
   <!-- Controller tab — mounted only while active so onDestroy zeroes gamepad on switch -->
-  {#if activeTab === 'controller'}
+  {#if $activeTab === 'controller'}
     <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
       <ControllerTab />
     </div>

@@ -5,7 +5,7 @@
    * Left column: compact clickable list of all port slots.
    * Right panel: context-sensitive controls (outputs) or readings (inputs).
    */
-  import { ports, robotState } from '../lib/stores.js';
+  import { ports, robotState, selectedPortId } from '../lib/stores.js';
   import { send } from '../lib/ws.js';
 
   // ── Port directory ────────────────────────────────────────────────────────────
@@ -18,25 +18,36 @@
   $: selectedData = selectedId !== null ? $ports[selectedId] : null;
   $: selectedPort = selectedId !== null ? ALL_PORTS.find((p) => p.id === selectedId) : null;
 
+  // Auto-select a port when navigating here from the overview port grid.
+  let _lastHandled = null;
+  $: if ($selectedPortId !== null && $selectedPortId !== _lastHandled) {
+    _lastHandled = $selectedPortId;
+    selectPort($selectedPortId);
+    selectedPortId.set(null);
+  }
+
   // ── Config finalization status ────────────────────────────────────────────────
   $: configFinalized = $robotState?.config_finalized ?? false;
 
   // ── Port type definitions for the configure picker ────────────────────────────
+  // dualOnly: only shown for dual-pin ports
+  // singleOnly: only shown for single-pin ports
   const TYPE_DEFS = [
-    { id: 'motor_sm',           label: 'Motor',        sub: 'Sign-Magnitude',  group: 'Motor',  dualOnly: true,  d7Only: false },
-    { id: 'motor_lap',          label: 'Motor',        sub: 'Locked Anti-Phase', group: 'Motor', dualOnly: false, d7Only: false },
-    { id: 'motor_servo_signal', label: 'Motor',        sub: 'Servo Signal',    group: 'Motor',  dualOnly: false, d7Only: false },
-    { id: 'servo',              label: 'Servo',        sub: null,              group: 'Servo',  dualOnly: false, d7Only: false },
-    { id: 'encoder',            label: 'Encoder',      sub: null,              group: 'Sensor', dualOnly: true,  d7Only: false },
-    { id: 'ultrasonic',         label: 'Ultrasonic',   sub: null,              group: 'Sensor', dualOnly: true,  d7Only: false },
-    { id: 'gpio_in',            label: 'Digital In',   sub: null,              group: 'GPIO',   dualOnly: false, d7Only: false },
-    { id: 'gpio_out',           label: 'Digital Out',  sub: null,              group: 'GPIO',   dualOnly: false, d7Only: false },
-    { id: 'uart',               label: 'UART Serial',  sub: 'D7 only',         group: 'Bus',    dualOnly: true,  d7Only: true  },
+    { id: 'motor_sm',           label: 'Motor',       sub: 'Sign-Magnitude',    group: 'Motor',  dualOnly: true,  singleOnly: false, d7Only: false },
+    { id: 'motor_servo_signal', label: 'Motor',       sub: 'Servo Signal',      group: 'Motor',  dualOnly: false, singleOnly: true,  d7Only: false },
+    { id: 'motor_lap',          label: 'Motor',       sub: 'Locked Anti-Phase', group: 'Motor',  dualOnly: false, singleOnly: false, d7Only: false },
+    { id: 'servo',              label: 'Servo',       sub: null,                group: 'Servo',  dualOnly: false, singleOnly: false, d7Only: false },
+    { id: 'encoder',            label: 'Encoder',     sub: null,                group: 'Sensor', dualOnly: true,  singleOnly: false, d7Only: false },
+    { id: 'ultrasonic',         label: 'Ultrasonic',  sub: null,                group: 'Sensor', dualOnly: true,  singleOnly: false, d7Only: false },
+    { id: 'gpio_in',            label: 'Digital In',  sub: null,                group: 'GPIO',   dualOnly: false, singleOnly: false, d7Only: false },
+    { id: 'gpio_out',           label: 'Digital Out', sub: null,                group: 'GPIO',   dualOnly: false, singleOnly: false, d7Only: false },
+    { id: 'uart',               label: 'UART Serial', sub: 'D7 only',           group: 'Bus',    dualOnly: true,  singleOnly: false, d7Only: true  },
   ];
 
   $: availableTypes = TYPE_DEFS.filter((t) => {
-    if (t.d7Only && selectedId !== 15) return false;
-    if (t.dualOnly && !(selectedPort?.dual)) return false;
+    if (t.d7Only     && selectedId !== 15)      return false;
+    if (t.dualOnly   && !(selectedPort?.dual))  return false;
+    if (t.singleOnly &&   selectedPort?.dual)   return false;
     return true;
   });
 
@@ -44,15 +55,20 @@
   let pendingType = null;
   $: if (selectedId !== null) pendingType = null;  // clear when port changes
 
+  // reconfiguring: true when the user wants to change an already-configured port
+  let reconfiguring = false;
+  $: if (selectedId !== null) reconfiguring = false;  // clear when port changes
+
   // reset confirmation state
   let confirmReset = false;
 
   // ── Control state (local; does not track live RP2040 state) ──────────────────
   let motorSpeed = 0;   // -100..+100 (%)
-  let servoAngle = 150;  // degrees (default center of 300° range)
+  let servoAngle = 150; // degrees (default center of 300° range)
 
   function selectPort(id) {
     selectedId = id;
+    reconfiguring = false;
     const d = $ports[id];
     if (!d) return;
     if (isMotor(d.type)) motorSpeed = +(d.value / 100).toFixed(1);
@@ -137,6 +153,32 @@
     if (!pendingType || selectedId === null) return;
     send({ cmd: 'configure_port', port: selectedId, type: pendingType });
     pendingType = null;
+  }
+
+  /**
+   * Change the type of an already-configured port.
+   * Because the firmware has no per-port reset, we must reset all ports,
+   * then re-apply the saved configs for every OTHER port, then apply the new
+   * type for this port. The daemon processes commands in order, so no delay
+   * is needed — each message is fully handled before the next is read.
+   */
+  function doReconfigure() {
+    if (!pendingType || selectedId === null) return;
+
+    // Save configs for all ports except the one being changed
+    const savedConfigs = ALL_PORTS
+      .filter((p) => p.id !== selectedId && $ports[p.id]?.type)
+      .map((p) => ({ port: p.id, type: $ports[p.id].type }));
+
+    send({ cmd: 'reset_ports' });
+    for (const { port, type } of savedConfigs) {
+      send({ cmd: 'configure_port', port, type });
+    }
+    send({ cmd: 'configure_port', port: selectedId, type: pendingType });
+
+    reconfiguring = false;
+    pendingType = null;
+    confirmReset = false;
   }
 
   function doResetPorts() {
@@ -360,6 +402,63 @@
             </div>
           {/if}
 
+        {:else if reconfiguring}
+          <!-- ── Reconfigure: pick a new type (triggers full reset + re-apply) ── -->
+          <div class="max-w-md space-y-5">
+            <div>
+              <p class="text-sm font-semibold text-slate-300 mb-1">Choose a new device type</p>
+              <p class="text-xs text-slate-500">
+                Changing the type of <strong>{selectedPort?.label}</strong> requires resetting all
+                ports. Other configured ports will be re-applied automatically.
+              </p>
+            </div>
+
+            {#each ['Motor', 'Servo', 'Sensor', 'GPIO', 'Bus'] as group}
+              {@const groupTypes = availableTypes.filter((t) => t.group === group)}
+              {#if groupTypes.length > 0}
+                <div>
+                  <div class="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-1.5">{group}</div>
+                  <div class="flex flex-wrap gap-1.5">
+                    {#each groupTypes as t}
+                      <button
+                        class="flex flex-col items-start px-3 py-2 rounded-lg border transition-all text-left
+                               {pendingType === t.id
+                                 ? 'bg-blue-600/20 border-blue-500/60 text-blue-300'
+                                 : 'bg-[#1e2129] border-[#2e3340] text-slate-400 hover:border-slate-500 hover:text-slate-300'}"
+                        on:click={() => pendingType = t.id}
+                      >
+                        <span class="text-xs font-semibold leading-tight">{t.label}</span>
+                        {#if t.sub}
+                          <span class="text-[10px] {pendingType === t.id ? 'text-blue-400/70' : 'text-slate-600'} leading-tight mt-0.5">{t.sub}</span>
+                        {/if}
+                      </button>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+            {/each}
+
+            <div class="flex gap-2 pt-1">
+              <button
+                disabled={!pendingType}
+                class="px-5 py-2 rounded-lg text-sm font-semibold transition-all
+                       {pendingType
+                         ? 'bg-blue-600/30 border border-blue-500/50 text-blue-300 hover:bg-blue-600/50 cursor-pointer'
+                         : 'bg-[#1e2129] border border-[#2e3340] text-slate-700 cursor-not-allowed'}"
+                on:click={doReconfigure}
+              >
+                {pendingType
+                  ? `Apply — reset & reconfigure as ${TYPE_DEFS.find(t => t.id === pendingType)?.label}${TYPE_DEFS.find(t => t.id === pendingType)?.sub ? ' (' + TYPE_DEFS.find(t => t.id === pendingType)?.sub + ')' : ''}`
+                  : 'Select a type above'}
+              </button>
+              <button
+                class="px-4 py-2 rounded-lg text-sm text-slate-500 border border-[#2e3340]
+                       hover:text-slate-300 hover:border-slate-500 transition-colors"
+                on:click={() => { reconfiguring = false; pendingType = null; }}
+              >Cancel</button>
+            </div>
+          </div>
+
         {:else if isMotor(selectedData.type)}
           <!-- ── Motor control ── -->
           <div class="max-w-lg space-y-6">
@@ -560,6 +659,18 @@
           <!-- Fallback for uart / i2c / other -->
           <div class="flex flex-col gap-2 text-slate-600">
             <span class="text-sm">No controls available for this port type.</span>
+          </div>
+        {/if}
+
+        <!-- Change Type footer — visible when port is configured and config is unlocked -->
+        {#if selectedData && !configFinalized && !reconfiguring}
+          <div class="mt-6 pt-4 border-t border-[#2e3340]">
+            <p class="text-[11px] text-slate-600 mb-2">Need a different device type for this port?</p>
+            <button
+              class="px-3 py-1.5 rounded text-xs font-semibold bg-[#1e2129] border border-[#2e3340]
+                     text-slate-400 hover:border-slate-500 hover:text-slate-300 transition-colors"
+              on:click={() => reconfiguring = true}
+            >Change Type…</button>
           </div>
         {/if}
 
