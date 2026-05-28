@@ -17,6 +17,7 @@ class GamepadState:
         "lx", "ly", "rx", "ry",
         "a", "b", "x", "y",
         "up", "down", "left", "right",
+        "lb", "rb", "lt", "rt",
         "connected", "source",
     )
 
@@ -33,6 +34,10 @@ class GamepadState:
         self.down: bool = False
         self.left: bool = False
         self.right: bool = False
+        self.lb: bool  = False
+        self.rb: bool  = False
+        self.lt: float = 0.0
+        self.rt: float = 0.0
         self.connected: bool = False
         self.source: str = "none"   # "virtual", "physical", or "none"
 
@@ -44,6 +49,8 @@ class GamepadState:
             "x": self.x, "y": self.y,
             "up": self.up, "down": self.down,
             "left": self.left, "right": self.right,
+            "lb": self.lb, "rb": self.rb,
+            "lt": self.lt, "rt": self.rt,
             "connected": self.connected,
             "source": self.source,
         }
@@ -52,6 +59,8 @@ class GamepadState:
         self.lx = self.ly = self.rx = self.ry = 0.0
         self.a = self.b = self.x = self.y = False
         self.up = self.down = self.left = self.right = False
+        self.lb = self.rb = False
+        self.lt = self.rt = 0.0
         self.connected = False
         self.source = "none"
 

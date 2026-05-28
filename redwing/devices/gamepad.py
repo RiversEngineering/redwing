@@ -131,6 +131,30 @@ class Gamepad:
         return bool(self._gp().get("right", False))
 
     # ------------------------------------------------------------------
+    # Shoulder buttons
+    # ------------------------------------------------------------------
+
+    @property
+    def lb(self) -> bool:
+        """Left bumper (LB)."""
+        return bool(self._gp().get("lb", False))
+
+    @property
+    def rb(self) -> bool:
+        """Right bumper (RB)."""
+        return bool(self._gp().get("rb", False))
+
+    @property
+    def lt(self) -> float:
+        """Left trigger. 0.0 = released, 1.0 = fully pressed."""
+        return float(self._gp().get("lt", 0.0))
+
+    @property
+    def rt(self) -> float:
+        """Right trigger. 0.0 = released, 1.0 = fully pressed."""
+        return float(self._gp().get("rt", 0.0))
+
+    # ------------------------------------------------------------------
     # Status
     # ------------------------------------------------------------------
 

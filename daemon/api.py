@@ -104,6 +104,10 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
                     gp.down  = bool(msg.get("down",  False))
                     gp.left  = bool(msg.get("left",  False))
                     gp.right = bool(msg.get("right", False))
+                    gp.lb = bool(msg.get("lb", False))
+                    gp.rb = bool(msg.get("rb", False))
+                    gp.lt = max(0.0, min(1.0, float(msg.get("lt", 0.0))))
+                    gp.rt = max(0.0, min(1.0, float(msg.get("rt", 0.0))))
                     gp.connected = True
                     gp.source = "virtual"
 

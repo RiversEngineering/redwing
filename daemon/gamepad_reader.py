@@ -18,10 +18,14 @@ log = logging.getLogger(__name__)
 _DEADZONE = 0.08
 
 # Standard Xbox / HID gamepad button codes (evdev BTN_*)
-_BTN_A = 304   # BTN_SOUTH
-_BTN_B = 305   # BTN_EAST
-_BTN_X = 307   # BTN_WEST
-_BTN_Y = 308   # BTN_NORTH
+_BTN_A  = 304   # BTN_SOUTH
+_BTN_B  = 305   # BTN_EAST
+_BTN_X  = 307   # BTN_WEST
+_BTN_Y  = 308   # BTN_NORTH
+_BTN_LB = 310   # BTN_TL  (left bumper)
+_BTN_RB = 311   # BTN_TR  (right bumper)
+_BTN_LT = 312   # BTN_TL2 (left trigger, digital — some controllers)
+_BTN_RT = 313   # BTN_TR2 (right trigger, digital — some controllers)
 
 
 def _normalize(value: int, info) -> float:
@@ -99,23 +103,28 @@ async def gamepad_reader_task(state) -> None:
                     info = abs_info.get(event.code)
                     if info is None:
                         continue
-                    val = _normalize(event.value, info)
                     async with state.lock:
                         gp = state.gamepad
                         if event.code == ecodes.ABS_X:
-                            gp.lx = val
+                            gp.lx = _normalize(event.value, info)
                         elif event.code == ecodes.ABS_Y:
-                            gp.ly = -val          # invert: push forward = positive
+                            gp.ly = -_normalize(event.value, info)
                         elif event.code == ecodes.ABS_RX:
-                            gp.rx = val
+                            gp.rx = _normalize(event.value, info)
                         elif event.code == ecodes.ABS_RY:
-                            gp.ry = -val
+                            gp.ry = -_normalize(event.value, info)
                         elif event.code == ecodes.ABS_HAT0X:
                             gp.left  = (event.value == -1)
                             gp.right = (event.value ==  1)
                         elif event.code == ecodes.ABS_HAT0Y:
                             gp.up   = (event.value == -1)
                             gp.down = (event.value ==  1)
+                        elif event.code == ecodes.ABS_Z:
+                            # Left trigger analog (0..max → 0.0..1.0)
+                            gp.lt = round(event.value / max(info.max, 1), 3)
+                        elif event.code == ecodes.ABS_RZ:
+                            # Right trigger analog
+                            gp.rt = round(event.value / max(info.max, 1), 3)
 
                 elif event.type == ecodes.EV_KEY:
                     async with state.lock:
@@ -129,6 +138,14 @@ async def gamepad_reader_task(state) -> None:
                             gp.x = pressed
                         elif event.code == _BTN_Y:
                             gp.y = pressed
+                        elif event.code == _BTN_LB:
+                            gp.lb = pressed
+                        elif event.code == _BTN_RB:
+                            gp.rb = pressed
+                        elif event.code == _BTN_LT:
+                            gp.lt = 1.0 if pressed else 0.0
+                        elif event.code == _BTN_RT:
+                            gp.rt = 1.0 if pressed else 0.0
 
         except OSError:
             log.info(f"Gamepad disconnected: {device.name}")

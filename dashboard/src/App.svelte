@@ -1,5 +1,5 @@
 <script>
-  import { onDestroy, onMount } from 'svelte';
+  import { onDestroy } from 'svelte';
   import { subscribe, onStatus, send } from './lib/ws.js';
   import { connected, robotState, pushLog, cameraFrame } from './lib/stores.js';
 
@@ -13,24 +13,16 @@
   import ControllerTab from './components/ControllerTab.svelte';
 
   let activeTab = 'overview';
-  let showController = false;
 
-  onMount(() => {
-    // Show the Controller tab on iPad (any iOS/iPadOS touch tablet).
-    // iPadOS 13+ may report as "MacIntel" with maxTouchPoints > 1.
-    showController =
-      /iPad/.test(navigator.userAgent) ||
-      (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
-  });
-
-  // When navigating away from the controller tab, zero out gamepad state
-  // so the robot doesn't keep moving if the student switches tabs.
+  // When navigating away from the controller tab, zero out gamepad state.
+  // ControllerTab's onDestroy also sends zero, but this fires first.
   function setTab(id) {
     if (activeTab === 'controller' && id !== 'controller') {
       send({ cmd: 'gamepad',
              lx: 0, ly: 0, rx: 0, ry: 0,
              a: false, b: false, x: false, y: false,
-             up: false, down: false, left: false, right: false });
+             up: false, down: false, left: false, right: false,
+             lb: false, rb: false, lt: 0, rt: 0 });
     }
     activeTab = id;
   }
@@ -54,15 +46,12 @@
     unsubWs();
   });
 
-  const BASE_TABS = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'ports',    label: 'Ports' },
-    { id: 'data',     label: 'Data' },
+  const tabs = [
+    { id: 'overview',    label: 'Overview' },
+    { id: 'ports',       label: 'Ports' },
+    { id: 'data',        label: 'Data' },
+    { id: 'controller',  label: 'Controller' },
   ];
-
-  $: tabs = showController
-    ? [...BASE_TABS, { id: 'controller', label: 'Controller' }]
-    : BASE_TABS;
 </script>
 
 <div class="flex flex-col h-screen bg-[#161920] text-slate-200 overflow-hidden">
@@ -130,12 +119,9 @@
     <DataTab />
   </div>
 
-  <!-- Controller tab (iPad only) -->
-  {#if showController}
-    <div
-      class="flex-1 min-h-0 overflow-hidden"
-      style="display: {activeTab === 'controller' ? 'flex' : 'none'}; flex-direction: column;"
-    >
+  <!-- Controller tab — mounted only while active so onDestroy zeroes gamepad on switch -->
+  {#if activeTab === 'controller'}
+    <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
       <ControllerTab />
     </div>
   {/if}
