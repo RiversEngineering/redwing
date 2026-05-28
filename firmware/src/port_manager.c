@@ -17,10 +17,7 @@ PortState ports[PORT_COUNT_TOTAL];
 
 bool config_locked = false;
 
-// UART0 on D7: GP12 = TX (pin A), GP13 = RX (pin B)
-// UART1 on D6: GP24 = TX (pin A), GP25 = RX (pin B)
-#define UART0_PORT_ID     15u   // D7
-#define UART1_PORT_ID     14u   // D6
+// UART0_PORT_ID / UART1_PORT_ID defined in port_manager.h
 #define UART_DEFAULT_BAUD 115200u
 #define UART_RX_BUF_MAX   64u
 
