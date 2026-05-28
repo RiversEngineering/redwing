@@ -50,6 +50,11 @@ COPY --from=dashboard-builder /build/dashboard/dist ./dashboard/dist
 # Persistent student workspace is bind-mounted at runtime (see docker-compose.yml)
 RUN mkdir -p /workspace
 
+# Entrypoint creates /dev/video* nodes from the host's read-only /dev mount,
+# then execs the daemon.  This makes the camera truly optional at runtime.
+COPY docker/entrypoint-daemon.sh /usr/local/bin/entrypoint-daemon.sh
+RUN chmod +x /usr/local/bin/entrypoint-daemon.sh
+
 EXPOSE 8080
 
-CMD ["python", "-m", "daemon.main"]
+ENTRYPOINT ["/usr/local/bin/entrypoint-daemon.sh"]
