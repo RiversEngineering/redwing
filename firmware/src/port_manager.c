@@ -31,12 +31,6 @@ static inline uart_inst_t *uart_inst_for(uint8_t port_id) {
     return (port_id == UART0_PORT_ID) ? uart0 : uart1;
 }
 
-// Returns the port id of the first configured UART port, or 0xFF if none.
-static uint8_t find_uart_port(void) {
-    if (ports[UART0_PORT_ID].type == PORT_UART) return UART0_PORT_ID;
-    if (ports[UART1_PORT_ID].type == PORT_UART) return UART1_PORT_ID;
-    return 0xFF;
-}
 
 // ─── PWM slice helpers ────────────────────────────────────────────────────────
 
@@ -285,16 +279,14 @@ bool port_config_done(void) {
 
 // ─── UART I/O ─────────────────────────────────────────────────────────────────
 
-void port_uart_tx(const uint8_t *data, uint8_t len) {
-    uint8_t pid = find_uart_port();
-    if (pid == 0xFF) return;
-    uart_write_blocking(uart_inst_for(pid), data, len);
+void port_uart_tx(uint8_t port_id, const uint8_t *data, uint8_t len) {
+    if (ports[port_id].type != PORT_UART) return;
+    uart_write_blocking(uart_inst_for(port_id), data, len);
 }
 
-uint8_t port_uart_rx(uint8_t *buf) {
-    uint8_t pid = find_uart_port();
-    if (pid == 0xFF) return 0;
-    uart_inst_t *inst = uart_inst_for(pid);
+uint8_t port_uart_rx(uint8_t port_id, uint8_t *buf) {
+    if (ports[port_id].type != PORT_UART) return 0;
+    uart_inst_t *inst = uart_inst_for(port_id);
     uint8_t n = 0;
     while (n < UART_RX_BUF_MAX && uart_is_readable(inst)) {
         buf[n++] = (uint8_t)uart_getc(inst);

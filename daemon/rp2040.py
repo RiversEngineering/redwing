@@ -94,7 +94,10 @@ class RP2040:
 
         elif ptype == "uart_rx":
             async with self._state.lock:
-                self._state.uart_rx_buffer.extend(pkt["data"])
+                port_id = pkt.get("port", 15)
+                buf = self._state.uart_rx_buffers.get(port_id)
+                if buf is not None:
+                    buf.extend(pkt["data"])
 
         elif ptype == "ack":
             cmd = pkt.get("cmd")
@@ -131,7 +134,7 @@ class RP2040:
         if type_id is None:
             return False
         if type_id == proto.PORT_UART:
-            self.enqueue(proto.cmd_configure_uart(baud or 115200))
+            self.enqueue(proto.cmd_configure_uart(port_id, baud or 115200))
         else:
             self.enqueue(proto.cmd_configure(port_id, type_id))
         return True

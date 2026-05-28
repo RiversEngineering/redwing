@@ -58,9 +58,12 @@ class IPCServer:
         while True:
             async with self._state.lock:
                 msg = self._state.to_ws_message()
-                uart_rx = self._state.get_uart_rx_delta()
-            if uart_rx:
-                msg["uart_rx"] = base64.b64encode(uart_rx).decode()
+                uart_rx_deltas = self._state.get_uart_rx_deltas()
+            if uart_rx_deltas:
+                msg["uart_rx"] = {
+                    str(pid): base64.b64encode(data).decode()
+                    for pid, data in uart_rx_deltas.items()
+                }
             self._pub.send_json(msg, zmq.NOBLOCK)
             await asyncio.sleep(interval)
 
@@ -125,9 +128,10 @@ class IPCServer:
             )
 
         elif c == "uart_tx":
+            port = int(cmd.get("port", 15))
             data = base64.b64decode(cmd.get("data", ""))
             if data:
-                self._rp.enqueue(proto.cmd_uart_tx(data))
+                self._rp.enqueue(proto.cmd_uart_tx(port, data))
 
         elif c == "stop_all":
             self._rp.stop_all()

@@ -82,7 +82,7 @@ class Robot:
             self._ports[i] = Port(i, self._conn, dual_pin=True)
         self._camera = Camera(self._conn)
         self._gamepad = Gamepad(self._conn)
-        self._uart: UartBus | None = None
+        self._uart_buses: dict[int, UartBus] = {}
         self._lidar: Lidar | None = None
         self._tfmini: dict[int, TFMini] = {}
         self._tfluna: dict[int, TFLuna] = {}
@@ -389,30 +389,39 @@ class Robot:
     # UART bus (D7: GP12 = TX, GP13 = RX)
     # ------------------------------------------------------------------
 
-    def uart(self, baud: int = 115200) -> UartBus:
-        """Configure D7 as a UART serial bus and return a UartBus object.
+    def uart(self, port: int = 15, baud: int = 115200) -> UartBus:
+        """Configure *port* as a UART serial bus and return a :class:`UartBus` object.
 
-        D7 is reserved once UART is configured — it cannot be used as a motor
-        or encoder port.  The bus uses GP12 as TX and GP13 as RX (UART0).
+        *port* must be **14** (D6, GP24=TX/GP25=RX, UART1) or **15** (D7,
+        GP12=TX/GP13=RX, UART0, default).  Both ports can be configured
+        simultaneously for two independent UART buses.
 
         Parameters
         ----------
+        port:
+            14 for D6 or 15 for D7 (default).
         baud:
-            Baud rate (bits per second).  Common values: 9600, 115200 (default).
+            Baud rate in bits per second.  Common values: 9600, 115200 (default).
 
         Example::
 
-            gps = robot.uart(baud=9600)
-            line = gps.readline(timeout=2.0)
-            robot.log("GPS:", line)
+            gps  = robot.uart(baud=9600)          # D7
+            lidar_bus = robot.uart(port=14)        # D6, default 115200
         """
+        if port not in (14, 15):
+            raise ValueError("UART port must be 14 (D6) or 15 (D7).")
         self._check_not_started("configure UART")
-        if self._uart is not None:
-            return self._uart
-        self._conn.configure_port(15, "uart", baud=baud)
-        self._uart = UartBus(self._conn, robot=self)
-        self._ports[15]._device = self._uart
-        return self._uart
+        if port in self._uart_buses:
+            return self._uart_buses[port]
+        self._conn.configure_port(port, "uart", baud=baud)
+        bus = UartBus(self._conn, robot=self, port_id=port)
+        self._uart_buses[port] = bus
+        self._ports[port]._device = bus
+        return bus
+
+    def uart1(self, baud: int = 115200) -> UartBus:
+        """Convenience alias for ``robot.uart(port=14, baud=baud)`` (D6/UART1)."""
+        return self.uart(port=14, baud=baud)
 
     # ------------------------------------------------------------------
     # TFMini / TFLuna UART LiDAR sensors (D6 or D7)
@@ -450,7 +459,7 @@ class Robot:
         self._check_not_started("configure TFMini")
         if port not in self._tfmini:
             self._conn.configure_port(port, "uart", baud=baud)
-            sensor = TFMini(self._conn)
+            sensor = TFMini(self._conn, port_id=port)
             self._tfmini[port] = sensor
             self._ports[port]._device = sensor
         return self._tfmini[port]
@@ -485,7 +494,7 @@ class Robot:
         self._check_not_started("configure TFLuna")
         if port not in self._tfluna:
             self._conn.configure_port(port, "uart", baud=baud)
-            sensor = TFLuna(self._conn)
+            sensor = TFLuna(self._conn, port_id=port)
             self._tfluna[port] = sensor
             self._ports[port]._device = sensor
         return self._tfluna[port]

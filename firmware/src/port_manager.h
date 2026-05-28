@@ -64,12 +64,12 @@ bool port_configure_uart(uint8_t port_id, uint32_t baud);
 // Returns true (and sends nothing) if already locked.
 bool port_config_done(void);
 
-// Send bytes out UART0.  No-op if UART not configured.
-void port_uart_tx(const uint8_t *data, uint8_t len);
+// Send bytes out the UART on port_id (14=D6/UART1, 15=D7/UART0).  No-op if not configured.
+void port_uart_tx(uint8_t port_id, const uint8_t *data, uint8_t len);
 
-// Read available UART0 RX bytes into buf (max 64).  Returns number of bytes read.
-// Returns 0 if UART not configured or no bytes waiting.
-uint8_t port_uart_rx(uint8_t *buf);
+// Read available RX bytes from the UART on port_id into buf (max 64 bytes).
+// Returns number of bytes read, or 0 if not configured or no bytes waiting.
+uint8_t port_uart_rx(uint8_t port_id, uint8_t *buf);
 
 // Set motor power (-10000 to +10000).  Handles SM, LAP, SERVO_SIG.
 void port_set_motor(uint8_t port_id, int16_t value);

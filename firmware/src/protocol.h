@@ -18,7 +18,7 @@
 #define CMD_SET_SERVO_RANGE 0x0A
 #define CMD_ATTACH_ENC      0x0B
 #define CMD_CONFIG_DONE     0x0C  // finalize port config, validate, lock
-#define CMD_UART_TX         0x0D  // send bytes out UART0 (D7: GP12 TX / GP13 RX) or UART1 (D6: GP24 TX / GP25 RX)
+#define CMD_UART_TX         0x0D  // send bytes out UART; payload: [port_id:u8][len:u8][data...]
 #define CMD_RESET           0x0E  // stop all motors, unlock config, reset all ports
 #define CMD_HEARTBEAT       0x0F  // keepalive — resets the watchdog timer; no reply
 
@@ -26,7 +26,7 @@
 #define RESP_STATE    0x81
 #define RESP_ERROR    0x82
 #define RESP_ACK      0x83
-#define RESP_UART_RX  0x84  // bytes received on UART0 (D7) or UART1 (D6)
+#define RESP_UART_RX  0x84  // bytes received on UART; payload: [port_id:u8][data...]
 
 // ─── Port type enum ──────────────────────────────────────────────────────────
 #define PORT_UNCONFIGURED   0x00
@@ -157,7 +157,7 @@ typedef struct { uint8_t port_id; uint8_t state; }                    CmdSetGpio
 typedef struct { uint16_t rate; }                                      CmdSetRate;
 typedef struct { uint8_t port_id; uint16_t min_us; uint16_t max_us; } CmdSetServoRange;
 typedef struct { uint8_t motor_port; uint8_t encoder_port; }          CmdAttachEnc;
-// CMD_UART_TX: variable-length; first byte is data length, rest is data
-typedef struct { uint8_t len; }                                        CmdUartTx;
+// CMD_UART_TX: [port_id:u8][len:u8][data...]
+typedef struct { uint8_t port_id; uint8_t len; }                       CmdUartTx;
 
 #pragma pack(pop)

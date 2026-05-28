@@ -14,9 +14,10 @@ class UartBus:
         response = uart.readline(timeout=1.0)
     """
 
-    def __init__(self, conn, robot=None):
-        self._conn = conn
-        self._robot = robot
+    def __init__(self, conn, robot=None, port_id: int = 15):
+        self._conn    = conn
+        self._robot   = robot
+        self._port_id = port_id
 
     def _check_started(self):
         if self._robot is not None and not self._robot._started:
@@ -35,6 +36,7 @@ class UartBus:
             data = data.encode("utf-8")
         self._conn.send_command(
             cmd="uart_tx",
+            port=self._port_id,
             data=base64.b64encode(data).decode(),
         )
 
@@ -48,7 +50,7 @@ class UartBus:
             chunk = uart.read(4)
         """
         self._check_started()
-        return self._conn.read_uart_bytes(n)
+        return self._conn.read_uart_bytes(n, port_id=self._port_id)
 
     def readline(self, timeout: float = 1.0) -> str | None:
         """Read one line (up to the next ``\\n``) and return it decoded as UTF-8.
@@ -61,7 +63,7 @@ class UartBus:
             if line:
                 robot.log("Got:", line)
         """
-        data = self._conn.read_uart_until(b"\n", timeout)
+        data = self._conn.read_uart_until(b"\n", timeout, port_id=self._port_id)
         if data is None:
             return None
         return data.decode("utf-8", errors="replace").strip()
@@ -71,4 +73,4 @@ class UartBus:
 
         Returns the data before the terminator, or ``None`` on timeout.
         """
-        return self._conn.read_uart_until(terminator, timeout)
+        return self._conn.read_uart_until(terminator, timeout, port_id=self._port_id)

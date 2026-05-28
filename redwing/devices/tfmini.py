@@ -32,8 +32,9 @@ _MIN_STRENGTH = 100   # readings below this are considered unreliable
 class _TFBase:
     """Shared frame-parsing logic for TFMini and TFLuna."""
 
-    def __init__(self, conn: "Connection") -> None:
+    def __init__(self, conn: "Connection", port_id: int = 15) -> None:
         self._conn     = conn
+        self._port_id  = port_id
         self._buf      = bytearray()
         self._dist_cm: int | None  = None
         self._strength: int | None = None
@@ -41,7 +42,7 @@ class _TFBase:
 
     def _ingest(self) -> None:
         """Pull new bytes from the UART buffer and parse any complete frames."""
-        new = self._conn.read_uart_bytes()
+        new = self._conn.read_uart_bytes(port_id=self._port_id)
         if new:
             self._buf.extend(new)
 

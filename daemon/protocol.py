@@ -145,15 +145,14 @@ def cmd_reset() -> bytes:
 def cmd_heartbeat() -> bytes:
     return build_packet(CMD_HEARTBEAT)
 
-def cmd_configure_uart(baud: int = 115200) -> bytes:
-    # port_id=15 (D7), type=PORT_UART, baud=u32 little-endian
-    return build_packet(CMD_CONFIGURE, struct.pack("<BBI", 15, PORT_UART, baud))
+def cmd_configure_uart(port_id: int, baud: int = 115200) -> bytes:
+    return build_packet(CMD_CONFIGURE, struct.pack("<BBI", port_id, PORT_UART, baud))
 
-def cmd_uart_tx(data: bytes) -> bytes:
-    # payload: [len:u8][data...]
+def cmd_uart_tx(port_id: int, data: bytes) -> bytes:
+    # payload: [port_id:u8][len:u8][data...]
     if len(data) > 255:
         data = data[:255]
-    return build_packet(CMD_UART_TX, bytes([len(data)]) + data)
+    return build_packet(CMD_UART_TX, bytes([port_id, len(data)]) + data)
 
 
 # -------------------------------------------------------------------
@@ -219,7 +218,8 @@ class PacketParser:
             return self._decode_state(payload)
 
         if msg_type == RSP_UART_RX:
-            return {"type": "uart_rx", "data": bytes(payload)}
+            port_id = payload[0] if len(payload) >= 1 else 15
+            return {"type": "uart_rx", "port": port_id, "data": bytes(payload[1:])}
 
         return {"type": "unknown", "msg_type": msg_type, "payload": payload.hex()}
 

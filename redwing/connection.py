@@ -34,7 +34,7 @@ class Connection:
 
         self._state: dict = {"ports": {}}
         self._lock = threading.Lock()
-        self._uart_rx_buf: bytearray = bytearray()
+        self._uart_rx_bufs: dict[int, bytearray] = {14: bytearray(), 15: bytearray()}
         self._connected = False
         self._running = True
 
@@ -60,10 +60,16 @@ class Connection:
             try:
                 msg = self._sub.recv_json()
                 with self._lock:
-                    # Accumulate UART RX bytes before overwriting state
-                    uart_b64 = msg.pop("uart_rx", None)
-                    if uart_b64:
-                        self._uart_rx_buf.extend(base64.b64decode(uart_b64))
+                    # Route per-port UART RX bytes into their buffers
+                    uart_rx = msg.pop("uart_rx", None)
+                    if isinstance(uart_rx, dict):
+                        for pid_str, b64 in uart_rx.items():
+                            pid = int(pid_str)
+                            if pid in self._uart_rx_bufs:
+                                self._uart_rx_bufs[pid].extend(base64.b64decode(b64))
+                    elif isinstance(uart_rx, (str, bytes)) and uart_rx:
+                        # Legacy single-buffer fallback — assume D7
+                        self._uart_rx_bufs[15].extend(base64.b64decode(uart_rx))
                     self._state = msg
                     self._connected = True
             except zmq.Again:
@@ -130,27 +136,32 @@ class Connection:
     # UART helpers (used by UartBus)
     # ------------------------------------------------------------------
 
-    def read_uart_bytes(self, n: int = -1) -> bytes:
-        """Return up to *n* bytes from the UART RX buffer (non-blocking)."""
+    def read_uart_bytes(self, n: int = -1, port_id: int = 15) -> bytes:
+        """Return up to *n* bytes from the UART RX buffer for *port_id* (non-blocking)."""
         with self._lock:
-            if n < 0 or n >= len(self._uart_rx_buf):
-                data = bytes(self._uart_rx_buf)
-                self._uart_rx_buf = bytearray()
+            buf = self._uart_rx_bufs.get(port_id)
+            if buf is None:
+                return b""
+            if n < 0 or n >= len(buf):
+                data = bytes(buf)
+                buf.clear()
             else:
-                data = bytes(self._uart_rx_buf[:n])
-                del self._uart_rx_buf[:n]
+                data = bytes(buf[:n])
+                del buf[:n]
         return data
 
-    def read_uart_until(self, terminator: bytes, timeout: float = 1.0) -> bytes | None:
-        """Read from the UART RX buffer until *terminator* is found or timeout."""
+    def read_uart_until(self, terminator: bytes, timeout: float = 1.0, port_id: int = 15) -> bytes | None:
+        """Read from the UART RX buffer for *port_id* until *terminator* or timeout."""
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             with self._lock:
-                idx = self._uart_rx_buf.find(terminator)
-                if idx >= 0:
-                    data = bytes(self._uart_rx_buf[:idx])
-                    del self._uart_rx_buf[:idx + len(terminator)]
-                    return data
+                buf = self._uart_rx_bufs.get(port_id)
+                if buf is not None:
+                    idx = buf.find(terminator)
+                    if idx >= 0:
+                        data = bytes(buf[:idx])
+                        del buf[:idx + len(terminator)]
+                        return data
             time.sleep(0.01)
         return None
 

@@ -158,11 +158,12 @@ static void handle_command(uint8_t type, const uint8_t *payload, uint8_t len) {
         }
 
         case CMD_UART_TX: {
-            // Payload: [len:u8][data...]
-            if (len < 1) goto bad_len;
-            uint8_t data_len = payload[0];
-            if (len < (uint8_t)(1 + data_len)) goto bad_len;
-            port_uart_tx(payload + 1, data_len);
+            // Payload: [port_id:u8][len:u8][data...]
+            if (len < sizeof(CmdUartTx)) goto bad_len;
+            const CmdUartTx *cmd = (const CmdUartTx *)payload;
+            uint8_t data_len = cmd->len;
+            if (len < (uint8_t)(sizeof(CmdUartTx) + data_len)) goto bad_len;
+            port_uart_tx(cmd->port_id, payload + sizeof(CmdUartTx), data_len);
             break;
         }
 
@@ -205,7 +206,8 @@ int main(void) {
     uint8_t  cmd_type;
     uint8_t  cmd_payload[PROTO_MAX_LEN];
     uint8_t  cmd_len;
-    uint8_t  uart_rx_buf[64];
+    // uart_rx_buf: 1 byte port_id prefix + up to 64 data bytes
+    uint8_t  uart_rx_buf[65];
 
     last_packet_ms = to_ms_since_boot(get_absolute_time());
 
@@ -225,11 +227,13 @@ int main(void) {
             }
         }
 
-        // ── 2. Forward any UART RX bytes to the Pi ──
-        uint8_t n = port_uart_rx(uart_rx_buf);
-        if (n > 0) {
-            usb_comm_send(RESP_UART_RX, uart_rx_buf, n);
-        }
+        // ── 2. Forward any UART RX bytes to the Pi (per port, with port_id prefix) ──
+        uart_rx_buf[0] = UART0_PORT_ID;
+        { uint8_t n = port_uart_rx(UART0_PORT_ID, uart_rx_buf + 1);
+          if (n > 0) usb_comm_send(RESP_UART_RX, uart_rx_buf, (uint8_t)(n + 1)); }
+        uart_rx_buf[0] = UART1_PORT_ID;
+        { uint8_t n = port_uart_rx(UART1_PORT_ID, uart_rx_buf + 1);
+          if (n > 0) usb_comm_send(RESP_UART_RX, uart_rx_buf, (uint8_t)(n + 1)); }
 
         // ── 3. PID tick (flagged by 100 Hz timer ISR) ──
         if (pid_tick) {

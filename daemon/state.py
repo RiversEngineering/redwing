@@ -84,8 +84,8 @@ class SharedState:
         # PID target velocities for closed-loop motors (port_id → ticks/s × 10)
         self.target_velocities: dict[int, float] = {}
 
-        # UART RX bytes received from RP2040 UART0 (S0/S1), accumulated between broadcasts
-        self.uart_rx_buffer: bytearray = bytearray()
+        # UART RX bytes per port (14=D6/UART1, 15=D7/UART0), accumulated between broadcasts
+        self.uart_rx_buffers: dict[int, bytearray] = {14: bytearray(), 15: bytearray()}
 
         # Latest LIDAR scan: list of (angle_deg, distance_cm) tuples, or None
         self.lidar_scan: list | None = None
@@ -122,11 +122,17 @@ class SharedState:
         if len(self.logs) > self._max_logs:
             self.logs = self.logs[-self._max_logs:]
 
-    def get_uart_rx_delta(self) -> bytes:
-        """Return accumulated UART RX bytes and clear the buffer."""
-        data = bytes(self.uart_rx_buffer)
-        self.uart_rx_buffer = bytearray()
-        return data
+    def get_uart_rx_deltas(self) -> dict[int, bytes]:
+        """Return accumulated bytes per UART port and clear all buffers.
+
+        Returns only ports that have data (may be empty dict).
+        """
+        result: dict[int, bytes] = {}
+        for pid, buf in self.uart_rx_buffers.items():
+            if buf:
+                result[pid] = bytes(buf)
+                buf.clear()
+        return result
 
     def to_ws_message(self) -> dict:
         """Snapshot suitable for sending to WebSocket or ZMQ clients."""
