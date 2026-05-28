@@ -16,6 +16,7 @@ from .devices.servo import Servo
 from .devices.uart import UartBus
 from .devices.ultrasonic import Ultrasonic
 from .devices.lidar import Lidar
+from .devices.tfmini import TFMini, TFLuna
 
 # Single-pin ports S0–S7 → internal IDs 0–7
 # Dual-pin ports   D0–D7 → internal IDs 8–15
@@ -83,6 +84,8 @@ class Robot:
         self._gamepad = Gamepad(self._conn)
         self._uart: UartBus | None = None
         self._lidar: Lidar | None = None
+        self._tfmini: dict[int, TFMini] = {}
+        self._tfluna: dict[int, TFLuna] = {}
         self._started = False
         atexit.register(self._shutdown)
         # Reset RP2040 state from any previous run (best-effort; no-op if not connected)
@@ -410,6 +413,82 @@ class Robot:
         self._uart = UartBus(self._conn, robot=self)
         self._ports[15]._device = self._uart
         return self._uart
+
+    # ------------------------------------------------------------------
+    # TFMini / TFLuna UART LiDAR sensors (D6 or D7)
+    # ------------------------------------------------------------------
+
+    def tfmini(self, port: int = 15, baud: int = 115200) -> TFMini:
+        """Configure *port* as UART and return a :class:`TFMini` LiDAR object.
+
+        *port* must be **14** (D6, GP24/GP25) or **15** (D7, GP12/GP13, default).
+        Call before ``robot.start()``.
+
+        Wire the sensor **TX** pin to the board **RX** pin and vice versa.
+        Both pins on the chosen port are claimed; the port cannot be used for
+        motors or encoders at the same time.
+
+        Parameters
+        ----------
+        port:
+            14 for D6 (UART1) or 15 for D7 (UART0, default).
+        baud:
+            Baud rate — 115200 by default (TFMini factory default).
+
+        Example::
+
+            lidar = robot.tfmini()          # D7, 115200 baud
+            robot.start()
+
+            while True:
+                if lidar.valid:
+                    robot.log(f"Distance: {lidar.distance:.1f} cm")
+                robot.sleep(0.02)
+        """
+        if port not in (14, 15):
+            raise ValueError("TFMini port must be 14 (D6) or 15 (D7).")
+        self._check_not_started("configure TFMini")
+        if port not in self._tfmini:
+            self._conn.configure_port(port, "uart", baud=baud)
+            sensor = TFMini(self._conn)
+            self._tfmini[port] = sensor
+            self._ports[port]._device = sensor
+        return self._tfmini[port]
+
+    def tfluna(self, port: int = 15, baud: int = 115200) -> TFLuna:
+        """Configure *port* as UART and return a :class:`TFLuna` LiDAR object.
+
+        *port* must be **14** (D6, GP24/GP25) or **15** (D7, GP12/GP13, default).
+        Call before ``robot.start()``.
+
+        Wire the sensor **TX** pin to the board **RX** pin and vice versa.
+
+        Parameters
+        ----------
+        port:
+            14 for D6 (UART1) or 15 for D7 (UART0, default).
+        baud:
+            Baud rate — 115200 by default (TFLuna factory default).
+
+        Example::
+
+            lidar = robot.tfluna()          # D7, 115200 baud
+            robot.start()
+
+            while True:
+                if lidar.valid:
+                    robot.log(f"{lidar.distance:.1f} cm  {lidar.temperature:.1f} °C")
+                robot.sleep(0.02)
+        """
+        if port not in (14, 15):
+            raise ValueError("TFLuna port must be 14 (D6) or 15 (D7).")
+        self._check_not_started("configure TFLuna")
+        if port not in self._tfluna:
+            self._conn.configure_port(port, "uart", baud=baud)
+            sensor = TFLuna(self._conn)
+            self._tfluna[port] = sensor
+            self._ports[port]._device = sensor
+        return self._tfluna[port]
 
     # ------------------------------------------------------------------
     # Dedicated I2C port (GP4 SDA / GP5 SCL, always reserved)
