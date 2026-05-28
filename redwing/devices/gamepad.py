@@ -1,26 +1,36 @@
 """Gamepad device — reads controller input from the daemon state stream.
 
-Works transparently with both the virtual controller (dashboard iPad tab)
+Works transparently with both the virtual controller (dashboard tab)
 and a physical USB/wireless gamepad connected to the Pi (e.g. GameSir Nova
 Lite). No configuration or ``robot.start()`` call is required — just read
 the properties at any time in your loop.
 
+Two kinds of button properties
+-------------------------------
+``robot.gamepad.a``
+    **Level** — True for every loop iteration the button is held down.
+    Use for continuous actions (driving, holding an arm up).
+
+``robot.gamepad.just_pressed_a``
+    **Edge** — True only on the *first* check after the button goes down,
+    then False for every subsequent check until the button is released and
+    pressed again.  Use for one-shot actions (toggling a mode, firing once).
+
 Example::
 
+    arm_up = False
+
     while True:
-        # Tank drive: left stick controls left motor, right stick controls right
-        left.speed  = robot.gamepad.left_y * 100
-        right.speed = robot.gamepad.left_y * 100
+        # Continuous: drive while stick is pushed
+        motor.speed = robot.gamepad.left_y * 100
 
-        # Turn with right stick X
-        turn = robot.gamepad.right_x * 40
-        left.speed  -= turn
-        right.speed += turn
+        # Edge: toggle arm position on each A press (not every loop tick)
+        if robot.gamepad.just_pressed_a:
+            arm_up = not arm_up
+            arm.angle = 90 if arm_up else 0
 
-        if robot.gamepad.a:
-            arm.angle = 90       # press A to raise arm
-        elif robot.gamepad.b:
-            arm.angle = 0        # press B to lower arm
+        # Level: hold B to run the intake
+        intake.speed = 80 if robot.gamepad.b else 0
 
         robot.sleep(0.02)
 """
@@ -31,25 +41,23 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..connection import Connection
 
+# Analog triggers are considered "pressed" above this threshold.
+_TRIGGER_THRESHOLD = 0.1
+
 
 class Gamepad:
-    """Provides read-only access to gamepad axes and buttons.
+    """Read-only access to gamepad axes and buttons.
 
-    Axes return floats in the range **-1.0 to +1.0**:
-      - Positive left_y  = stick pushed forward / up
-      - Positive right_x = stick pushed right
-
-    Buttons return **True** while held, **False** when released.
-    D-pad directions are separate boolean properties.
-
-    The ``connected`` property is ``True`` when any controller has sent
-    input recently.  The ``source`` property reports ``"virtual"`` (iPad
-    dashboard) or ``"physical"`` (USB/wireless gamepad), so you can show
-    different UI hints if needed — but most code can ignore both.
+    Axes return floats in **-1.0 … +1.0**.
+    Boolean buttons return **True** while held.
+    ``just_pressed_*`` properties return **True only once per press**.
     """
 
     def __init__(self, conn: "Connection"):
         self._conn = conn
+        # Stores the previous boolean state for each just_pressed edge detector.
+        # Keys match the gamepad dict keys (plus "_edge" suffix for analog inputs).
+        self._prev: dict[str, bool] = {}
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -57,6 +65,12 @@ class Gamepad:
 
     def _gp(self) -> dict:
         return self._conn.get_all_state().get("gamepad", {})
+
+    def _edge(self, key: str, current: bool) -> bool:
+        """Rising-edge detector: True only on the first True after a False."""
+        was = self._prev.get(key, False)
+        self._prev[key] = current
+        return current and not was
 
     # ------------------------------------------------------------------
     # Analog sticks
@@ -83,66 +97,116 @@ class Gamepad:
         return float(self._gp().get("ry", 0.0))
 
     # ------------------------------------------------------------------
-    # Face buttons (ABXY — Xbox layout)
+    # Face buttons — level (held) and edge (just pressed)
     # ------------------------------------------------------------------
 
     @property
     def a(self) -> bool:
-        """A button (bottom face button — green on Xbox)."""
+        """A button — True while held."""
         return bool(self._gp().get("a", False))
 
     @property
+    def just_pressed_a(self) -> bool:
+        """True once per press of A (rising edge only)."""
+        return self._edge("a", bool(self._gp().get("a", False)))
+
+    @property
     def b(self) -> bool:
-        """B button (right face button — red on Xbox)."""
+        """B button — True while held."""
         return bool(self._gp().get("b", False))
 
     @property
+    def just_pressed_b(self) -> bool:
+        """True once per press of B (rising edge only)."""
+        return self._edge("b", bool(self._gp().get("b", False)))
+
+    @property
     def x(self) -> bool:
-        """X button (left face button — blue on Xbox)."""
+        """X button — True while held."""
         return bool(self._gp().get("x", False))
 
     @property
+    def just_pressed_x(self) -> bool:
+        """True once per press of X (rising edge only)."""
+        return self._edge("x", bool(self._gp().get("x", False)))
+
+    @property
     def y(self) -> bool:
-        """Y button (top face button — yellow on Xbox)."""
+        """Y button — True while held."""
         return bool(self._gp().get("y", False))
 
+    @property
+    def just_pressed_y(self) -> bool:
+        """True once per press of Y (rising edge only)."""
+        return self._edge("y", bool(self._gp().get("y", False)))
+
     # ------------------------------------------------------------------
-    # D-pad
+    # D-pad — level and edge
     # ------------------------------------------------------------------
 
     @property
     def dpad_up(self) -> bool:
-        """D-pad up."""
+        """D-pad up — True while held."""
         return bool(self._gp().get("up", False))
 
     @property
+    def just_pressed_dpad_up(self) -> bool:
+        """True once per press of D-pad up."""
+        return self._edge("up", bool(self._gp().get("up", False)))
+
+    @property
     def dpad_down(self) -> bool:
-        """D-pad down."""
+        """D-pad down — True while held."""
         return bool(self._gp().get("down", False))
 
     @property
+    def just_pressed_dpad_down(self) -> bool:
+        """True once per press of D-pad down."""
+        return self._edge("down", bool(self._gp().get("down", False)))
+
+    @property
     def dpad_left(self) -> bool:
-        """D-pad left."""
+        """D-pad left — True while held."""
         return bool(self._gp().get("left", False))
 
     @property
+    def just_pressed_dpad_left(self) -> bool:
+        """True once per press of D-pad left."""
+        return self._edge("left", bool(self._gp().get("left", False)))
+
+    @property
     def dpad_right(self) -> bool:
-        """D-pad right."""
+        """D-pad right — True while held."""
         return bool(self._gp().get("right", False))
 
+    @property
+    def just_pressed_dpad_right(self) -> bool:
+        """True once per press of D-pad right."""
+        return self._edge("right", bool(self._gp().get("right", False)))
+
     # ------------------------------------------------------------------
-    # Shoulder buttons
+    # Shoulder buttons — level and edge
     # ------------------------------------------------------------------
 
     @property
     def lb(self) -> bool:
-        """Left bumper (LB)."""
+        """Left bumper — True while held."""
         return bool(self._gp().get("lb", False))
 
     @property
+    def just_pressed_lb(self) -> bool:
+        """True once per press of LB."""
+        return self._edge("lb", bool(self._gp().get("lb", False)))
+
+    @property
     def rb(self) -> bool:
-        """Right bumper (RB)."""
+        """Right bumper — True while held."""
         return bool(self._gp().get("rb", False))
+
+    @property
+    def just_pressed_rb(self) -> bool:
+        """True once per press of RB."""
+        return self._edge("rb", bool(self._gp().get("rb", False)))
 
     @property
     def lt(self) -> float:
@@ -150,9 +214,19 @@ class Gamepad:
         return float(self._gp().get("lt", 0.0))
 
     @property
+    def just_pressed_lt(self) -> bool:
+        """True once when LT crosses the press threshold (> 0.1)."""
+        return self._edge("lt_edge", float(self._gp().get("lt", 0.0)) > _TRIGGER_THRESHOLD)
+
+    @property
     def rt(self) -> float:
         """Right trigger. 0.0 = released, 1.0 = fully pressed."""
         return float(self._gp().get("rt", 0.0))
+
+    @property
+    def just_pressed_rt(self) -> bool:
+        """True once when RT crosses the press threshold (> 0.1)."""
+        return self._edge("rt_edge", float(self._gp().get("rt", 0.0)) > _TRIGGER_THRESHOLD)
 
     # ------------------------------------------------------------------
     # Status
