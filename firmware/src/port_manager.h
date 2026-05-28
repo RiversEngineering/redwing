@@ -54,9 +54,10 @@ void port_manager_init(void);
 // Returns false on error (bad port id, bad type, or config locked).
 bool port_configure(uint8_t port_id, uint8_t port_type);
 
-// Configure D7 as a UART bus.  Initialises UART0 on GP12 (TX) / GP13 (RX).
-// Returns false if config is locked or if D7 is already in use.
-bool port_configure_uart(uint32_t baud);
+// Configure D6 (UART1, GP24/GP25) or D7 (UART0, GP12/GP13) as a UART bus.
+// port_id must be 14 (D6) or 15 (D7).
+// Returns false if config is locked or port_id is invalid.
+bool port_configure_uart(uint8_t port_id, uint32_t baud);
 
 // Validate PWM slice conflicts across all configured ports and lock the config.
 // Sends RESP_ERROR internally on conflict; returns false in that case.

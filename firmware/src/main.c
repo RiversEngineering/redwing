@@ -55,7 +55,7 @@ static void handle_command(uint8_t type, const uint8_t *payload, uint8_t len) {
                 if (len >= sizeof(CmdConfigureUart)) {
                     baud = ((const CmdConfigureUart *)payload)->baud;
                 }
-                ok = port_configure_uart(baud);
+                ok = port_configure_uart(cmd->port_id, baud);
             } else {
                 ok = port_configure(cmd->port_id, cmd->port_type);
             }

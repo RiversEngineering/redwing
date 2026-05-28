@@ -41,11 +41,11 @@
     { id: 'ultrasonic',         label: 'Ultrasonic',  sub: null,                group: 'Sensor', dualOnly: true,  singleOnly: false, d7Only: false },
     { id: 'gpio_in',            label: 'Digital In',  sub: null,                group: 'GPIO',   dualOnly: false, singleOnly: false, d7Only: false },
     { id: 'gpio_out',           label: 'Digital Out', sub: null,                group: 'GPIO',   dualOnly: false, singleOnly: false, d7Only: false },
-    { id: 'uart',               label: 'UART Serial', sub: 'D7 only',           group: 'Bus',    dualOnly: true,  singleOnly: false, d7Only: true  },
+    { id: 'uart',               label: 'UART Serial', sub: 'D6 or D7 only',     group: 'Bus',    dualOnly: true,  singleOnly: false, d7Only: true  },
   ];
 
   $: availableTypes = TYPE_DEFS.filter((t) => {
-    if (t.d7Only     && selectedId !== 15)      return false;
+    if (t.d7Only     && selectedId !== 14 && selectedId !== 15) return false;
     if (t.dualOnly   && !(selectedPort?.dual))  return false;
     if (t.singleOnly &&   selectedPort?.dual)   return false;
     return true;

@@ -17,11 +17,26 @@ PortState ports[PORT_COUNT_TOTAL];
 
 bool config_locked = false;
 
-// UART0 is wired to D7: GP12 = TX (pin A), GP13 = RX (pin B)
-#define PM_UART_INST      uart0
-#define UART_PORT_ID      15u   // D7 — the dual port used for UART
+// UART0 on D7: GP12 = TX (pin A), GP13 = RX (pin B)
+// UART1 on D6: GP24 = TX (pin A), GP25 = RX (pin B)
+#define UART0_PORT_ID     15u   // D7
+#define UART1_PORT_ID     14u   // D6
 #define UART_DEFAULT_BAUD 115200u
 #define UART_RX_BUF_MAX   64u
+
+// Keep legacy alias so references in port_uart_tx/rx still resolve.
+#define UART_PORT_ID UART0_PORT_ID
+
+static inline uart_inst_t *uart_inst_for(uint8_t port_id) {
+    return (port_id == UART0_PORT_ID) ? uart0 : uart1;
+}
+
+// Returns the port id of the first configured UART port, or 0xFF if none.
+static uint8_t find_uart_port(void) {
+    if (ports[UART0_PORT_ID].type == PORT_UART) return UART0_PORT_ID;
+    if (ports[UART1_PORT_ID].type == PORT_UART) return UART1_PORT_ID;
+    return 0xFF;
+}
 
 // ─── PWM slice helpers ────────────────────────────────────────────────────────
 
@@ -62,6 +77,11 @@ static void port_deinit(uint8_t id) {
         case PORT_GPIO_IN:
         case PORT_GPIO_OUT:
             gpio_init(p->pin_a);
+            break;
+        case PORT_UART:
+            uart_deinit(uart_inst_for(id));
+            gpio_init(p->pin_a);
+            gpio_init(p->pin_b);
             break;
         default:
             break;
@@ -179,23 +199,25 @@ bool port_configure(uint8_t id, uint8_t port_type) {
 
 // ─── UART configuration ───────────────────────────────────────────────────────
 
-bool port_configure_uart(uint32_t baud) {
+bool port_configure_uart(uint8_t port_id, uint32_t baud) {
     if (config_locked) {
         usb_comm_send_error(ERR_CONFIG_LOCKED, "configure after start");
         return false;
     }
+    if (port_id != UART0_PORT_ID && port_id != UART1_PORT_ID) {
+        usb_comm_send_error(ERR_BAD_PORT, "UART only on D6/D7");
+        return false;
+    }
 
     uint32_t actual_baud = (baud > 0) ? baud : UART_DEFAULT_BAUD;
+    uint8_t  slot = port_id - PORT_ID_DUAL_BASE;   // 6 for D6, 7 for D7
 
-    // Claim D7 (port 15): GP12 = UART0 TX (pin A), GP13 = UART0 RX (pin B)
-    port_deinit(UART_PORT_ID);
+    port_deinit(port_id);
+    uart_init(uart_inst_for(port_id), actual_baud);
+    gpio_set_function(DUAL_GPIO[slot][0], GPIO_FUNC_UART);  // TX pin
+    gpio_set_function(DUAL_GPIO[slot][1], GPIO_FUNC_UART);  // RX pin
 
-    uart_init(PM_UART_INST, actual_baud);
-    gpio_set_function(DUAL_GPIO[7][0], GPIO_FUNC_UART);   // GP12 = TX
-    gpio_set_function(DUAL_GPIO[7][1], GPIO_FUNC_UART);   // GP13 = RX
-
-    ports[UART_PORT_ID].type = PORT_UART;
-
+    ports[port_id].type = PORT_UART;
     return true;
 }
 
@@ -264,15 +286,18 @@ bool port_config_done(void) {
 // ─── UART I/O ─────────────────────────────────────────────────────────────────
 
 void port_uart_tx(const uint8_t *data, uint8_t len) {
-    if (ports[UART_PORT_ID].type != PORT_UART) return;
-    uart_write_blocking(PM_UART_INST, data, len);
+    uint8_t pid = find_uart_port();
+    if (pid == 0xFF) return;
+    uart_write_blocking(uart_inst_for(pid), data, len);
 }
 
 uint8_t port_uart_rx(uint8_t *buf) {
-    if (ports[UART_PORT_ID].type != PORT_UART) return 0;
+    uint8_t pid = find_uart_port();
+    if (pid == 0xFF) return 0;
+    uart_inst_t *inst = uart_inst_for(pid);
     uint8_t n = 0;
-    while (n < UART_RX_BUF_MAX && uart_is_readable(PM_UART_INST)) {
-        buf[n++] = (uint8_t)uart_getc(PM_UART_INST);
+    while (n < UART_RX_BUF_MAX && uart_is_readable(inst)) {
+        buf[n++] = (uint8_t)uart_getc(inst);
     }
     return n;
 }
