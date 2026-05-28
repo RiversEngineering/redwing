@@ -35,7 +35,7 @@
   const TYPE_DEFS = [
     { id: 'motor_sm',           label: 'Motor',       sub: 'Sign-Magnitude',    group: 'Motor',  dualOnly: true,  singleOnly: false, d7Only: false },
     { id: 'motor_servo_signal', label: 'Motor',       sub: 'Servo Signal',      group: 'Motor',  dualOnly: false, singleOnly: true,  d7Only: false },
-    { id: 'motor_lap',          label: 'Motor',       sub: 'Locked Anti-Phase', group: 'Motor',  dualOnly: false, singleOnly: false, d7Only: false },
+    { id: 'motor_lap',          label: 'Motor',       sub: 'Locked Anti-Phase', group: 'Motor',  dualOnly: false, singleOnly: true,  d7Only: false },
     { id: 'servo',              label: 'Servo',       sub: null,                group: 'Servo',  dualOnly: false, singleOnly: false, d7Only: false },
     { id: 'encoder',            label: 'Encoder',     sub: null,                group: 'Sensor', dualOnly: true,  singleOnly: false, d7Only: false },
     { id: 'ultrasonic',         label: 'Ultrasonic',  sub: null,                group: 'Sensor', dualOnly: true,  singleOnly: false, d7Only: false },
