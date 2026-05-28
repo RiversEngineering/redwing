@@ -17,6 +17,9 @@ log = logging.getLogger(__name__)
 
 _JPEG_PARAMS = [cv2.IMWRITE_JPEG_QUALITY, MJPEG_QUALITY]
 
+# If CAMERA_INDEX is -1, scan indices 0–3 and use the first one that opens.
+_SCAN_INDICES = list(range(4))
+
 
 def _make_placeholder() -> bytes:
     img = np.zeros((CAMERA_HEIGHT, CAMERA_WIDTH, 3), dtype=np.uint8)
@@ -26,6 +29,24 @@ def _make_placeholder() -> bytes:
     )
     _, buf = cv2.imencode(".jpg", img, _JPEG_PARAMS)
     return bytes(buf)
+
+
+def _open_camera() -> cv2.VideoCapture | None:
+    """Try to open a camera. Scans indices if CAMERA_INDEX == -1."""
+    candidates = [CAMERA_INDEX] if CAMERA_INDEX >= 0 else _SCAN_INDICES
+    for idx in candidates:
+        cap = cv2.VideoCapture(idx)
+        if cap.isOpened():
+            ok, _ = cap.read()   # confirm we can actually read a frame
+            if ok:
+                cap.set(cv2.CAP_PROP_FRAME_WIDTH,  CAMERA_WIDTH)
+                cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
+                cap.set(cv2.CAP_PROP_FPS,          CAMERA_FPS)
+                log.info(f"Camera opened at index {idx} "
+                         f"({CAMERA_WIDTH}×{CAMERA_HEIGHT} {CAMERA_FPS} fps)")
+                return cap
+            cap.release()
+    return None
 
 
 class CameraCapture:
@@ -41,25 +62,25 @@ class CameraCapture:
 
     def _capture_loop(self):
         interval = 1.0 / CAMERA_FPS
-
-        cap = cv2.VideoCapture(CAMERA_INDEX)
-        if not cap.isOpened():
-            log.warning(f"Camera {CAMERA_INDEX} not available — serving placeholder")
-            # Keep the thread alive; placeholder was already set in __init__.
-            while True:
-                time.sleep(1.0)
-
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH,  CAMERA_WIDTH)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
-        cap.set(cv2.CAP_PROP_FPS,          CAMERA_FPS)
-        log.info(f"Camera {CAMERA_INDEX} opened at {CAMERA_WIDTH}×{CAMERA_HEIGHT} {CAMERA_FPS}fps")
+        cap = None
 
         while True:
+            # ── Connect (or reconnect) ────────────────────────────────────────
+            if cap is None:
+                cap = _open_camera()
+                if cap is None:
+                    log.warning("No camera found — will retry in 5 s")
+                    time.sleep(5.0)
+                    continue
+
+            # ── Capture frame ─────────────────────────────────────────────────
             t0 = time.monotonic()
             ok, frame = cap.read()
             if not ok:
-                log.warning("Camera read failed")
-                time.sleep(1.0)
+                log.warning("Camera read failed — reopening in 2 s")
+                cap.release()
+                cap = None
+                time.sleep(2.0)
                 continue
 
             _, buf = cv2.imencode(".jpg", frame, _JPEG_PARAMS)
@@ -72,8 +93,6 @@ class CameraCapture:
 
             elapsed = time.monotonic() - t0
             time.sleep(max(0.0, interval - elapsed))
-
-        cap.release()  # unreachable, but documents intent
 
     def get_current_jpeg(self) -> bytes:
         """Return the JPEG to serve to MJPEG clients right now."""
