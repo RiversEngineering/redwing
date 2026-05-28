@@ -35,6 +35,7 @@ class Connection:
         self._state: dict = {"ports": {}}
         self._lock = threading.Lock()
         self._uart_rx_bufs: dict[int, bytearray] = {14: bytearray(), 15: bytearray()}
+        self._state_event = threading.Event()   # set each time a new state arrives
         self._connected = False
         self._running = True
 
@@ -72,6 +73,7 @@ class Connection:
                         self._uart_rx_bufs[15].extend(base64.b64decode(uart_rx))
                     self._state = msg
                     self._connected = True
+                self._state_event.set()  # wake any robot.sleep() waiting for fresh data
             except zmq.Again:
                 pass
             except zmq.ZMQError:

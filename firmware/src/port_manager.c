@@ -104,10 +104,16 @@ void port_manager_init(void) {
     gpio_pull_up(I2C_SDA_GPIO);
     gpio_pull_up(I2C_SCL_GPIO);
 
-    if (vl53l0x_init()) {
-        ports[PORT_ID_I2C].type = PORT_VL53L0X;
-    } else {
-        ports[PORT_ID_I2C].type = PORT_I2C;
+    // Give the sensor time to power up before probing; retry a few times in
+    // case of I²C transients at startup (RP2040 boots faster than the sensor).
+    ports[PORT_ID_I2C].type = PORT_I2C;
+    sleep_ms(5);
+    for (int attempt = 0; attempt < 3; attempt++) {
+        if (vl53l0x_init()) {
+            ports[PORT_ID_I2C].type = PORT_VL53L0X;
+            break;
+        }
+        sleep_ms(10);
     }
 }
 

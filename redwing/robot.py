@@ -588,15 +588,30 @@ class Robot:
         self._conn.send_command(cmd="stop_all")
 
     def sleep(self, seconds: float):
-        """Pause the program for the given number of seconds.
+        """Pause the program for *seconds* and ensure fresh sensor data on return.
+
+        Unlike ``time.sleep()``, this waits for the next state update from
+        the daemon before returning (then sleeps any remaining time).  This
+        guarantees that sensor reads immediately after ``robot.sleep()`` always
+        reflect the latest values — even when the loop rate matches the
+        daemon's 50 Hz broadcast interval.
+
+        The total pause is always **at least** *seconds* long.
 
         Example::
 
             left.speed = 50
-            robot.sleep(2)
+            robot.sleep(2)   # sleeps 2 s, reads fresh sensor data after
             left.stop()
         """
-        time.sleep(seconds)
+        t0 = time.monotonic()
+        ev = self._conn._state_event
+        ev.clear()                         # arm: catch the next state update
+        ev.wait(timeout=seconds)           # wake early if state arrives
+        elapsed = time.monotonic() - t0
+        remaining = seconds - elapsed
+        if remaining > 0.0005:             # skip sleeps shorter than 0.5 ms
+            time.sleep(remaining)
 
     @property
     def uptime(self) -> float:
