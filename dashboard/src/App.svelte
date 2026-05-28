@@ -15,7 +15,7 @@
   // When navigating away from the controller tab, zero out gamepad state.
   // ControllerTab's onDestroy also sends zero, but this fires first.
   function setTab(id) {
-    if ($$activeTab === 'controller' && id !== 'controller') {
+    if ($activeTab === 'controller' && id !== 'controller') {
       send({ cmd: 'gamepad',
              lx: 0, ly: 0, rx: 0, ry: 0,
              a: false, b: false, x: false, y: false,
