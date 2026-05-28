@@ -12,12 +12,13 @@ services:
       # RP2040 over USB serial — udev rule creates stable symlink /dev/rp2040
       # See docs/pi-setup.md for the udev rule.
       - /dev/rp2040:/dev/rp2040
-      # webcam
-      - /dev/video0:/dev/video0
     device_cgroup_rules:
-      - "c 166:* rmw"   # ttyACM devices
-      - "c 81:* rmw"    # Video4Linux devices
+      - "c 166:* rmw"   # ttyACM devices (RP2040)
+      - "c 81:* rmw"    # Video4Linux devices (camera — accessible when plugged in)
       - "c 13:* rw"     # input devices (gamepads)
+    # Camera (/dev/video0) is NOT listed under devices: — Docker refuses to start
+    # if the device doesn't exist.  The cgroup rule above grants access whenever
+    # a camera is plugged in; the daemon detects it automatically via OpenCV.
     volumes:
       - student_workspace:/workspace
       - /dev/input:/dev/input
