@@ -50,6 +50,12 @@
         value = +(portData.distance_mm / 10).toFixed(1);
         label = `P${portId} distance`;
         unit  = 'cm';
+      } else if (type === 'vl53l0x') {
+        if (!portData.valid) continue;
+        key   = `vl53l0x_${portId}`;
+        value = +(portData.distance_mm / 10).toFixed(1);
+        label = 'I²C ToF';
+        unit  = 'cm';
       } else if (type === 'motor_sm' || type === 'motor_lap' || type === 'motor_servo_signal') {
         key   = `motor_${portId}`;
         value = +((portData.value ?? 0) / 100).toFixed(1);

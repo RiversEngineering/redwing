@@ -111,6 +111,15 @@
       }];
     }
 
+    if (type === 'vl53l0x') {
+      return [{
+        key:      `vl53l0x_${portId}`,
+        label:    'I²C ToF distance',
+        unit:     'cm',
+        getValue: () => portData.valid ? +((portData.distance_mm ?? 0) / 10).toFixed(1) : null,
+      }];
+    }
+
     if (type === 'servo') {
       return [{
         key:      `servo_${portId}`,

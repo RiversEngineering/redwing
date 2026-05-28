@@ -28,6 +28,7 @@
     switch (type) {
       case 'encoder':    return 'Encoder';
       case 'ultrasonic': return 'Ultrasonic';
+      case 'vl53l0x':   return 'VL53L0X';
       case 'servo':      return 'Servo';
       case 'gpio_in':    return 'Digital In';
       case 'gpio_out':   return 'Digital Out';
@@ -46,6 +47,10 @@
     switch (d.type) {
       case 'encoder':
         return `${d.count?.toLocaleString() ?? 0} cnt`;
+      case 'vl53l0x': {
+        if (!d.valid) return 'OOB';
+        return `${(d.distance_mm / 10).toFixed(1)} cm`;
+      }
       case 'ultrasonic': {
         if (!d.valid) return 'OOB';
         const cm = (d.distance_mm / 10).toFixed(1);
@@ -75,6 +80,8 @@
         return 'M12 2a10 10 0 1 0 10 10M12 2v4M12 2l3 3M12 2l-3 3';
       case 'ultrasonic':
         return 'M8 12a4 4 0 0 0 4 4M8 12a4 4 0 0 1 4-4M8 12H4M19 12a7 7 0 0 1-7 7M19 12a7 7 0 0 0-7-7';
+      case 'vl53l0x':
+        return 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5';
       case 'servo':
         return 'M12 6v6l4 2M5.636 5.636a9 9 0 1 0 12.728 12.728';
       case 'gpio_in':
@@ -92,6 +99,7 @@
     switch (type) {
       case 'encoder':    return 'text-violet-400 border-violet-500/30 bg-violet-500/10';
       case 'ultrasonic': return 'text-cyan-400   border-cyan-500/30   bg-cyan-500/10';
+      case 'vl53l0x':   return 'text-teal-400   border-teal-500/30   bg-teal-500/10';
       case 'servo':      return 'text-amber-400  border-amber-500/30  bg-amber-500/10';
       case 'i2c':        return 'text-orange-400 border-orange-500/30 bg-orange-500/10';
       default:           return 'text-slate-600  border-slate-700/30  bg-slate-800/20';

@@ -52,6 +52,7 @@ PORT_I2C            = 0x07
 PORT_GPIO_IN        = 0x08
 PORT_GPIO_OUT       = 0x09
 PORT_UART           = 0x0A  # UART bus (D7: GP12=TX, GP13=RX)
+PORT_VL53L0X        = 0x0B  # VL53L0X ToF sensor on I²C port (auto-detected)
 
 PORT_TYPE_NAMES = {
     PORT_UNCONFIGURED: "unconfigured",
@@ -65,6 +66,7 @@ PORT_TYPE_NAMES = {
     PORT_GPIO_IN:      "gpio_in",
     PORT_GPIO_OUT:     "gpio_out",
     PORT_UART:         "uart",
+    PORT_VL53L0X:      "vl53l0x",
 }
 
 PORT_TYPE_IDS = {v: k for k, v in PORT_TYPE_NAMES.items()}
@@ -81,6 +83,7 @@ PORT_STATE_SIZES = {
     PORT_GPIO_IN:     1,   # u8 state
     PORT_GPIO_OUT:    1,   # u8 state
     PORT_UART:        0,   # no per-frame state; data flows via RSP_UART_RX packets
+    PORT_VL53L0X:     3,   # u16 distance_mm + u8 valid (same layout as ultrasonic)
 }
 
 
@@ -256,6 +259,10 @@ class PacketParser:
                 parsed["count"] = cnt
                 parsed["velocity"] = vel
             elif port_type == PORT_ULTRASONIC:
+                dist, valid = struct.unpack_from("<HB", pdata)
+                parsed["distance_mm"] = dist
+                parsed["valid"] = bool(valid)
+            elif port_type == PORT_VL53L0X:
                 dist, valid = struct.unpack_from("<HB", pdata)
                 parsed["distance_mm"] = dist
                 parsed["valid"] = bool(valid)

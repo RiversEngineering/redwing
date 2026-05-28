@@ -6,7 +6,9 @@
 #include "devices/encoder.h"
 #include "devices/ultrasonic.h"
 #include "devices/pio_pwm.h"
+#include "devices/vl53l0x.h"
 #include "hardware/gpio.h"
+#include "hardware/i2c.h"
 #include "hardware/uart.h"
 #include "pico/stdlib.h"
 #include <string.h>
@@ -95,8 +97,18 @@ void port_manager_init(void) {
         ports[i].pid_ki       = 0.5f;
         ports[i].pid_kd       = 0.1f;
     }
-    // Dedicated I2C port is always reserved — GP4/GP5 are never reconfigurable.
-    ports[PORT_ID_I2C].type = PORT_I2C;
+    // Initialise I²C0 at 400 kHz on GP4 (SDA) / GP5 (SCL) and scan for VL53L0X.
+    i2c_init(i2c0, 400 * 1000);
+    gpio_set_function(I2C_SDA_GPIO, GPIO_FUNC_I2C);
+    gpio_set_function(I2C_SCL_GPIO, GPIO_FUNC_I2C);
+    gpio_pull_up(I2C_SDA_GPIO);
+    gpio_pull_up(I2C_SCL_GPIO);
+
+    if (vl53l0x_init()) {
+        ports[PORT_ID_I2C].type = PORT_VL53L0X;
+    } else {
+        ports[PORT_ID_I2C].type = PORT_I2C;
+    }
 }
 
 // ─── Configure ───────────────────────────────────────────────────────────────
@@ -531,6 +543,14 @@ void port_send_state(void) {
             }
             case PORT_I2C:
                 break;
+            case PORT_VL53L0X: {
+                bool valid;
+                uint16_t dist = vl53l0x_read_mm(&valid);
+                buf[pos++] = (uint8_t)(dist);
+                buf[pos++] = (uint8_t)(dist >> 8);
+                buf[pos++] = valid ? 1u : 0u;
+                break;
+            }
             case PORT_GPIO_IN:
                 buf[pos++] = gpio_get(p->pin_a) ? 1 : 0;
                 break;

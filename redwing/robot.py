@@ -17,6 +17,7 @@ from .devices.uart import UartBus
 from .devices.ultrasonic import Ultrasonic
 from .devices.lidar import Lidar
 from .devices.tfmini import TFMini, TFLuna
+from .devices.vl53l0x import VL53L0X
 
 # Single-pin ports S0–S7 → internal IDs 0–7
 # Dual-pin ports   D0–D7 → internal IDs 8–15
@@ -86,6 +87,7 @@ class Robot:
         self._lidar: Lidar | None = None
         self._tfmini: dict[int, TFMini] = {}
         self._tfluna: dict[int, TFLuna] = {}
+        self._vl53l0x: VL53L0X | None = None
         self._started = False
         atexit.register(self._shutdown)
         # Reset RP2040 state from any previous run (best-effort; no-op if not connected)
@@ -511,6 +513,35 @@ class Robot:
         High-level I2C device support (IMU, ToF, etc.) will be added in a future release.
         """
         return _I2C_ID
+
+    # ------------------------------------------------------------------
+    # VL53L0X I²C ToF sensor (auto-detected on GP4/GP5 at startup)
+    # ------------------------------------------------------------------
+
+    def vl53l0x(self) -> VL53L0X:
+        """Return a :class:`VL53L0X` object for the I²C time-of-flight sensor.
+
+        The sensor is wired to the dedicated I²C port (**GP4 SDA / GP5 SCL**)
+        and is detected automatically by the firmware at startup — no
+        configuration call is needed before ``robot.start()``.
+
+        ``lidar.distance`` and other data properties raise
+        :class:`RuntimeError` if the sensor is not detected.  Use
+        ``lidar.connected`` to test presence without an exception.
+
+        Example::
+
+            lidar = robot.vl53l0x()
+            robot.start()
+
+            while True:
+                if lidar.valid:
+                    robot.log(f"Distance: {lidar.distance:.1f} cm")
+                robot.sleep(0.02)
+        """
+        if self._vl53l0x is None:
+            self._vl53l0x = VL53L0X(self._conn)
+        return self._vl53l0x
 
     # ------------------------------------------------------------------
     # LIDAR (USB — connected directly to the Pi, not through the Pico)

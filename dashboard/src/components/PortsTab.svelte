@@ -80,8 +80,9 @@
 
   function deviceLabel(type) {
     if (isMotor(type)) return 'Motor';
-    const m = { encoder: 'Encoder', ultrasonic: 'Ultrasonic', servo: 'Servo',
-                 gpio_in: 'Digital In', gpio_out: 'Digital Out', i2c: 'I²C', uart: 'UART' };
+    const m = { encoder: 'Encoder', ultrasonic: 'Ultrasonic', vl53l0x: 'VL53L0X ToF',
+                 servo: 'Servo', gpio_in: 'Digital In', gpio_out: 'Digital Out',
+                 i2c: 'I²C', uart: 'UART' };
     return m[type] ?? 'Empty';
   }
 
@@ -91,6 +92,7 @@
     switch (d.type) {
       case 'encoder':    return `${(d.count ?? 0).toLocaleString()} cnt`;
       case 'ultrasonic': return d.valid ? `${(d.distance_mm / 10).toFixed(1)} cm` : 'OOB';
+      case 'vl53l0x':   return d.valid ? `${(d.distance_mm / 10).toFixed(1)} cm` : 'OOB';
       case 'servo':      return `${(((d.pulse_us ?? 1500) - 500) / 2000 * 300).toFixed(1)}°`;
       case 'gpio_in':
       case 'gpio_out':   return d.state ? 'HIGH' : 'LOW';
@@ -104,6 +106,7 @@
     const m = {
       encoder:    'text-violet-400 border-violet-500/40',
       ultrasonic: 'text-cyan-400 border-cyan-500/40',
+      vl53l0x:   'text-teal-400 border-teal-500/40',
       servo:      'text-amber-400 border-amber-500/40',
       i2c:        'text-orange-400 border-orange-500/40',
     };
@@ -114,7 +117,7 @@
     if (isMotor(type))       return 'bg-blue-400';
     if (type === 'gpio_in' || type === 'gpio_out') return 'bg-green-400';
     const m = { encoder: 'bg-violet-400', ultrasonic: 'bg-cyan-400',
-                 servo: 'bg-amber-400',   i2c: 'bg-orange-400' };
+                 vl53l0x: 'bg-teal-400', servo: 'bg-amber-400', i2c: 'bg-orange-400' };
     return m[type] ?? 'bg-slate-700';
   }
 
@@ -653,6 +656,27 @@
               {/if}
             </div>
             <p class="text-xs text-slate-600">Read-only — ultrasonic sensors are inputs only.</p>
+          </div>
+
+        {:else if selectedData.type === 'vl53l0x'}
+          <!-- ── VL53L0X ToF readout ── -->
+          <div class="space-y-4 max-w-xs">
+            <div class="bg-[#1e2129] rounded-lg border border-[#2e3340] p-5">
+              <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Distance</div>
+              {#if selectedData.valid}
+                <div class="text-5xl font-bold tabular-nums text-teal-400">
+                  {(selectedData.distance_mm / 10).toFixed(1)}
+                </div>
+                <div class="text-sm text-slate-500 mt-1">centimeters</div>
+                <div class="text-xs text-slate-600 mt-2">{selectedData.distance_mm} mm</div>
+              {:else}
+                <div class="text-3xl font-bold text-red-400">Out of range</div>
+                <div class="text-xs text-slate-600 mt-1">Nothing detected within 2–200 cm</div>
+              {/if}
+            </div>
+            <p class="text-xs text-slate-600">
+              VL53L0X auto-detected on I²C (GP4 SDA / GP5 SCL). Read-only.
+            </p>
           </div>
 
         {:else}

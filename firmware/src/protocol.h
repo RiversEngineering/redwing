@@ -40,6 +40,7 @@
 #define PORT_GPIO_IN        0x08
 #define PORT_GPIO_OUT       0x09
 #define PORT_UART           0x0A  // UART bus: D7=UART0 (GP12=TX/GP13=RX) or D6=UART1 (GP24=TX/GP25=RX)
+#define PORT_VL53L0X        0x0B  // VL53L0X ToF sensor on I²C port (auto-detected at startup)
 
 // ─── Error codes ─────────────────────────────────────────────────────────────
 #define ERR_UNKNOWN_CMD     0x01
