@@ -34,29 +34,29 @@ def _make_placeholder() -> bytes:
 def _open_camera() -> cv2.VideoCapture | None:
     """Try to open a camera. Scans indices if CAMERA_INDEX == -1."""
     candidates = [CAMERA_INDEX] if CAMERA_INDEX >= 0 else _SCAN_INDICES
+    MJPEG = cv2.VideoWriter_fourcc(*'MJPG')
+
     for idx in candidates:
-        cap = cv2.VideoCapture(idx)
+        cap = cv2.VideoCapture(idx, cv2.CAP_V4L2)
         if not cap.isOpened():
             continue
 
-        # Warm-up read at whatever the driver defaults to (often 640×480 crop)
-        ok, _ = cap.read()
-        if not ok:
-            cap.release()
-            continue
-
-        # Switch to the camera's maximum native resolution.
+        # Request MJPEG format before anything else.  Many USB cameras
+        # (e.g. Arducam UC-844) default to YUYV, which hangs in select()
+        # at anything above 640×480 because the USB bandwidth isn't enough.
+        # MJPEG delivers compressed frames at any supported resolution.
+        cap.set(cv2.CAP_PROP_FOURCC,       MJPEG)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH,  9999)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 9999)
-        cap.set(cv2.CAP_PROP_FPS, CAMERA_FPS)
+        cap.set(cv2.CAP_PROP_FPS,          CAMERA_FPS)
 
-        # Drain several frames with grab() (decode-free) so the camera
-        # has time to finish negotiating the new V4L2 format.
-        for _ in range(10):
-            cap.grab()
+        # Try up to 5 reads — camera may need a moment after format change.
+        ok = False
+        for _ in range(5):
+            ok, _ = cap.read()
+            if ok:
+                break
 
-        # Confirming read at the new resolution.
-        ok, _ = cap.read()
         if ok:
             actual_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
