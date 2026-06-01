@@ -83,6 +83,15 @@ class CameraCapture:
                 time.sleep(2.0)
                 continue
 
+            # Resize to target resolution in software.  Do NOT rely on
+            # cap.set(CAP_PROP_FRAME_WIDTH/HEIGHT) to scale — many cameras
+            # satisfy the request by cropping from the top-left corner of
+            # the sensor instead, showing only a portion of the image.
+            h, w = frame.shape[:2]
+            if w != CAMERA_WIDTH or h != CAMERA_HEIGHT:
+                frame = cv2.resize(frame, (CAMERA_WIDTH, CAMERA_HEIGHT),
+                                   interpolation=cv2.INTER_AREA)
+
             _, buf = cv2.imencode(".jpg", frame, _JPEG_PARAMS)
             jpeg_bytes = bytes(buf)
 
