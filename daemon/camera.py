@@ -35,35 +35,35 @@ def _open_camera() -> cv2.VideoCapture | None:
     """Try to open a camera. Scans indices if CAMERA_INDEX == -1."""
     candidates = [CAMERA_INDEX] if CAMERA_INDEX >= 0 else _SCAN_INDICES
     for idx in candidates:
-        # Pass 1: probe — just confirm a camera exists at this index.
-        probe = cv2.VideoCapture(idx)
-        if not probe.isOpened():
-            continue
-        ok, _ = probe.read()
-        probe.release()
-        if not ok:
+        cap = cv2.VideoCapture(idx)
+        if not cap.isOpened():
             continue
 
-        # Pass 2: reopen fresh so no streaming has started when we set
-        # the resolution.  Requesting 9999×9999 makes V4L2 clamp to the
-        # camera's actual maximum, giving the full sensor frame instead
-        # of the default 640×480 crop.  Retry a few reads so the camera
-        # has time to settle into the new format before we confirm.
-        cap = cv2.VideoCapture(idx)
+        # Warm-up read at whatever the driver defaults to (often 640×480 crop)
+        ok, _ = cap.read()
+        if not ok:
+            cap.release()
+            continue
+
+        # Switch to the camera's maximum native resolution.
         cap.set(cv2.CAP_PROP_FRAME_WIDTH,  9999)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 9999)
         cap.set(cv2.CAP_PROP_FPS, CAMERA_FPS)
-        ok = False
-        for _ in range(5):
-            ok, _ = cap.read()
-            if ok:
-                break
+
+        # Drain several frames with grab() (decode-free) so the camera
+        # has time to finish negotiating the new V4L2 format.
+        for _ in range(10):
+            cap.grab()
+
+        # Confirming read at the new resolution.
+        ok, _ = cap.read()
         if ok:
             actual_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
             log.info(f"Camera opened at index {idx} — native {actual_w}×{actual_h}"
                      f", resized to {CAMERA_WIDTH}×{CAMERA_HEIGHT} in software")
             return cap
+
         cap.release()
     return None
 
