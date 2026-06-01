@@ -37,19 +37,15 @@ def _open_camera() -> cv2.VideoCapture | None:
     for idx in candidates:
         cap = cv2.VideoCapture(idx)
         if cap.isOpened():
-            # Set resolution BEFORE the first read — changing format after
-            # streaming has started can break the V4L2 stream on some drivers.
-            # Requesting 9999×9999 makes V4L2 clamp to the camera's actual
-            # maximum, giving the full sensor view for software resize.
-            cap.set(cv2.CAP_PROP_FRAME_WIDTH,  9999)
-            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 9999)
-            cap.set(cv2.CAP_PROP_FPS, CAMERA_FPS)
-            ok, _ = cap.read()   # confirm we can read at the new format
+            ok, _ = cap.read()   # test at default resolution first
             if ok:
-                actual_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                log.info(f"Camera opened at index {idx} — native {actual_w}×{actual_h}"
-                         f", resized to {CAMERA_WIDTH}×{CAMERA_HEIGHT} in software")
+                default_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                default_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                log.info(f"Camera {idx}: default resolution {default_w}×{default_h}")
+                cap.set(cv2.CAP_PROP_FPS, CAMERA_FPS)
+                log.info(f"Camera opened at index {idx} — "
+                         f"delivering {default_w}×{default_h}, "
+                         f"resizing to {CAMERA_WIDTH}×{CAMERA_HEIGHT} in software")
                 return cap
             cap.release()
     return None
