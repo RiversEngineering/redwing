@@ -39,15 +39,19 @@ def _open_camera() -> cv2.VideoCapture | None:
         if cap.isOpened():
             ok, _ = cap.read()   # confirm we can actually read a frame
             if ok:
-                # Do NOT request FRAME_WIDTH/HEIGHT — if the camera doesn't
-                # support the requested size natively, V4L2 crops from the
-                # top-left corner instead of scaling, showing only part of
-                # the sensor.  We resize in software after each read() instead.
+                # Request an impossibly large resolution so V4L2 clamps to
+                # the camera's actual maximum (e.g. 1920×1080).  Asking for
+                # a small size causes the driver to satisfy it with a
+                # hardware crop from the top-left corner rather than scaling,
+                # showing only a portion of the sensor.  We resize in
+                # software after each read() to CAMERA_WIDTH × CAMERA_HEIGHT.
+                cap.set(cv2.CAP_PROP_FRAME_WIDTH,  9999)
+                cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 9999)
                 cap.set(cv2.CAP_PROP_FPS, CAMERA_FPS)
                 actual_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
                 actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                 log.info(f"Camera opened at index {idx} — native {actual_w}×{actual_h}"
-                         f", display {CAMERA_WIDTH}×{CAMERA_HEIGHT}, {CAMERA_FPS} fps target")
+                         f", resized to {CAMERA_WIDTH}×{CAMERA_HEIGHT} in software")
                 return cap
             cap.release()
     return None
