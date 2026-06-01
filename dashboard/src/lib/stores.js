@@ -72,6 +72,18 @@ export function clearLogs() {
   logs.set([]);
 }
 
+// ── Student plots (robot.plot()) ──────────────────────────────────────────────
+/**
+ * Latest value for each student plot series.
+ * Shape: { [label]: { value: number, ts: number } }
+ * Updated whenever a "plot" WebSocket message arrives.
+ */
+export const plotValues = writable({});
+
+export function pushPlot(label, value, ts) {
+    plotValues.update(pv => ({ ...pv, [label]: { value, ts } }));
+}
+
 // ── Camera ────────────────────────────────────────────────────────────────────
 /** Latest camera frame as a base64 JPEG string, or '' if none yet. */
 export const cameraFrame = writable('');

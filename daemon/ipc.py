@@ -136,6 +136,13 @@ class IPCServer:
         elif c == "stop_all":
             self._rp.stop_all()
 
+        elif c == "plot":
+            label = str(cmd.get("label", ""))[:64]
+            value = float(cmd.get("value", 0.0))
+            if label:
+                async with self._state.lock:
+                    self._state.add_plot(label, value)
+
         elif c == "log":
             level   = cmd.get("level", "info")
             message = cmd.get("message", "")

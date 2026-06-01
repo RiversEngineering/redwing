@@ -6,7 +6,8 @@
    * both graphs display exactly the same time window and data is in sync.
    */
   import { onDestroy } from 'svelte';
-  import { robotState } from '../lib/stores.js';
+  import { get } from 'svelte/store';
+  import { robotState, plotValues } from '../lib/stores.js';
   import DataGraph from './DataGraph.svelte';
 
   // ── Config ───────────────────────────────────────────────────────────────────
@@ -173,6 +174,25 @@
           };
           newSeriesAdded = true;
         }
+      }
+    }
+
+    // Also include any student robot.plot() series
+    const plots = get(plotValues);
+    for (const [label, { value }] of Object.entries(plots)) {
+      const key = `plot_${label}`;
+      const captured = value;  // capture for closure
+      activeCandidates[key] = { key, getValue: () => captured };
+
+      if (!allSeries[key]) {
+        allSeries[key] = {
+          key,
+          label,
+          unit:   '',
+          color:  PALETTE[colorCounter++ % PALETTE.length],
+          values: new Array(timeline.length - 1).fill(null),
+        };
+        newSeriesAdded = true;
       }
     }
 

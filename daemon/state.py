@@ -105,9 +105,21 @@ class SharedState:
         self._max_logs = 500
         self._log_total_count = 0  # monotonically increasing; never reset by trim
 
+        # Student plot buffer — {label, value, ts} entries from robot.plot()
+        self.plot_points: list[dict] = []
+        self._max_plot_points = 500
+        self._plot_total_count = 0
+
     @property
     def uptime(self) -> float:
         return time.monotonic() - self._start
+
+    def add_plot(self, label: str, value: float):
+        import time as _time
+        self.plot_points.append({"type": "plot", "label": label, "value": value, "ts": _time.time()})
+        self._plot_total_count += 1
+        if len(self.plot_points) > self._max_plot_points:
+            self.plot_points = self.plot_points[-self._max_plot_points:]
 
     def add_log(self, level: str, message: str):
         import time as _time

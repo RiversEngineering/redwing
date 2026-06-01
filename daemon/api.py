@@ -145,6 +145,7 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
         asyncio.create_task(_broadcast_state())
         asyncio.create_task(_broadcast_logs())
         asyncio.create_task(_broadcast_camera())
+        asyncio.create_task(_broadcast_plots())
 
     async def _broadcast_state():
         interval = 1.0 / min(STREAM_HZ, 30)  # cap dashboard at 30fps
@@ -200,6 +201,30 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
                 ws_clients.difference_update(dead)
 
             await asyncio.sleep(0.1)
+
+    async def _broadcast_plots():
+        """Tail new robot.plot() entries and push to all dashboard clients."""
+        sent_total = 0
+        while True:
+            async with state.lock:
+                total = state._plot_total_count
+                trimmed = total - len(state.plot_points)
+                idx = max(0, sent_total - trimmed)
+                new_entries = state.plot_points[idx:]
+                sent_total = total
+
+            if new_entries and ws_clients:
+                dead = set()
+                for ws in list(ws_clients):
+                    for entry in new_entries:
+                        try:
+                            await ws.send_json(entry)
+                        except Exception:
+                            dead.add(ws)
+                            break
+                ws_clients.difference_update(dead)
+
+            await asyncio.sleep(0.05)  # 20 Hz — fast enough for real-time graphs
 
     # ------------------------------------------------------------------
     # MJPEG camera stream

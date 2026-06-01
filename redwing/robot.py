@@ -570,6 +570,39 @@ class Robot:
     # Utility methods
     # ------------------------------------------------------------------
 
+    def plot(self, label: str, value: float) -> None:
+        """Send a named numeric value to the dashboard for real-time graphing.
+
+        Call inside your loop to visualise any calculation alongside sensor
+        data in the **Data** tab.  Each unique *label* becomes its own series.
+        Values stream at whatever rate your loop runs.
+
+        Parameters
+        ----------
+        label:
+            Series name shown in the graph legend (e.g. ``"error"``).
+        value:
+            Any numeric value (int or float).
+
+        Example::
+
+            kp = 0.8
+            while True:
+                error = target - lidar.distance
+                output = kp * error
+                robot.plot("error", error)
+                robot.plot("output", output)
+                motor.speed = output
+                robot.sleep(0.02)
+        """
+        try:
+            v = float(value)
+        except (TypeError, ValueError):
+            raise TypeError(
+                f"robot.plot() value must be a number, got {type(value).__name__!r}"
+            )
+        self._conn.send_command(cmd="plot", label=str(label)[:64], value=v)
+
     def log(self, *args, level: str = "info"):
         """Send a message to the dashboard debug console.
 
