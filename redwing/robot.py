@@ -628,6 +628,70 @@ class Robot:
             )
         self._conn.send_command(cmd="plot", label=str(label)[:64], value=v)
 
+    # ------------------------------------------------------------------
+    # Map — push world-frame data to the dashboard Map tab
+    # ------------------------------------------------------------------
+
+    def map_point(self, x: float, y: float) -> None:
+        """Push one world-frame obstacle point to the dashboard map.
+
+        Call inside your loop after transforming a LIDAR reading to world
+        coordinates using your dead-reckoning pose estimate.
+
+        Example::
+
+            wx = pose_x + dist * math.sin(math.radians(pose_heading + angle))
+            wy = pose_y + dist * math.cos(math.radians(pose_heading + angle))
+            robot.map_point(wx, wy)
+        """
+        self._conn.send_command(cmd="map_point", x=float(x), y=float(y))
+
+    def map_points(self, points) -> None:
+        """Push multiple world-frame obstacle points at once (more efficient).
+
+        *points* is any iterable of ``(x, y)`` pairs.  Use this to push
+        an entire transformed LIDAR scan in a single command.
+
+        Example::
+
+            world_pts = [
+                (pose_x + d * math.sin(math.radians(pose_hdg + a)),
+                 pose_y + d * math.cos(math.radians(pose_hdg + a)))
+                for a, d in lidar.scan()
+            ]
+            robot.map_points(world_pts)
+        """
+        self._conn.send_command(
+            cmd="map_points",
+            points=[[float(x), float(y)] for x, y in points],
+        )
+
+    def map_pose(self, x: float, y: float, heading_deg: float = 0.0) -> None:
+        """Update the robot's estimated position on the dashboard map.
+
+        The map tab shows a heading arrow at this position.  Call after
+        updating your dead-reckoning estimate each loop.
+
+        Parameters
+        ----------
+        x, y:
+            World position in centimetres (same coordinate system as
+            ``map_point``).
+        heading_deg:
+            Robot heading in degrees, 0° = forward, clockwise positive.
+
+        Example::
+
+            robot.map_pose(pose_x, pose_y, pose_heading)
+        """
+        self._conn.send_command(
+            cmd="map_pose", x=float(x), y=float(y), heading=float(heading_deg)
+        )
+
+    def clear_map(self) -> None:
+        """Clear all accumulated map points and pose from the dashboard."""
+        self._conn.send_command(cmd="clear_map")
+
     def log(self, *args, level: str = "info"):
         """Send a message to the dashboard debug console.
 

@@ -1,7 +1,8 @@
 <script>
   import { onDestroy } from 'svelte';
   import { subscribe, onStatus, send } from './lib/ws.js';
-  import { connected, robotState, pushLog, cameraFrame, activeTab, pushPlot } from './lib/stores.js';
+  import { connected, robotState, pushLog, cameraFrame, activeTab, pushPlot,
+            addMapPoints, clearMap, mapPose } from './lib/stores.js';
 
   import TopBar        from './components/TopBar.svelte';
   import CameraPanel   from './components/CameraPanel.svelte';
@@ -11,6 +12,7 @@
   import DataTab       from './components/DataTab.svelte';
   import PortsTab      from './components/PortsTab.svelte';
   import ControllerTab from './components/ControllerTab.svelte';
+  import MapTab        from './components/MapTab.svelte';
 
   // When navigating away from the controller tab, zero out gamepad state.
   // ControllerTab's onDestroy also sends zero, but this fires first.
@@ -32,10 +34,15 @@
   const unsubWs = subscribe((msg) => {
     if (msg.type === 'state') {
       robotState.set(msg);
+      if (msg.map_pose) mapPose.set(msg.map_pose);
     } else if (msg.type === 'log') {
       pushLog({ level: msg.level, message: msg.message, ts: msg.ts });
     } else if (msg.type === 'plot') {
       pushPlot(msg.label, msg.value, msg.ts);
+    } else if (msg.type === 'map_points') {
+      addMapPoints(msg.points);
+    } else if (msg.type === 'clear_map') {
+      clearMap();
     } else if (msg.type === 'frame') {
       cameraFrame.set(msg.data);
     }
@@ -50,6 +57,7 @@
     { id: 'overview',    label: 'Overview' },
     { id: 'ports',       label: 'Ports' },
     { id: 'data',        label: 'Data' },
+    { id: 'map',         label: 'Map' },
     { id: 'controller',  label: 'Controller' },
   ];
 </script>
@@ -117,6 +125,14 @@
     style="display: {$activeTab === 'data' ? 'flex' : 'none'}; flex-direction: column;"
   >
     <DataTab />
+  </div>
+
+  <!-- Map tab — always mounted so the point cloud persists while switching tabs -->
+  <div
+    class="flex-1 min-h-0 overflow-hidden"
+    style="display: {$activeTab === 'map' ? 'flex' : 'none'}; flex-direction: column;"
+  >
+    <MapTab />
   </div>
 
   <!-- Controller tab — mounted only while active so onDestroy zeroes gamepad on switch -->

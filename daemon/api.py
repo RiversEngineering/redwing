@@ -89,6 +89,18 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
                     state.ports.clear()
                     state.add_log("info", "[Dashboard] All ports reset")
 
+            elif cmd == "clear_map":
+                async with state.lock:
+                    state.clear_map()
+                # Broadcast so every connected dashboard clears its local accumulation
+                dead = set()
+                for ws in list(ws_clients):
+                    try:
+                        await ws.send_json({"type": "clear_map"})
+                    except Exception:
+                        dead.add(ws)
+                ws_clients.difference_update(dead)
+
             elif cmd == "set_lidar_config":
                 async with state.lock:
                     # max_cm is a display preference — always user-adjustable
@@ -160,6 +172,7 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
         asyncio.create_task(_broadcast_logs())
         asyncio.create_task(_broadcast_camera())
         asyncio.create_task(_broadcast_plots())
+        asyncio.create_task(_broadcast_map())
 
     async def _broadcast_state():
         interval = 1.0 / min(STREAM_HZ, 30)  # cap dashboard at 30fps
@@ -212,6 +225,30 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
                         except Exception:
                             dead.add(ws)
                             break
+                ws_clients.difference_update(dead)
+
+            await asyncio.sleep(0.1)
+
+    async def _broadcast_map():
+        """Stream new map points to all dashboard clients at ~10 Hz."""
+        sent_total = 0
+        while True:
+            async with state.lock:
+                total   = state._map_total_count
+                buf     = state.map_points_buf
+                trimmed = total - len(buf)
+                idx     = max(0, sent_total - trimmed)
+                new_pts = buf[idx:]
+                sent_total = total
+
+            if new_pts and ws_clients:
+                msg  = {"type": "map_points", "points": [[x, y] for x, y in new_pts]}
+                dead = set()
+                for ws in list(ws_clients):
+                    try:
+                        await ws.send_json(msg)
+                    except Exception:
+                        dead.add(ws)
                 ws_clients.difference_update(dead)
 
             await asyncio.sleep(0.1)

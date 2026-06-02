@@ -84,6 +84,21 @@ export function pushPlot(label, value, ts) {
     plotValues.update(pv => ({ ...pv, [label]: { value, ts } }));
 }
 
+// ── Map (robot.map_point / map_pose) ─────────────────────────────────────────
+/** Accumulated world-frame obstacle points: [[x, y], ...] */
+export const mapPoints = writable([]);
+/** Latest robot pose from robot.map_pose(): {x, y, heading} or null */
+export const mapPose   = writable(null);
+
+export function addMapPoints(pts) {
+    mapPoints.update(all => [...all, ...pts]);
+}
+
+export function clearMap() {
+    mapPoints.set([]);
+    mapPose.set(null);
+}
+
 // ── Camera ────────────────────────────────────────────────────────────────────
 /** Latest camera frame as a base64 JPEG string, or '' if none yet. */
 export const cameraFrame = writable('');

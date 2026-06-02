@@ -145,6 +145,35 @@ class IPCServer:
                     self._state.lidar_max_cm      = max(50.0, min(2000.0, float(cmd["max_cm"])))
                 self._state.lidar_code_configured = True
 
+        elif c == "map_point":
+            async with self._state.lock:
+                self._state.map_points_buf.append((float(cmd.get("x", 0)), float(cmd.get("y", 0))))
+                self._state._map_total_count += 1
+                if len(self._state.map_points_buf) > self._state._max_map_buf:
+                    self._state.map_points_buf = self._state.map_points_buf[-self._state._max_map_buf:]
+
+        elif c == "map_points":
+            pts = cmd.get("points", [])
+            async with self._state.lock:
+                for pt in pts:
+                    if len(pt) >= 2:
+                        self._state.map_points_buf.append((float(pt[0]), float(pt[1])))
+                        self._state._map_total_count += 1
+                if len(self._state.map_points_buf) > self._state._max_map_buf:
+                    self._state.map_points_buf = self._state.map_points_buf[-self._state._max_map_buf:]
+
+        elif c == "map_pose":
+            async with self._state.lock:
+                self._state.map_pose = {
+                    "x":       float(cmd.get("x", 0)),
+                    "y":       float(cmd.get("y", 0)),
+                    "heading": float(cmd.get("heading", 0)),
+                }
+
+        elif c == "clear_map":
+            async with self._state.lock:
+                self._state.clear_map()
+
         elif c == "plot":
             label = str(cmd.get("label", ""))[:64]
             value = float(cmd.get("value", 0.0))

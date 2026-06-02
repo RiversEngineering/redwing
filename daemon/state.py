@@ -117,6 +117,18 @@ class SharedState:
         self._max_plot_points = 500
         self._plot_total_count = 0
 
+        # Student map buffer — world-frame (x, y) obstacle points from robot.map_point()
+        self.map_points_buf: list[tuple[float, float]] = []
+        self._max_map_buf = 10_000
+        self._map_total_count = 0
+        self.map_pose: dict | None = None   # {x, y, heading} or None
+
+    def clear_map(self):
+        """Clear all accumulated map data (called by dashboard or student code)."""
+        self.map_points_buf = []
+        self._map_total_count = 0
+        self.map_pose = None
+
     @property
     def uptime(self) -> float:
         return time.monotonic() - self._start
@@ -164,6 +176,8 @@ class SharedState:
         }
         if self.lidar_scan is not None:
             msg["lidar"] = self.lidar_scan
+        if self.map_pose is not None:
+            msg["map_pose"] = self.map_pose
         msg["lidar_config"] = {
             "offset":           self.lidar_offset_deg,
             "x_offset":         self.lidar_x_offset_cm,
