@@ -1,7 +1,7 @@
 <script>
   import { onDestroy, onMount } from 'svelte';
   import { send }               from '../lib/ws.js';
-  import { connected, cameraFrame } from '../lib/stores.js';
+  import { connected, cameraFrame, robotState } from '../lib/stores.js';
   import VirtualJoystick from './VirtualJoystick.svelte';
   import DPad            from './DPad.svelte';
   import FaceButtons     from './FaceButtons.svelte';
@@ -11,6 +11,25 @@
   // ── Center panel visibility ────────────────────────────────────────────
   let showCamera = true;
   let showLidar  = false;
+
+  // ── LIDAR display config ───────────────────────────────────────────────
+  let lidarOffset = 0;    // degrees
+  let lidarMaxCm  = 400;  // cm
+  let lidarCfgInit = false;
+
+  // Sync local inputs from state once (or whenever dashboard is in control)
+  $: {
+    const cfg = $robotState?.lidar_config;
+    if (cfg && !cfg.code_configured) {
+      lidarOffset = cfg.offset  ?? 0;
+      lidarMaxCm  = cfg.max_cm  ?? 400;
+      lidarCfgInit = true;
+    }
+  }
+
+  function sendLidarConfig() {
+    send({ cmd: 'set_lidar_config', offset: Number(lidarOffset), max_cm: Number(lidarMaxCm) });
+  }
 
   // ── Gamepad state ─────────────────────────────────────────────────────
   let lx = 0, ly = 0, rx = 0, ry = 0;
@@ -216,6 +235,40 @@
         LIDAR
       </button>
     </div>
+
+    <!-- LIDAR settings row (visible when LIDAR panel is on) -->
+    {#if showLidar}
+      {@const codeLocked = $robotState?.lidar_config?.code_configured}
+      <div class="flex items-center gap-2 flex-shrink-0 flex-wrap justify-center">
+        <span class="text-[10px] text-slate-500 uppercase tracking-widest">Rotation</span>
+        <input
+          type="number" min="-360" max="360" step="5"
+          bind:value={lidarOffset}
+          on:change={sendLidarConfig}
+          disabled={codeLocked}
+          class="w-14 px-1.5 py-0.5 rounded text-xs text-center font-mono
+                 bg-[#1e2129] border border-[#2e3340] text-slate-300
+                 disabled:opacity-40 disabled:cursor-not-allowed"
+        />
+        <span class="text-[10px] text-slate-600">°</span>
+
+        <span class="text-[10px] text-slate-500 uppercase tracking-widest ml-2">Max</span>
+        <input
+          type="number" min="50" max="2000" step="50"
+          bind:value={lidarMaxCm}
+          on:change={sendLidarConfig}
+          disabled={codeLocked}
+          class="w-16 px-1.5 py-0.5 rounded text-xs text-center font-mono
+                 bg-[#1e2129] border border-[#2e3340] text-slate-300
+                 disabled:opacity-40 disabled:cursor-not-allowed"
+        />
+        <span class="text-[10px] text-slate-600">cm</span>
+
+        {#if codeLocked}
+          <span class="text-[10px] text-slate-700 italic ml-1">set by code</span>
+        {/if}
+      </div>
+    {/if}
 
     {#if usingPhysical}
       <div class="text-[10px] text-blue-400 uppercase tracking-widest truncate max-w-full flex-shrink-0">

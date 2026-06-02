@@ -90,6 +90,11 @@ class SharedState:
         # Latest LIDAR scan: list of (angle_deg, distance_cm) tuples, or None
         self.lidar_scan: list | None = None
 
+        # LIDAR display configuration
+        self.lidar_offset_deg: float  = 0.0    # mounting rotation offset (degrees CW)
+        self.lidar_max_cm: float      = 400.0  # radar display radius (cm)
+        self.lidar_code_configured: bool = False  # True once student code sets config
+
         # Latest camera frame as JPEG bytes (seeded with placeholder by CameraCapture)
         self.camera_frame: bytes | None = None
         self.camera_frame_b64: str = ""   # base64-encoded version for student library
@@ -157,5 +162,10 @@ class SharedState:
         }
         if self.lidar_scan is not None:
             msg["lidar"] = self.lidar_scan
+        msg["lidar_config"] = {
+            "offset":           self.lidar_offset_deg,
+            "max_cm":           self.lidar_max_cm,
+            "code_configured":  self.lidar_code_configured,
+        }
         msg["gamepad"] = self.gamepad.to_dict()
         return msg

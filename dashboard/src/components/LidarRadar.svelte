@@ -1,20 +1,24 @@
 <script>
   import { robotState } from '../lib/stores.js';
 
-  // Maximum range to render (cm). Points beyond this are clamped to the edge.
-  const MAX_CM   = 400;
-  // SVG coordinate radius (half the square viewBox side)
-  const R        = 160;
-  // Range rings to draw (cm)
-  const RINGS    = [100, 200, 300, 400];
+  const R = 160;   // SVG coordinate radius
+
+  $: cfg    = $robotState?.lidar_config ?? { offset: 0, max_cm: 400 };
+  $: offset = cfg.offset  ?? 0;
+  $: maxCm  = cfg.max_cm  ?? 400;
 
   $: scan    = $robotState?.lidar ?? [];
   $: hasData = scan.length > 0;
 
-  /** Convert polar (angle °, distance cm) to SVG (x, y). 0° = top = forward. */
+  // Range rings: four evenly-spaced rings scaled to maxCm
+  $: rings = [0.25, 0.5, 0.75, 1.0].map(f => Math.round(f * maxCm));
+
+  /** Convert polar (sensor angle °, distance cm) to SVG (x, y).
+   *  Applies the mounting offset so 0° = robot forward = top of display. */
   function toXY(angle_deg, dist_cm) {
-    const r   = Math.min(dist_cm, MAX_CM) / MAX_CM * R;
-    const rad = (angle_deg - 90) * Math.PI / 180;
+    const r   = Math.min(dist_cm, maxCm) / maxCm * R;
+    const corrected = (angle_deg - offset + 360) % 360;
+    const rad = (corrected - 90) * Math.PI / 180;   // SVG: 0° = right, -90° = top
     return [R + r * Math.cos(rad), R + r * Math.sin(rad)];
   }
 </script>
@@ -26,12 +30,11 @@
     class="w-full h-full"
     preserveAspectRatio="xMidYMid meet"
   >
-    <!-- Radar background -->
     <circle cx={R} cy={R} r={R} fill="#040d04" />
 
-    <!-- Range rings -->
-    {#each RINGS as ring_cm}
-      {@const rr = ring_cm / MAX_CM * R}
+    <!-- Range rings (scaled to maxCm) -->
+    {#each rings as ring_cm, i}
+      {@const rr = (ring_cm / maxCm) * R}
       <circle cx={R} cy={R} r={rr}
               fill="none" stroke="#0d3a0d" stroke-width="0.5" />
       <text x={R + rr + 2} y={R + 4}
@@ -43,11 +46,11 @@
     <line x1={R} y1="0"   x2={R}   y2={R*2} stroke="#0d3a0d" stroke-width="0.5" />
     <line x1="0" y1={R}   x2={R*2} y2={R}   stroke="#0d3a0d" stroke-width="0.5" />
 
-    <!-- Forward indicator -->
+    <!-- Forward label (always top = robot forward) -->
     <text x={R} y="11" text-anchor="middle"
           fill="#22c55e" font-size="9" font-family="sans-serif" opacity="0.6">▲</text>
 
-    <!-- LIDAR points -->
+    <!-- LIDAR points (offset already baked into toXY) -->
     {#if hasData}
       {#each scan as [angle, dist]}
         {@const [px, py] = toXY(angle, dist)}
@@ -60,7 +63,7 @@
             fill="#0d3a0d" font-size="8"  font-family="sans-serif">Set REDWING_LIDAR in compose</text>
     {/if}
 
-    <!-- Robot dot (center) -->
+    <!-- Robot indicator -->
     <circle cx={R} cy={R} r="4"   fill="#4ade80" />
     <circle cx={R} cy={R} r="1.5" fill="#040d04" />
   </svg>

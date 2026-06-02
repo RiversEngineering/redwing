@@ -547,7 +547,7 @@ class Robot:
     # LIDAR (USB — connected directly to the Pi, not through the Pico)
     # ------------------------------------------------------------------
 
-    def lidar(self, offset_deg: float = 0.0) -> Lidar:
+    def lidar(self, offset_deg: float = 0.0, max_cm: float = 400.0) -> Lidar:
         """Return a :class:`Lidar` object for the 360° USB LIDAR sensor.
 
         The LIDAR must be connected to the Raspberry Pi via USB and
@@ -580,6 +580,11 @@ class Robot:
         """
         if self._lidar is None:
             self._lidar = Lidar(self._conn, offset_deg=offset_deg)
+            self._conn.send_command(
+                cmd="set_lidar_config",
+                offset=float(offset_deg),
+                max_cm=float(max_cm),
+            )
         return self._lidar
 
     # ------------------------------------------------------------------

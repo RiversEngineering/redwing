@@ -89,6 +89,12 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
                     state.ports.clear()
                     state.add_log("info", "[Dashboard] All ports reset")
 
+            elif cmd == "set_lidar_config":
+                async with state.lock:
+                    if not state.lidar_code_configured:
+                        state.lidar_offset_deg = float(msg.get("offset", 0.0)) % 360.0
+                        state.lidar_max_cm     = max(50.0, min(2000.0, float(msg.get("max_cm", 400.0))))
+
             elif cmd == "gamepad":
                 async with state.lock:
                     gp = state.gamepad

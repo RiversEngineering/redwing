@@ -136,6 +136,12 @@ class IPCServer:
         elif c == "stop_all":
             self._rp.stop_all()
 
+        elif c == "set_lidar_config":
+            async with self._state.lock:
+                self._state.lidar_offset_deg     = float(cmd.get("offset", 0.0)) % 360.0
+                self._state.lidar_max_cm         = max(50.0, min(2000.0, float(cmd.get("max_cm", 400.0))))
+                self._state.lidar_code_configured = True
+
         elif c == "plot":
             label = str(cmd.get("label", ""))[:64]
             value = float(cmd.get("value", 0.0))
@@ -240,6 +246,7 @@ class IPCServer:
             self._state.port_config.clear()
             self._state.ports.clear()
             self._state.logs.clear()
+            self._state.lidar_code_configured = False   # dashboard regains control on new run
         if not ok:
             log.warning("CMD_RESET timed out — RP2040 may not be connected yet")
         return {"ok": True}   # best-effort: always let the student program continue
