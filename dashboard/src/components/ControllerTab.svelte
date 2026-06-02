@@ -239,33 +239,49 @@
     <!-- LIDAR settings row (visible when LIDAR panel is on) -->
     {#if showLidar}
       {@const codeLocked = $robotState?.lidar_config?.code_configured}
-      <div class="flex items-center gap-2 flex-shrink-0 flex-wrap justify-center">
-        <span class="text-[10px] text-slate-500 uppercase tracking-widest">Rotation</span>
-        <input
-          type="number" min="-360" max="360" step="5"
-          bind:value={lidarOffset}
-          on:change={sendLidarConfig}
-          disabled={codeLocked}
-          class="w-14 px-1.5 py-0.5 rounded text-xs text-center font-mono
-                 bg-[#1e2129] border border-[#2e3340] text-slate-300
-                 disabled:opacity-40 disabled:cursor-not-allowed"
-        />
-        <span class="text-[10px] text-slate-600">°</span>
+      <div class="flex flex-col gap-1.5 flex-shrink-0 w-full max-w-sm px-1"
+           style:opacity={codeLocked ? 0.4 : 1}>
 
-        <span class="text-[10px] text-slate-500 uppercase tracking-widest ml-2">Max</span>
-        <input
-          type="number" min="50" max="2000" step="50"
-          bind:value={lidarMaxCm}
-          on:change={sendLidarConfig}
-          disabled={codeLocked}
-          class="w-16 px-1.5 py-0.5 rounded text-xs text-center font-mono
-                 bg-[#1e2129] border border-[#2e3340] text-slate-300
-                 disabled:opacity-40 disabled:cursor-not-allowed"
-        />
-        <span class="text-[10px] text-slate-600">cm</span>
+        <!-- Rotation -->
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] text-slate-500 uppercase tracking-widest w-14 flex-shrink-0">Rotation</span>
+          <input
+            type="range" min="-180" max="180" step="5"
+            bind:value={lidarOffset}
+            on:input={sendLidarConfig}
+            disabled={codeLocked}
+            class="flex-1 h-1.5 rounded-full appearance-none cursor-pointer accent-green-500
+                   disabled:cursor-not-allowed"
+            style="background: linear-gradient(to right,
+              #16a34a {((lidarOffset + 180) / 360 * 100)}%,
+              #2e3340 {((lidarOffset + 180) / 360 * 100)}%)"
+          />
+          <span class="text-[10px] font-mono text-green-400 w-10 text-right flex-shrink-0">
+            {lidarOffset > 0 ? '+' : ''}{lidarOffset}°
+          </span>
+        </div>
+
+        <!-- Max range -->
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] text-slate-500 uppercase tracking-widest w-14 flex-shrink-0">Max range</span>
+          <input
+            type="range" min="100" max="1200" step="50"
+            bind:value={lidarMaxCm}
+            on:input={sendLidarConfig}
+            disabled={codeLocked}
+            class="flex-1 h-1.5 rounded-full appearance-none cursor-pointer accent-green-500
+                   disabled:cursor-not-allowed"
+            style="background: linear-gradient(to right,
+              #16a34a {((lidarMaxCm - 100) / 1100 * 100)}%,
+              #2e3340 {((lidarMaxCm - 100) / 1100 * 100)}%)"
+          />
+          <span class="text-[10px] font-mono text-green-400 w-14 text-right flex-shrink-0">
+            {lidarMaxCm} cm
+          </span>
+        </div>
 
         {#if codeLocked}
-          <span class="text-[10px] text-slate-700 italic ml-1">set by code</span>
+          <div class="text-[10px] text-slate-700 italic text-center">set by code</div>
         {/if}
       </div>
     {/if}
