@@ -91,9 +91,17 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
 
             elif cmd == "set_lidar_config":
                 async with state.lock:
+                    # max_cm is a display preference — always user-adjustable
+                    if "max_cm" in msg:
+                        state.lidar_max_cm = max(50.0, min(2000.0, float(msg["max_cm"])))
+                    # offset / xy are physical calibration — locked once code sets them
                     if not state.lidar_code_configured:
-                        state.lidar_offset_deg = float(msg.get("offset", 0.0)) % 360.0
-                        state.lidar_max_cm     = max(50.0, min(2000.0, float(msg.get("max_cm", 400.0))))
+                        if "offset" in msg:
+                            state.lidar_offset_deg  = float(msg["offset"]) % 360.0
+                        if "x_offset" in msg:
+                            state.lidar_x_offset_cm = max(-200.0, min(200.0, float(msg["x_offset"])))
+                        if "y_offset" in msg:
+                            state.lidar_y_offset_cm = max(-200.0, min(200.0, float(msg["y_offset"])))
 
             elif cmd == "gamepad":
                 async with state.lock:

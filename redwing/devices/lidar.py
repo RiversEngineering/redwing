@@ -39,9 +39,12 @@ class Lidar:
     is mounted.
     """
 
-    def __init__(self, conn, offset_deg: float = 0.0):
-        self._conn   = conn
-        self._offset = float(offset_deg) % 360.0
+    def __init__(self, conn, offset_deg: float = 0.0,
+                 x_offset_cm: float = 0.0, y_offset_cm: float = 0.0):
+        self._conn     = conn
+        self._offset   = float(offset_deg) % 360.0
+        self._x_offset = float(x_offset_cm)   # positive = LIDAR is right of centre
+        self._y_offset = float(y_offset_cm)   # positive = LIDAR is forward of centre
 
     def scan(self) -> list[tuple[float, float]]:
         """Return the latest full 360° scan as a list of ``(angle_deg, distance_cm)`` tuples.
@@ -60,11 +63,29 @@ class Lidar:
         raw   = state.get("lidar", [])
         if not raw:
             return []
-        if self._offset == 0.0:
-            return sorted(raw, key=lambda p: p[0])
-        # Rotate all angles by -offset so robot forward = 0°
-        corrected = [((a - self._offset) % 360.0, d) for a, d in raw]
-        return sorted(corrected, key=lambda p: p[0])
+
+        # 1. Apply rotation offset so 0° = robot forward
+        if self._offset != 0.0:
+            raw = [((a - self._offset) % 360.0, d) for a, d in raw]
+
+        # 2. Apply XY mounting offset so coordinates are relative to the robot centre.
+        #    (0° = forward = +Y axis, 90° = right = +X axis — compass convention)
+        if self._x_offset != 0.0 or self._y_offset != 0.0:
+            corrected = []
+            for angle_deg, dist in raw:
+                rad = math.radians(angle_deg)
+                # Sensor Cartesian frame
+                sx = dist * math.sin(rad)
+                sy = dist * math.cos(rad)
+                # Translate to robot-centre frame
+                rx = sx + self._x_offset
+                ry = sy + self._y_offset
+                new_dist  = math.sqrt(rx * rx + ry * ry)
+                new_angle = math.degrees(math.atan2(rx, ry)) % 360.0
+                corrected.append((round(new_angle, 1), round(new_dist, 1)))
+            return sorted(corrected, key=lambda p: p[0])
+
+        return sorted(raw, key=lambda p: p[0])
 
     def nearest(self) -> float:
         """Distance in cm to the nearest detected obstacle in any direction.

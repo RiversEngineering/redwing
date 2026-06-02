@@ -138,8 +138,11 @@ class IPCServer:
 
         elif c == "set_lidar_config":
             async with self._state.lock:
-                self._state.lidar_offset_deg     = float(cmd.get("offset", 0.0)) % 360.0
-                self._state.lidar_max_cm         = max(50.0, min(2000.0, float(cmd.get("max_cm", 400.0))))
+                self._state.lidar_offset_deg      = float(cmd.get("offset", 0.0)) % 360.0
+                self._state.lidar_x_offset_cm     = float(cmd.get("x_offset", 0.0))
+                self._state.lidar_y_offset_cm     = float(cmd.get("y_offset", 0.0))
+                if "max_cm" in cmd:
+                    self._state.lidar_max_cm      = max(50.0, min(2000.0, float(cmd["max_cm"])))
                 self._state.lidar_code_configured = True
 
         elif c == "plot":

@@ -3,9 +3,11 @@
 
   const R = 160;   // SVG coordinate radius
 
-  $: cfg    = $robotState?.lidar_config ?? { offset: 0, max_cm: 400 };
-  $: offset = cfg.offset  ?? 0;
-  $: maxCm  = cfg.max_cm  ?? 400;
+  $: cfg     = $robotState?.lidar_config ?? {};
+  $: offset  = cfg.offset   ?? 0;
+  $: xOff    = cfg.x_offset ?? 0;
+  $: yOff    = cfg.y_offset ?? 0;
+  $: maxCm   = cfg.max_cm   ?? 400;
 
   $: scan    = $robotState?.lidar ?? [];
   $: hasData = scan.length > 0;
@@ -14,12 +16,31 @@
   $: rings = [0.25, 0.5, 0.75, 1.0].map(f => Math.round(f * maxCm));
 
   /** Convert polar (sensor angle °, distance cm) to SVG (x, y).
-   *  Applies the mounting offset so 0° = robot forward = top of display. */
+   *  Applies rotation offset and XY mounting offset. */
   function toXY(angle_deg, dist_cm) {
-    const r   = Math.min(dist_cm, maxCm) / maxCm * R;
+    // 1. Apply rotation offset
     const corrected = (angle_deg - offset + 360) % 360;
-    const rad = (corrected - 90) * Math.PI / 180;   // SVG: 0° = right, -90° = top
-    return [R + r * Math.cos(rad), R + r * Math.sin(rad)];
+    const rad = corrected * Math.PI / 180;
+
+    // 2. Sensor Cartesian (0° = forward = +Y, 90° = right = +X)
+    let sx = dist_cm * Math.sin(rad);
+    let sy = dist_cm * Math.cos(rad);
+
+    // 3. Translate to robot-centre frame if XY offset is set
+    if (xOff !== 0 || yOff !== 0) {
+      const rx = sx + xOff;
+      const ry = sy + yOff;
+      const newDist  = Math.sqrt(rx * rx + ry * ry);
+      const newAngle = (Math.atan2(rx, ry) * 180 / Math.PI + 360) % 360;
+      sx = newDist * Math.sin(newAngle * Math.PI / 180);
+      sy = newDist * Math.cos(newAngle * Math.PI / 180);
+    }
+
+    // 4. Clamp to maxCm and convert to SVG coords (SVG: +Y is down, -90° = top)
+    const dist2 = Math.sqrt(sx * sx + sy * sy);
+    const r     = Math.min(dist2, maxCm) / maxCm * R;
+    const svgRad = Math.atan2(sx, sy) - Math.PI / 2; // rotate so forward = top
+    return [R + r * Math.cos(svgRad), R + r * Math.sin(svgRad)];
   }
 </script>
 

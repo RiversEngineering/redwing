@@ -14,22 +14,40 @@
   let showLidar  = false;
 
   // ── LIDAR display config ───────────────────────────────────────────────
-  let lidarOffset = 0;    // degrees
-  let lidarMaxCm  = 400;  // cm
+  let lidarOffset  = 0;    // degrees CW rotation
+  let lidarXOffset = 0;    // cm right of centre
+  let lidarYOffset = 0;    // cm forward of centre
+  let lidarMaxCm   = 400;  // cm (display only, never code-locked)
 
-  // Initialise once from current state when the tab mounts; after that,
-  // local values are authoritative. A reactive $: block would reset the
-  // sliders on every 50 Hz state broadcast, making them impossible to drag.
+  // Initialise from state on mount.
   onMount(() => {
     const cfg = get(robotState)?.lidar_config;
-    if (cfg && !cfg.code_configured) {
-      lidarOffset = cfg.offset ?? 0;
-      lidarMaxCm  = cfg.max_cm ?? 400;
+    if (cfg) {
+      lidarOffset  = cfg.offset   ?? 0;
+      lidarXOffset = cfg.x_offset ?? 0;
+      lidarYOffset = cfg.y_offset ?? 0;
+      lidarMaxCm   = cfg.max_cm   ?? 400;
     }
   });
 
+  // When code has locked the config, sync the disabled sliders from state
+  // so they show the correct code-set values (not the stale local defaults).
+  // This is safe because the sliders are disabled — no drag-reset race.
+  $: if ($robotState?.lidar_config?.code_configured) {
+    const cfg = $robotState.lidar_config;
+    lidarOffset  = cfg.offset   ?? lidarOffset;
+    lidarXOffset = cfg.x_offset ?? lidarXOffset;
+    lidarYOffset = cfg.y_offset ?? lidarYOffset;
+  }
+
   function sendLidarConfig() {
-    send({ cmd: 'set_lidar_config', offset: Number(lidarOffset), max_cm: Number(lidarMaxCm) });
+    send({
+      cmd:      'set_lidar_config',
+      offset:   Number(lidarOffset),
+      x_offset: Number(lidarXOffset),
+      y_offset: Number(lidarYOffset),
+      max_cm:   Number(lidarMaxCm),
+    });
   }
 
   // ── Gamepad state ─────────────────────────────────────────────────────
@@ -239,19 +257,16 @@
 
     <!-- LIDAR settings row (visible when LIDAR panel is on) -->
     {#if showLidar}
-      {@const codeLocked = $robotState?.lidar_config?.code_configured}
-      <div class="flex flex-col gap-1.5 flex-shrink-0 w-full max-w-sm px-1"
-           style:opacity={codeLocked ? 0.4 : 1}>
+      {@const locked = !!$robotState?.lidar_config?.code_configured}
+      <div class="flex flex-col gap-1.5 flex-shrink-0 w-full max-w-sm px-1">
 
-        <!-- Rotation -->
-        <div class="flex items-center gap-2">
-          <span class="text-[10px] text-slate-500 uppercase tracking-widest w-14 flex-shrink-0">Rotation</span>
-          <input
-            type="range" min="-180" max="180" step="5"
+        <!-- Rotation (locked by code) -->
+        <div class="flex items-center gap-2" style:opacity={locked ? 0.45 : 1}>
+          <span class="text-[10px] text-slate-500 uppercase tracking-widest w-16 flex-shrink-0">Rotation</span>
+          <input type="range" min="-180" max="180" step="5"
             bind:value={lidarOffset}
-            on:input={sendLidarConfig}
-            on:change={sendLidarConfig}
-            disabled={codeLocked}
+            on:input={sendLidarConfig} on:change={sendLidarConfig}
+            disabled={locked}
             class="flex-1 accent-green-500 cursor-pointer disabled:cursor-not-allowed"
           />
           <span class="text-[10px] font-mono text-green-400 w-10 text-right flex-shrink-0">
@@ -259,24 +274,49 @@
           </span>
         </div>
 
-        <!-- Max range -->
-        <div class="flex items-center gap-2">
-          <span class="text-[10px] text-slate-500 uppercase tracking-widest w-14 flex-shrink-0">Max range</span>
-          <input
-            type="range" min="100" max="1200" step="50"
-            bind:value={lidarMaxCm}
-            on:input={sendLidarConfig}
-            on:change={sendLidarConfig}
-            disabled={codeLocked}
+        <!-- X offset — right/left of centre (locked by code) -->
+        <div class="flex items-center gap-2" style:opacity={locked ? 0.45 : 1}>
+          <span class="text-[10px] text-slate-500 uppercase tracking-widest w-16 flex-shrink-0">X offset</span>
+          <input type="range" min="-100" max="100" step="1"
+            bind:value={lidarXOffset}
+            on:input={sendLidarConfig} on:change={sendLidarConfig}
+            disabled={locked}
             class="flex-1 accent-green-500 cursor-pointer disabled:cursor-not-allowed"
           />
-          <span class="text-[10px] font-mono text-green-400 w-14 text-right flex-shrink-0">
+          <span class="text-[10px] font-mono text-green-400 w-10 text-right flex-shrink-0">
+            {lidarXOffset > 0 ? '+' : ''}{lidarXOffset} cm
+          </span>
+        </div>
+
+        <!-- Y offset — forward/back of centre (locked by code) -->
+        <div class="flex items-center gap-2" style:opacity={locked ? 0.45 : 1}>
+          <span class="text-[10px] text-slate-500 uppercase tracking-widest w-16 flex-shrink-0">Y offset</span>
+          <input type="range" min="-100" max="100" step="1"
+            bind:value={lidarYOffset}
+            on:input={sendLidarConfig} on:change={sendLidarConfig}
+            disabled={locked}
+            class="flex-1 accent-green-500 cursor-pointer disabled:cursor-not-allowed"
+          />
+          <span class="text-[10px] font-mono text-green-400 w-10 text-right flex-shrink-0">
+            {lidarYOffset > 0 ? '+' : ''}{lidarYOffset} cm
+          </span>
+        </div>
+
+        <!-- Max range (always user-adjustable) -->
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] text-slate-500 uppercase tracking-widest w-16 flex-shrink-0">Max range</span>
+          <input type="range" min="100" max="1200" step="50"
+            bind:value={lidarMaxCm}
+            on:input={sendLidarConfig} on:change={sendLidarConfig}
+            class="flex-1 accent-green-500 cursor-pointer"
+          />
+          <span class="text-[10px] font-mono text-green-400 w-10 text-right flex-shrink-0">
             {lidarMaxCm} cm
           </span>
         </div>
 
-        {#if codeLocked}
-          <div class="text-[10px] text-slate-700 italic text-center">set by code</div>
+        {#if locked}
+          <div class="text-[10px] text-slate-700 italic text-center">rotation + XY set by code</div>
         {/if}
       </div>
     {/if}
