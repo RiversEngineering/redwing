@@ -547,23 +547,39 @@ class Robot:
     # LIDAR (USB — connected directly to the Pi, not through the Pico)
     # ------------------------------------------------------------------
 
-    def lidar(self) -> Lidar:
-        """Return a Lidar object for the 360° USB LIDAR sensor.
+    def lidar(self, offset_deg: float = 0.0) -> Lidar:
+        """Return a :class:`Lidar` object for the 360° USB LIDAR sensor.
 
         The LIDAR must be connected to the Raspberry Pi via USB and
-        ``REDWING_LIDAR`` must be set to the serial port (e.g. ``/dev/ttyUSB0``).
+        ``REDWING_LIDAR`` must be set to the serial port in ``docker-compose.yml``
+        (e.g. ``REDWING_LIDAR: /dev/ttyUSB0``).
+
+        Parameters
+        ----------
+        offset_deg:
+            Clockwise rotation of the sensor's forward direction relative to
+            the robot's forward direction.  Use this when the LIDAR is mounted
+            at an angle so that all angles returned by the library are already
+            in robot-relative coordinates.
+
+            * ``0``   — sensor faces forward (default)
+            * ``90``  — sensor rotated 90° clockwise
+            * ``180`` — sensor faces backward
+            * ``270`` — sensor rotated 90° counter-clockwise (or ``-90``)
 
         Example::
 
-            lidar = robot.lidar()
+            lidar = robot.lidar()            # sensor points forward
+            lidar = robot.lidar(offset=180)  # sensor mounted pointing backward
 
             while True:
-                if lidar.nearest() < 30:
+                front = lidar.nearest_in_range(0, 45)   # always robot-forward
+                if front < 30:
                     robot.stop()
                 robot.sleep(0.1)
         """
         if self._lidar is None:
-            self._lidar = Lidar(self._conn)
+            self._lidar = Lidar(self._conn, offset_deg=offset_deg)
         return self._lidar
 
     # ------------------------------------------------------------------
