@@ -233,15 +233,19 @@ bool vl53l0x_init(void) {
 
 uint16_t vl53l0x_read_mm(bool *valid) {
     // Non-blocking: check interrupt status; update cache if new data is ready.
-    uint8_t status;
-    if (rd1(REG_RESULT_INTERRUPT_STATUS, &status) && (status & 0x07u) != 0) {
-        uint8_t data[12];
-        if (rdn(REG_RESULT_RANGE_STATUS, data, 12)) {
-            uint16_t range = ((uint16_t)data[10] << 8) | data[11];
-            // Device error field is bits [7:3] of data[0]; 0 = no error
-            uint8_t dev_err = (data[0] >> 3) & 0x0Fu;
+    uint8_t int_status;
+    if (rd1(REG_RESULT_INTERRUPT_STATUS, &int_status) && (int_status & 0x07u) != 0) {
+        // Read range directly from RESULT_RANGE_STATUS+10 (0x1E/0x1F),
+        // mirroring the Pololu library's readReg16Bit(RESULT_RANGE_STATUS+10).
+        // Reading just 2 bytes avoids any indexing ambiguity in a larger buffer.
+        uint8_t range_buf[2];
+        uint8_t dev_status;
+        rd1(REG_RESULT_RANGE_STATUS, &dev_status);   // 0x14: error in bits [7:3]
+        if (rdn(REG_RESULT_RANGE_STATUS + 10u, range_buf, 2)) {
+            uint16_t range  = ((uint16_t)range_buf[0] << 8) | range_buf[1];
+            uint8_t dev_err = (dev_status >> 3) & 0x0Fu;
             cached_mm    = range;
-            cached_valid = (dev_err == 0 || dev_err == 11u) && range < 8190u;
+            cached_valid = (dev_err == 0) && range < 8190u;
         }
         wr1(REG_SYSTEM_INTERRUPT_CLEAR, 0x01);
     }
