@@ -48,12 +48,21 @@ class LidarCapture:
         log.info(f"LIDAR connected on {self._port}")
         try:
             for scan in lidar.iter_scans(min_len=72):
-                points = [
-                    (round(angle, 1), round(dist / 10.0, 1))
-                    for quality, angle, dist in scan
-                    if quality >= _SCAN_QUALITY_MIN and dist > 0
-                ]
-                # Schedule the state update on the event loop
+                points = []
+                for item in scan:
+                    # rplidar-roboticia may yield 3-tuples (quality, angle, dist)
+                    # or 4-tuples (new_scan, quality, angle, dist) depending on version.
+                    try:
+                        if len(item) == 3:
+                            quality, angle, dist = item
+                        elif len(item) == 4:
+                            _, quality, angle, dist = item
+                        else:
+                            continue
+                    except (TypeError, ValueError):
+                        continue
+                    if quality >= _SCAN_QUALITY_MIN and dist > 0:
+                        points.append((round(angle, 1), round(dist / 10.0, 1)))
                 asyncio.run_coroutine_threadsafe(
                     self._update(points), self._loop
                 ).result(timeout=2.0)
