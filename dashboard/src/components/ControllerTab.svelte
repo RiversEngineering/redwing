@@ -249,12 +249,9 @@
             type="range" min="-180" max="180" step="5"
             bind:value={lidarOffset}
             on:input={sendLidarConfig}
+            on:change={sendLidarConfig}
             disabled={codeLocked}
-            class="flex-1 h-1.5 rounded-full appearance-none cursor-pointer accent-green-500
-                   disabled:cursor-not-allowed"
-            style="background: linear-gradient(to right,
-              #16a34a {((lidarOffset + 180) / 360 * 100)}%,
-              #2e3340 {((lidarOffset + 180) / 360 * 100)}%)"
+            class="flex-1 accent-green-500 cursor-pointer disabled:cursor-not-allowed"
           />
           <span class="text-[10px] font-mono text-green-400 w-10 text-right flex-shrink-0">
             {lidarOffset > 0 ? '+' : ''}{lidarOffset}°
@@ -268,12 +265,9 @@
             type="range" min="100" max="1200" step="50"
             bind:value={lidarMaxCm}
             on:input={sendLidarConfig}
+            on:change={sendLidarConfig}
             disabled={codeLocked}
-            class="flex-1 h-1.5 rounded-full appearance-none cursor-pointer accent-green-500
-                   disabled:cursor-not-allowed"
-            style="background: linear-gradient(to right,
-              #16a34a {((lidarMaxCm - 100) / 1100 * 100)}%,
-              #2e3340 {((lidarMaxCm - 100) / 1100 * 100)}%)"
+            class="flex-1 accent-green-500 cursor-pointer disabled:cursor-not-allowed"
           />
           <span class="text-[10px] font-mono text-green-400 w-14 text-right flex-shrink-0">
             {lidarMaxCm} cm
