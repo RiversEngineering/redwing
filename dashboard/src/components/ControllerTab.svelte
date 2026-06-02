@@ -1,5 +1,6 @@
 <script>
   import { onDestroy, onMount } from 'svelte';
+  import { get }                from 'svelte/store';
   import { send }               from '../lib/ws.js';
   import { connected, cameraFrame, robotState } from '../lib/stores.js';
   import VirtualJoystick from './VirtualJoystick.svelte';
@@ -15,17 +16,17 @@
   // ── LIDAR display config ───────────────────────────────────────────────
   let lidarOffset = 0;    // degrees
   let lidarMaxCm  = 400;  // cm
-  let lidarCfgInit = false;
 
-  // Sync local inputs from state once (or whenever dashboard is in control)
-  $: {
-    const cfg = $robotState?.lidar_config;
+  // Initialise once from current state when the tab mounts; after that,
+  // local values are authoritative. A reactive $: block would reset the
+  // sliders on every 50 Hz state broadcast, making them impossible to drag.
+  onMount(() => {
+    const cfg = get(robotState)?.lidar_config;
     if (cfg && !cfg.code_configured) {
-      lidarOffset = cfg.offset  ?? 0;
-      lidarMaxCm  = cfg.max_cm  ?? 400;
-      lidarCfgInit = true;
+      lidarOffset = cfg.offset ?? 0;
+      lidarMaxCm  = cfg.max_cm ?? 400;
     }
-  }
+  });
 
   function sendLidarConfig() {
     send({ cmd: 'set_lidar_config', offset: Number(lidarOffset), max_cm: Number(lidarMaxCm) });
