@@ -47,30 +47,39 @@ class LidarCapture:
         lidar = RPLidar(self._port)
         log.info(f"LIDAR connected on {self._port}")
         try:
-            # Use iter_measurments (the raw API) instead of iter_scans to avoid
-            # version-dependent tuple-format issues.  Each measurement is a
-            # 4-tuple: (new_scan, quality, angle_deg, distance_mm).
-            scan_buf: list[tuple] = []
-            for measurement in lidar.iter_measurments(max_buf_meas=500):
-                try:
-                    new_scan, quality, angle, dist = measurement
-                except (ValueError, TypeError) as exc:
-                    log.warning(f"Unexpected measurement format {measurement!r}: {exc}")
-                    continue
+            logged_format = False
+            for scan in lidar.iter_scans(min_len=72):
+                # Log the raw format of the first scan item once so we can
+                # see exactly what the library yields.
+                if not logged_format and scan:
+                    sample = scan[:3] if hasattr(scan, '__getitem__') else []
+                    log.info(f"Scan item format sample (first 3): {sample!r}")
+                    logged_format = True
 
-                if new_scan and len(scan_buf) >= 72:
-                    points = [
-                        (round(a, 1), round(d / 10.0, 1))
-                        for q, a, d in scan_buf
-                        if q >= _SCAN_QUALITY_MIN and d > 0
-                    ]
-                    asyncio.run_coroutine_threadsafe(
-                        self._update(points), self._loop
-                    ).result(timeout=2.0)
-                    scan_buf = []
+                points = []
+                for item in scan:
+                    try:
+                        n = len(item)
+                    except TypeError:
+                        continue
+                    try:
+                        if n == 3:
+                            quality, angle, dist = item
+                        elif n == 4:
+                            _, quality, angle, dist = item
+                        elif n == 2:
+                            angle, dist = item
+                            quality = 100
+                        else:
+                            continue
+                    except (ValueError, TypeError):
+                        continue
+                    if quality >= _SCAN_QUALITY_MIN and dist > 0:
+                        points.append((round(angle, 1), round(dist / 10.0, 1)))
 
-                if quality > 0 and dist > 0:
-                    scan_buf.append((quality, angle, dist))
+                asyncio.run_coroutine_threadsafe(
+                    self._update(points), self._loop
+                ).result(timeout=2.0)
         finally:
             lidar.stop()
             lidar.disconnect()
