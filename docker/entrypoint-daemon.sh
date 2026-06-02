@@ -25,4 +25,9 @@ for i in 0 1 2 3; do
     _mknod_if_present "ttyUSB${i}"
 done
 
+# I2C buses (battery monitor, HAT sensors)
+for i in 0 1 2 3 4 5; do
+    _mknod_if_present "i2c-${i}"
+done
+
 exec python -m daemon.main

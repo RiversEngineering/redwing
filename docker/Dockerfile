@@ -36,7 +36,8 @@ RUN pip install --no-cache-dir \
     "opencv-python-headless>=4.8" \
     "websockets>=12.0" \
     "evdev>=1.6" \
-    "rplidar-roboticia"
+    "rplidar-roboticia" \
+    "smbus2"
 
 # Install the redwing library itself
 COPY redwing/ ./redwing/
