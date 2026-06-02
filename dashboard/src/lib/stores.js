@@ -7,8 +7,18 @@
 import { writable, derived } from 'svelte/store';
 
 // ── Navigation ────────────────────────────────────────────────────────────────
-/** Currently active tab id. */
-export const activeTab = writable('overview');
+/**
+ * Currently active tab id — persisted to localStorage so a browser refresh
+ * returns to the same tab.
+ */
+function persistedTab(key, fallback) {
+    let initial = fallback;
+    try { initial = localStorage.getItem(key) ?? fallback; } catch {}
+    const store = writable(initial);
+    store.subscribe(val => { try { localStorage.setItem(key, val); } catch {} });
+    return store;
+}
+export const activeTab = persistedTab('redwing_active_tab', 'overview');
 
 /**
  * Port id to auto-select when the Ports tab opens.
