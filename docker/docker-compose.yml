@@ -14,6 +14,7 @@ services:
       - /dev/rp2040:/dev/rp2040
     device_cgroup_rules:
       - "c 166:* rmw"   # ttyACM devices (RP2040)
+      - "c 188:* rmw"   # ttyUSB devices (RPLidar USB adapter)
       - "c 81:* rmw"    # Video4Linux devices (camera)
       - "c 13:* rw"     # input devices (gamepads)
     cap_add:
@@ -27,6 +28,8 @@ services:
       REDWING_HOST:   "0.0.0.0"
       REDWING_PORT:   "8000"
       REDWING_HZ:     "50"
+      # Uncomment to enable the RPLidar (adjust port if needed):
+      # REDWING_LIDAR: /dev/ttyUSB0
     network_mode: host   # ports: is redundant with host networking
 
   code-server:

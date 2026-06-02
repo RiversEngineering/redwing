@@ -6,6 +6,11 @@
   import DPad            from './DPad.svelte';
   import FaceButtons     from './FaceButtons.svelte';
   import ShoulderButton  from './ShoulderButton.svelte';
+  import LidarRadar      from './LidarRadar.svelte';
+
+  // ── Center panel visibility ────────────────────────────────────────────
+  let showCamera = true;
+  let showLidar  = false;
 
   // ── Gamepad state ─────────────────────────────────────────────────────
   let lx = 0, ly = 0, rx = 0, ry = 0;
@@ -170,39 +175,96 @@
     </div>
   </div>
 
-  <!-- ── Center: camera feed ── -->
-  <div class="flex flex-col flex-1 min-w-0 items-center justify-center p-3 gap-2">
+  <!-- ── Center: toggleable camera / LIDAR radar ── -->
+  <div class="flex flex-col flex-1 min-w-0 items-center p-3 gap-2">
+
+    <!-- Toggle buttons -->
+    <div class="flex gap-2 flex-shrink-0">
+      <!-- Camera toggle -->
+      <button
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold
+               border transition-all duration-100 select-none touch-none
+               {showCamera
+                 ? 'bg-blue-600/25 border-blue-500/60 text-blue-300'
+                 : 'bg-[#1e2129] border-[#2e3340] text-slate-500 hover:text-slate-300'}"
+        on:click={() => showCamera = !showCamera}
+      >
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="2" y="4" width="20" height="15" rx="2"/>
+          <circle cx="12" cy="11.5" r="3.5"/>
+        </svg>
+        Camera
+      </button>
+
+      <!-- LIDAR toggle -->
+      <button
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold
+               border transition-all duration-100 select-none touch-none
+               {showLidar
+                 ? 'bg-green-600/25 border-green-500/60 text-green-300'
+                 : 'bg-[#1e2129] border-[#2e3340] text-slate-500 hover:text-slate-300'}"
+        on:click={() => showLidar = !showLidar}
+      >
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="3"/>
+          <circle cx="12" cy="12" r="7"/>
+          <line x1="12" y1="2" x2="12" y2="5"/>
+          <line x1="12" y1="19" x2="12" y2="22"/>
+          <line x1="2" y1="12" x2="5" y2="12"/>
+          <line x1="19" y1="12" x2="22" y2="12"/>
+        </svg>
+        LIDAR
+      </button>
+    </div>
 
     {#if usingPhysical}
-      <div class="text-[10px] text-blue-400 uppercase tracking-widest truncate max-w-full px-2">
+      <div class="text-[10px] text-blue-400 uppercase tracking-widest truncate max-w-full flex-shrink-0">
         🎮 {physicalName || 'Physical gamepad'}
       </div>
     {/if}
 
-    <div class="w-full flex-1 min-h-0 rounded-xl overflow-hidden border border-[#2e3340]"
-         style="background:#000;">
-      {#if $connected && $cameraFrame}
-        <img
-          src="data:image/jpeg;base64,{$cameraFrame}"
-          alt="Robot camera"
-          class="w-full h-full object-contain"
-          draggable="false"
-        />
-      {:else}
-        <div class="w-full h-full flex flex-col items-center justify-center gap-3 text-slate-600">
-          <svg class="w-16 h-16" viewBox="0 0 24 24" fill="none">
-            <rect x="2" y="4" width="20" height="15" rx="2" stroke="currentColor" stroke-width="1.5"/>
-            <circle cx="12" cy="11.5" r="3.5" stroke="currentColor" stroke-width="1.5"/>
-            <circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>
-          </svg>
-          <span class="text-sm font-medium">
-            {$connected ? 'No camera signal' : 'Connecting…'}
-          </span>
+    <!-- Display area -->
+    <div class="flex flex-1 min-h-0 w-full gap-2
+                {showCamera && showLidar ? 'flex-row' : 'flex-col'}">
+
+      {#if showCamera}
+        <div class="flex-1 min-w-0 min-h-0 rounded-xl overflow-hidden border border-[#2e3340]"
+             style="background:#000;">
+          {#if $connected && $cameraFrame}
+            <img
+              src="data:image/jpeg;base64,{$cameraFrame}"
+              alt="Robot camera"
+              class="w-full h-full object-contain"
+              draggable="false"
+            />
+          {:else}
+            <div class="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-600">
+              <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none">
+                <rect x="2" y="4" width="20" height="15" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="12" cy="11.5" r="3.5" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>
+              </svg>
+              <span class="text-xs">{$connected ? 'No camera signal' : 'Connecting…'}</span>
+            </div>
+          {/if}
         </div>
       {/if}
+
+      {#if showLidar}
+        <div class="flex-1 min-w-0 min-h-0 rounded-xl overflow-hidden border border-[#2e3340]">
+          <LidarRadar />
+        </div>
+      {/if}
+
+      {#if !showCamera && !showLidar}
+        <div class="flex-1 flex items-center justify-center text-slate-700 text-xs">
+          Enable a view above
+        </div>
+      {/if}
+
     </div>
 
-    <div class="text-[10px] text-slate-600 uppercase tracking-widest">
+    <div class="text-[10px] text-slate-600 uppercase tracking-widest flex-shrink-0">
       {usingPhysical ? 'Physical controller active' : 'Virtual Controller'}
     </div>
   </div>
