@@ -35,6 +35,16 @@ class BatteryMonitor:
             return
 
         log.info(f"Battery monitor starting on I²C bus {self._bus_num}")
+        # Quick-start so the IC estimates SOC from the current cell voltage
+        # rather than a stale power-on default.  Wait 175 ms for the IC to
+        # complete the algorithm before the first read.
+        try:
+            await asyncio.to_thread(self._quick_start)
+            await asyncio.sleep(0.175)
+            log.info("Battery quick-start issued")
+        except Exception as exc:
+            log.warning(f"Battery quick-start failed: {exc}")
+
         while True:
             try:
                 voltage, soc = await asyncio.to_thread(self._read)
@@ -60,3 +70,11 @@ class BatteryMonitor:
             soc = max(0.0, min(100.0, raw[0] + raw[1] / 256.0))
 
         return voltage, soc
+
+    def _quick_start(self) -> None:
+        """Send MODE quick-start command so the IC re-estimates SOC from
+        the current cell voltage rather than a stale power-on default."""
+        from smbus2 import SMBus
+        with SMBus(self._bus_num) as bus:
+            # MODE register 0x06: write [0x40, 0x00] (big-endian, bit14=QuickStart)
+            bus.write_i2c_block_data(_ADDR, 0x06, [0x40, 0x00])
