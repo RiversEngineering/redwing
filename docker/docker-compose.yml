@@ -2,7 +2,7 @@ name: redwing
 
 services:
   daemon:
-    image: ghcr.io/riversengineering/redwing:latest
+    image: redwing-daemon:local
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -32,7 +32,7 @@ services:
     network_mode: host   # ports: is redundant with host networking
 
   code-server:
-    image: ghcr.io/riversengineering/redwing-code-server:latest
+    image: redwing-code-server:local
     build:
       context: ..
       dockerfile: docker/Dockerfile.code-server
