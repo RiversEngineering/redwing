@@ -12,8 +12,29 @@
    *   $robotState.lidar — current LIDAR scan, overlaid when pose is known
    */
   import { send } from '../lib/ws.js';
-  import { mapPoints, mapPose, clearMap } from '../lib/stores.js';
+  import { mapPoints, mapPose, clearMap, robotShapeRects } from '../lib/stores.js';
   import { robotState } from '../lib/stores.js';
+
+  // ── Robot shape editor ────────────────────────────────────────────────────
+  let showShapePanel = false;
+  let newW = 30, newH = 40, newX = 0, newY = 0, newLabel = '';
+
+  function addRect() {
+    robotShapeRects.update(rects => [
+      ...rects,
+      { id: Date.now(), label: newLabel || `${newW}×${newH}`, width: newW, height: newH, x: newX, y: newY }
+    ]);
+    newW = 30; newH = 40; newX = 0; newY = 0; newLabel = '';
+  }
+
+  function deleteRect(id) {
+    robotShapeRects.update(rects => rects.filter(r => r.id !== id));
+  }
+
+  // Pose to use for shape rendering: real pose or origin fallback
+  $: shapePose = $mapPose ?? { x: 0, y: 0, heading: 0 };
+  // SVG group transform: translate to pose, rotate by heading (CW in SVG = CW in world ✓)
+  $: shapeTransform = `translate(${shapePose.x},${-shapePose.y}) rotate(${shapePose.heading})`;
 
   // ── View state ─────────────────────────────────────────────────────────────
   let viewCX    = 0;     // world-X at viewport centre (cm)
@@ -139,11 +160,82 @@
       <button class="px-2.5 py-1 rounded text-xs bg-red-900/20 border border-red-700/30
                      text-red-400 hover:bg-red-800/30 hover:border-red-600/50 transition-colors"
               on:click={doClearMap}>Clear</button>
+
+      <!-- Robot shape toggle -->
+      <button class="px-2.5 py-1 rounded text-xs border transition-colors
+                     {showShapePanel
+                       ? 'bg-amber-600/20 border-amber-500/50 text-amber-300'
+                       : 'bg-[#1e2129] border-[#2e3340] text-slate-400 hover:text-slate-200 hover:border-slate-500'}"
+              on:click={() => showShapePanel = !showShapePanel}>
+        Robot shape
+      </button>
     </div>
 
     <!-- Grid step label -->
     <span class="text-[10px] text-slate-700 ml-2">grid {step >= 100 ? step/100 + ' m' : step + ' cm'}</span>
   </div>
+
+  <!-- ── Robot shape panel ── -->
+  {#if showShapePanel}
+    <div class="flex-shrink-0 border-b border-[#2e3340] bg-[#14171f] px-4 py-3">
+      <div class="flex flex-wrap gap-4 items-start">
+
+        <!-- Add rectangle form -->
+        <div class="flex flex-col gap-2">
+          <span class="text-[10px] text-amber-500 uppercase tracking-widest">Add rectangle</span>
+          <div class="flex flex-wrap gap-2 items-end">
+            <label class="flex flex-col gap-0.5">
+              <span class="text-[9px] text-slate-600 uppercase">Label</span>
+              <input type="text" bind:value={newLabel} placeholder="e.g. body"
+                class="w-20 px-2 py-1 rounded text-xs bg-[#1e2129] border border-[#2e3340] text-slate-300" />
+            </label>
+            <label class="flex flex-col gap-0.5">
+              <span class="text-[9px] text-slate-600 uppercase">W (cm)</span>
+              <input type="number" bind:value={newW} min="1" max="500"
+                class="w-16 px-2 py-1 rounded text-xs bg-[#1e2129] border border-[#2e3340] text-slate-300 text-center" />
+            </label>
+            <label class="flex flex-col gap-0.5">
+              <span class="text-[9px] text-slate-600 uppercase">H (cm)</span>
+              <input type="number" bind:value={newH} min="1" max="500"
+                class="w-16 px-2 py-1 rounded text-xs bg-[#1e2129] border border-[#2e3340] text-slate-300 text-center" />
+            </label>
+            <label class="flex flex-col gap-0.5">
+              <span class="text-[9px] text-slate-600 uppercase">X off</span>
+              <input type="number" bind:value={newX} step="0.5"
+                class="w-16 px-2 py-1 rounded text-xs bg-[#1e2129] border border-[#2e3340] text-slate-300 text-center" />
+            </label>
+            <label class="flex flex-col gap-0.5">
+              <span class="text-[9px] text-slate-600 uppercase">Y off</span>
+              <input type="number" bind:value={newY} step="0.5"
+                class="w-16 px-2 py-1 rounded text-xs bg-[#1e2129] border border-[#2e3340] text-slate-300 text-center" />
+            </label>
+            <button class="px-3 py-1 rounded text-xs bg-amber-600/20 border border-amber-500/50
+                           text-amber-300 hover:bg-amber-600/35 transition-colors self-end"
+                    on:click={addRect}>Add</button>
+          </div>
+          <p class="text-[9px] text-slate-700">X off: +right / −left from centre &nbsp;·&nbsp; Y off: +forward / −back</p>
+        </div>
+
+        <!-- Existing rectangles list -->
+        {#if $robotShapeRects.length > 0}
+          <div class="flex flex-col gap-1">
+            <span class="text-[10px] text-amber-500 uppercase tracking-widest">Rectangles</span>
+            {#each $robotShapeRects as r}
+              <div class="flex items-center gap-2 text-[11px] text-slate-400">
+                <span class="font-semibold text-amber-400">{r.label}</span>
+                <span>{r.width}×{r.height} cm</span>
+                {#if r.x !== 0 || r.y !== 0}
+                  <span class="text-slate-600">at ({r.x > 0 ? '+' : ''}{r.x}, {r.y > 0 ? '+' : ''}{r.y})</span>
+                {/if}
+                <button class="text-slate-700 hover:text-red-400 transition-colors ml-1"
+                        on:click={() => deleteRect(r.id)}>✕</button>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    </div>
+  {/if}
 
   <!-- ── Map canvas ── -->
   {#if $mapPoints.length === 0 && !$mapPose}
@@ -183,6 +275,33 @@
       {#each worldScan as [x, y]}
         <circle cx={x} cy={-y} r={scanDotR} fill="#67e8f9" opacity="0.5" />
       {/each}
+
+      <!-- Robot shape rectangles (rendered at pose, or at origin if no pose) -->
+      {#if $robotShapeRects.length > 0}
+        <g transform={shapeTransform}>
+          {#each $robotShapeRects as r}
+            <!--
+              In robot frame: x=right, y=forward.
+              In SVG group (after y-flip in shapeTransform): SVG y = -world y.
+              So rect top-left in SVG = (x - w/2, -(y + h/2))
+            -->
+            <rect
+              x={r.x - r.width  / 2}
+              y={-(r.y + r.height / 2)}
+              width={r.width}
+              height={r.height}
+              fill="rgba(251,191,36,0.07)"
+              stroke="#fbbf24"
+              stroke-width={Math.max(0.5, viewRange * 0.003)}
+              stroke-dasharray="{viewRange * 0.015} {viewRange * 0.008}"
+              opacity="0.8"
+              rx={viewRange * 0.005}
+            />
+          {/each}
+          <!-- Centre crosshair -->
+          <circle cx="0" cy="0" r={arrowSize * 0.25} fill="#fbbf24" opacity="0.5" />
+        </g>
+      {/if}
 
       <!-- Robot pose indicator -->
       {#if $mapPose}

@@ -11,6 +11,23 @@ import { writable, derived } from 'svelte/store';
  * Currently active tab id — persisted to localStorage so a browser refresh
  * returns to the same tab.
  */
+/** Generic persisted-JSON store — reads from localStorage on first use. */
+function persistedJson(key, initial) {
+    let stored = initial;
+    try { const v = localStorage.getItem(key); if (v) stored = JSON.parse(v); } catch {}
+    const store = writable(stored);
+    store.subscribe(val => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} });
+    return store;
+}
+
+/**
+ * Robot shape rectangles for the Map tab.
+ * Each entry: { id, label, width, height, x, y }
+ * x/y are offsets from robot centre (cm): +x = right, +y = forward.
+ * Persisted to localStorage so the shape survives page refreshes.
+ */
+export const robotShapeRects = persistedJson('redwing_robot_shape', []);
+
 function persistedTab(key, fallback) {
     let initial = fallback;
     try { initial = localStorage.getItem(key) ?? fallback; } catch {}
