@@ -28,8 +28,7 @@ services:
       REDWING_HOST:   "0.0.0.0"
       REDWING_PORT:   "8000"
       REDWING_HZ:     "50"
-      # Uncomment to enable the RPLidar (adjust port if needed):
-      # REDWING_LIDAR: /dev/ttyUSB0
+      REDWING_LIDAR: /dev/ttyUSB0
     network_mode: host   # ports: is redundant with host networking
 
   code-server:
