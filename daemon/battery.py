@@ -43,7 +43,7 @@ class BatteryMonitor:
                     self._state.battery_soc     = round(soc,     1)
                     self._state.battery_present = True
             except Exception as exc:
-                log.debug(f"Battery read failed: {exc}")
+                log.warning(f"Battery read failed: {exc}")
                 async with self._state.lock:
                     self._state.battery_present = False
             await asyncio.sleep(5)   # fuel gauge is slow; 5 s is plenty
@@ -53,7 +53,7 @@ class BatteryMonitor:
         with SMBus(self._bus_num) as bus:
             # VCELL: bits [15:4] × 1.25 mV
             raw = bus.read_i2c_block_data(_ADDR, _REG_VCELL, 2)
-            voltage = ((raw[0] << 8) | raw[1]) >> 4 * 0.00125
+            voltage = (((raw[0] << 8) | raw[1]) >> 4) * 0.00125
 
             # SOC: high byte = integer %, low byte = fraction/256
             raw = bus.read_i2c_block_data(_ADDR, _REG_SOC, 2)
