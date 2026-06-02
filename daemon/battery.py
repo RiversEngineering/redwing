@@ -1,15 +1,18 @@
-"""Battery monitor — reads a Maxim MAX17043/17048 fuel-gauge IC via I²C.
+"""Battery monitor — auto-detects MAX17043/17048 or INA219 on the Pi's I²C bus.
 
-The IC is present on the DFRobot Raspberry Pi 5 UPS HAT and similar boards.
-It reports state-of-charge (%) and cell voltage directly over I²C, no ADC
-calibration required.
+Supported chips
+---------------
+MAX17043 / MAX17048 (Maxim)  — address 0x36 (fixed)
+  Cell voltage via VCELL register (1.25 mV/LSB).
 
-Register map (both MAX17043 and MAX17048):
-  0x02  VCELL  — 12-bit cell voltage; 1 LSB = 1.25 mV (bits [15:4])
-  0x04  SOC    — high byte = integer %, low byte = fractional /256 %
+INA219 (Texas Instruments)   — address 0x40 / 0x41 / 0x44 / 0x45
+  Bus voltage via Bus Voltage register (4 mV/LSB).
 
-If smbus2 is not installed, or the IC is not found on the bus, the monitor
-exits silently — battery data simply stays absent from the state broadcast.
+SOC estimation
+--------------
+Neither chip gives a reliable fuel-gauge reading without per-cell RCOMP
+calibration.  SOC is derived from the measured voltage via a standard
+Li-Ion / 18650 discharge-curve lookup table.
 """
 
 import asyncio
@@ -17,20 +20,17 @@ import logging
 
 log = logging.getLogger(__name__)
 
-_ADDR       = 0x36   # MAX17043/17048 fixed I²C address
-_REG_VCELL  = 0x02
-_REG_SOC    = 0x04
+_MAX17043_ADDR = 0x36
+_INA219_ADDRS  = [0x40, 0x41, 0x44, 0x45]
 
-# Standard Li-Ion / 18650 discharge curve: (voltage, soc_percent) breakpoints.
-# The IC's internal ModelGauge SOC requires RCOMP calibration for the specific
-# cell, which we can't do without Maxim's tooling. Voltage-based SOC is less
-# sophisticated but consistent and requires no calibration.
+# Standard Li-Ion / 18650 voltage → SOC (%) breakpoints
 _VCELL_SOC_TABLE = [
     (4.20, 100.0), (4.10, 90.0), (4.00, 80.0), (3.90, 70.0),
     (3.80, 60.0),  (3.70, 50.0), (3.60, 40.0), (3.50, 30.0),
     (3.40, 20.0),  (3.30, 10.0), (3.20, 5.0),  (3.10, 2.0),
     (3.00, 0.0),
 ]
+
 
 def _voltage_to_soc(voltage: float) -> float:
     """Estimate SOC from cell voltage via linear interpolation."""
@@ -49,8 +49,10 @@ def _voltage_to_soc(voltage: float) -> float:
 
 class BatteryMonitor:
     def __init__(self, state, bus_num: int = 1):
-        self._state   = state
-        self._bus_num = bus_num
+        self._state      = state
+        self._bus_num    = bus_num
+        self._chip: str | None = None
+        self._ina219_addr: int | None = None
 
     async def run(self):
         try:
@@ -59,27 +61,74 @@ class BatteryMonitor:
             log.warning("smbus2 not installed — battery monitor disabled")
             return
 
-        log.info(f"Battery monitor starting on I²C bus {self._bus_num}")
+        self._chip, self._ina219_addr = await asyncio.to_thread(self._detect)
+        if self._chip is None:
+            log.warning(
+                f"No battery IC found on I²C bus {self._bus_num} "
+                f"(tried MAX17043 @ 0x36, INA219 @ 0x40/0x41/0x44/0x45)"
+            )
+            return
+
+        addr_str = f" @ 0x{self._ina219_addr:02x}" if self._ina219_addr else ""
+        log.info(f"Battery: {self._chip} on I²C bus {self._bus_num}{addr_str}")
+
         while True:
             try:
                 voltage, soc = await asyncio.to_thread(self._read)
                 async with self._state.lock:
                     self._state.battery_voltage = round(voltage, 3)
-                    self._state.battery_soc     = _voltage_to_soc(voltage)
+                    self._state.battery_soc     = soc
+                    self._state.battery_chip    = self._chip
                     self._state.battery_present = True
             except Exception as exc:
-                log.warning(f"Battery read failed: {exc}")
+                log.warning(f"Battery read failed ({self._chip}): {exc}")
                 async with self._state.lock:
                     self._state.battery_present = False
-            await asyncio.sleep(5)   # fuel gauge is slow; 5 s is plenty
+            await asyncio.sleep(5)
 
-    def _read(self) -> tuple[float, float]:
+    # ── Detection ────────────────────────────────────────────────────────────
+
+    def _detect(self) -> tuple[str | None, int | None]:
         from smbus2 import SMBus
         with SMBus(self._bus_num) as bus:
-            # VCELL: bits [15:4] × 1.25 mV gives cell voltage
-            raw = bus.read_i2c_block_data(_ADDR, _REG_VCELL, 2)
+            # MAX17043/17048 — fixed address 0x36
+            try:
+                bus.read_i2c_block_data(_MAX17043_ADDR, 0x02, 2)  # VCELL register
+                return "MAX17043", None
+            except OSError:
+                pass
+
+            # INA219 — try each possible address
+            for addr in _INA219_ADDRS:
+                try:
+                    bus.read_i2c_block_data(addr, 0x00, 2)  # CONFIG register
+                    return "INA219", addr
+                except OSError:
+                    pass
+
+        return None, None
+
+    # ── Reading ──────────────────────────────────────────────────────────────
+
+    def _read(self) -> tuple[float, float]:
+        if self._chip == "MAX17043":
+            return self._read_max17043()
+        if self._chip == "INA219":
+            return self._read_ina219()
+        raise RuntimeError("No chip detected")
+
+    def _read_max17043(self) -> tuple[float, float]:
+        from smbus2 import SMBus
+        with SMBus(self._bus_num) as bus:
+            # VCELL register 0x02: bits [15:4], 1.25 mV/LSB
+            raw = bus.read_i2c_block_data(_MAX17043_ADDR, 0x02, 2)
             voltage = (((raw[0] << 8) | raw[1]) >> 4) * 0.00125
-        # SOC is derived from voltage — the IC's ModelGauge SOC requires RCOMP
-        # calibration for the specific cell; without it the register is unreliable.
-        soc = _voltage_to_soc(voltage)
-        return voltage, soc
+        return voltage, _voltage_to_soc(voltage)
+
+    def _read_ina219(self) -> tuple[float, float]:
+        from smbus2 import SMBus
+        with SMBus(self._bus_num) as bus:
+            # Bus Voltage register 0x02: bits [15:3], 4 mV/LSB
+            raw = bus.read_i2c_block_data(self._ina219_addr, 0x02, 2)
+            voltage = ((raw[0] << 8 | raw[1]) >> 3) * 0.004
+        return voltage, _voltage_to_soc(voltage)

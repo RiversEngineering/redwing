@@ -104,10 +104,11 @@ class SharedState:
         self.camera_override: bytes | None = None
         self.show_raw: bool = True   # True = show live feed; False = show override
 
-        # Battery (MAX17043/17048 fuel gauge via Pi I²C)
+        # Battery (MAX17043/17048 or INA219 via Pi I²C — auto-detected)
         self.battery_present: bool  = False
-        self.battery_voltage: float = 0.0   # cell voltage in V
-        self.battery_soc:     float = 0.0   # state of charge in %
+        self.battery_voltage: float = 0.0    # cell voltage in V
+        self.battery_soc:     float = 0.0    # state of charge in %
+        self.battery_chip:    str   = ""     # detected chip name
 
         # Gamepad input (virtual iPad controller or physical USB controller)
         self.gamepad = GamepadState()
@@ -195,5 +196,6 @@ class SharedState:
             msg["battery"] = {
                 "soc":     self.battery_soc,
                 "voltage": self.battery_voltage,
+                "chip":    self.battery_chip,
             }
         return msg

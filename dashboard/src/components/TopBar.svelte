@@ -64,7 +64,8 @@
 
   <!-- Battery (only shown when fuel gauge is present) -->
   {#if battery}
-    <div class="flex items-center gap-1.5 {battColor}" title="{voltage.toFixed(3)} V">
+    <div class="flex items-center gap-1.5 {battColor}"
+         title="{battery?.chip ?? 'battery'} — {voltage.toFixed(3)} V">
 
       <!-- Battery icon -->
       <svg class="w-6 h-4" viewBox="0 0 24 14" fill="none">
