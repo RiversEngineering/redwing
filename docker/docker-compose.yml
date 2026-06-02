@@ -18,8 +18,10 @@ services:
       - "c 81:* rmw"    # Video4Linux devices (camera)
       - "c 13:* rw"     # input devices (gamepads)
       - "c 89:* rw"     # I2C devices (battery monitor, HAT sensors)
+    pid: "host"          # share host PID namespace — required for shutdown/reboot
     cap_add:
       - MKNOD            # lets entrypoint-daemon.sh create /dev/video* nodes
+      - SYS_BOOT         # allows reboot() syscall to reach the host Pi
     volumes:
       - student_workspace:/workspace
       - /dev:/host-dev:ro  # read-only view of host /dev; entrypoint creates device nodes

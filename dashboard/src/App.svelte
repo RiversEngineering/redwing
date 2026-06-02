@@ -13,6 +13,7 @@
   import PortsTab      from './components/PortsTab.svelte';
   import ControllerTab from './components/ControllerTab.svelte';
   import MapTab        from './components/MapTab.svelte';
+  import SystemTab     from './components/SystemTab.svelte';
 
   // When navigating away from the controller tab, zero out gamepad state.
   // ControllerTab's onDestroy also sends zero, but this fires first.
@@ -59,6 +60,7 @@
     { id: 'data',        label: 'Data' },
     { id: 'map',         label: 'Map' },
     { id: 'controller',  label: 'Controller' },
+    { id: 'system',      label: 'System' },
   ];
 </script>
 
@@ -133,6 +135,14 @@
     style="display: {$activeTab === 'map' ? 'flex' : 'none'}; flex-direction: column;"
   >
     <MapTab />
+  </div>
+
+  <!-- System tab -->
+  <div
+    class="flex-1 min-h-0 overflow-hidden"
+    style="display: {$activeTab === 'system' ? 'flex' : 'none'}; flex-direction: column;"
+  >
+    <SystemTab />
   </div>
 
   <!-- Controller tab — mounted only while active so onDestroy zeroes gamepad on switch -->

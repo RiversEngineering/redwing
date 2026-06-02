@@ -1,0 +1,141 @@
+<script>
+  import { send } from '../lib/ws.js';
+  import { connected } from '../lib/stores.js';
+
+  // Confirmation state — null | 'shutdown' | 'reboot'
+  let confirming = null;
+  let shutdownSent = false;
+
+  function requestAction(action) {
+    confirming = action;
+  }
+
+  function cancel() {
+    confirming = null;
+  }
+
+  function confirm() {
+    if (!confirming) return;
+    shutdownSent = true;
+    send({ cmd: 'system_power', action: confirming });
+    confirming = null;
+  }
+</script>
+
+<div class="flex flex-col h-full bg-[#161920] text-slate-200">
+
+  <!-- Header -->
+  <div class="flex items-center gap-2 px-4 py-2 border-b border-[#2e3340] bg-[#1a1d26] flex-shrink-0">
+    <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+    </svg>
+    <span class="text-xs font-semibold uppercase tracking-widest text-slate-400">System</span>
+  </div>
+
+  <!-- Content -->
+  <div class="flex-1 flex items-start justify-center p-8">
+    <div class="max-w-md w-full space-y-8">
+
+      {#if shutdownSent}
+        <!-- Sent state -->
+        <div class="flex flex-col items-center gap-4 text-center py-12">
+          <svg class="w-16 h-16 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <path d="M12 2v10M6.34 6.34a8 8 0 1 0 11.32 0"/>
+          </svg>
+          <p class="text-slate-400 font-semibold">Command sent.</p>
+          <p class="text-slate-600 text-sm">The Pi is shutting down. This page will stop responding shortly.</p>
+        </div>
+
+      {:else if confirming}
+        <!-- Confirmation step -->
+        <div class="bg-[#1e2129] rounded-xl border border-red-700/40 p-6 space-y-4">
+          <div class="flex items-center gap-3">
+            <svg class="w-6 h-6 text-red-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <p class="text-sm font-semibold text-slate-200">
+              {confirming === 'shutdown' ? 'Shut down the Raspberry Pi?' : 'Restart the Raspberry Pi?'}
+            </p>
+          </div>
+          <p class="text-xs text-slate-500">
+            {confirming === 'shutdown'
+              ? 'The Pi will power off immediately. You will need to physically unplug and replug it to turn it back on.'
+              : 'The Pi will restart. The dashboard will be unreachable for about 30 seconds.'}
+          </p>
+          <div class="flex gap-3 pt-1">
+            <button
+              class="flex-1 py-2.5 rounded-lg text-sm font-bold bg-red-700/30 border border-red-600/60
+                     text-red-300 hover:bg-red-700/50 transition-colors"
+              on:click={confirm}
+            >
+              {confirming === 'shutdown' ? 'Yes, shut down' : 'Yes, restart'}
+            </button>
+            <button
+              class="px-5 py-2.5 rounded-lg text-sm text-slate-400 border border-[#2e3340]
+                     hover:text-slate-200 hover:border-slate-500 transition-colors"
+              on:click={cancel}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+
+      {:else}
+        <!-- Normal state -->
+        <div class="space-y-3">
+          <p class="text-xs text-slate-600 uppercase tracking-widest">Power</p>
+
+          <!-- Shut down -->
+          <div class="bg-[#1e2129] rounded-xl border border-[#2e3340] p-5 flex items-center gap-4">
+            <div class="flex-1">
+              <p class="text-sm font-semibold text-slate-200">Shut down</p>
+              <p class="text-xs text-slate-600 mt-0.5">
+                Powers off the Raspberry Pi. Must be physically unplugged and replugged to restart.
+              </p>
+            </div>
+            <button
+              disabled={!$connected}
+              class="px-4 py-2 rounded-lg text-sm font-semibold border transition-colors flex-shrink-0
+                     {$connected
+                       ? 'bg-red-900/20 border-red-700/50 text-red-400 hover:bg-red-800/30 hover:border-red-600/70 cursor-pointer'
+                       : 'bg-[#161920] border-[#2e3340] text-slate-700 cursor-not-allowed'}"
+              on:click={() => requestAction('shutdown')}
+            >
+              Shut down
+            </button>
+          </div>
+
+          <!-- Restart -->
+          <div class="bg-[#1e2129] rounded-xl border border-[#2e3340] p-5 flex items-center gap-4">
+            <div class="flex-1">
+              <p class="text-sm font-semibold text-slate-200">Restart</p>
+              <p class="text-xs text-slate-600 mt-0.5">
+                Reboots the Raspberry Pi. The dashboard will reconnect automatically after ~30 seconds.
+              </p>
+            </div>
+            <button
+              disabled={!$connected}
+              class="px-4 py-2 rounded-lg text-sm font-semibold border transition-colors flex-shrink-0
+                     {$connected
+                       ? 'bg-amber-900/20 border-amber-700/50 text-amber-400 hover:bg-amber-800/30 hover:border-amber-600/70 cursor-pointer'
+                       : 'bg-[#161920] border-[#2e3340] text-slate-700 cursor-not-allowed'}"
+              on:click={() => requestAction('reboot')}
+            >
+              Restart
+            </button>
+          </div>
+
+          {#if !$connected}
+            <p class="text-[11px] text-slate-700 text-center">
+              Connect to the daemon before using power controls.
+            </p>
+          {/if}
+        </div>
+      {/if}
+
+    </div>
+  </div>
+</div>

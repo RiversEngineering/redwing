@@ -89,6 +89,12 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
                     state.ports.clear()
                     state.add_log("info", "[Dashboard] All ports reset")
 
+            elif cmd == "system_power":
+                action = msg.get("action")  # "shutdown" or "reboot"
+                if action in ("shutdown", "reboot"):
+                    log.warning(f"System {action} requested from dashboard")
+                    asyncio.create_task(_do_power(action, ws_clients))
+
             elif cmd == "clear_map":
                 async with state.lock:
                     state.clear_map()
@@ -228,6 +234,22 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
                 ws_clients.difference_update(dead)
 
             await asyncio.sleep(0.1)
+
+    async def _do_power(action: str, clients: set):
+        """Notify all clients then shut down or reboot the Pi host."""
+        msg = {"type": "system_power", "action": action}
+        for ws in list(clients):
+            try:
+                await ws.send_json(msg)
+            except Exception:
+                pass
+        await asyncio.sleep(1.0)   # give clients time to receive the notification
+
+        import ctypes
+        # LINUX_REBOOT_CMD_POWER_OFF = 0x4321FEDC
+        # LINUX_REBOOT_CMD_RESTART   = 0x01234567
+        magic = 0x4321FEDC if action == "shutdown" else 0x01234567
+        ctypes.CDLL("libc.so.6").reboot(ctypes.c_int32(magic))
 
     async def _broadcast_map():
         """Stream new map points to all dashboard clients at ~10 Hz."""
