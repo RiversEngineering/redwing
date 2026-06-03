@@ -3,12 +3,19 @@
 #include "pico/stdlib.h"
 #include <string.h>
 
+// Number of readings kept for median filtering.
+#define US_MEDIAN_N  3
+
 typedef struct {
     uint8_t  trig;
     uint8_t  echo;
     bool     active;
     uint16_t distance_mm;
     uint8_t  valid;
+    // Median-filter ring buffer: stores the last US_MEDIAN_N raw measurements.
+    // invalid readings are stored as 0xFFFF.
+    uint16_t ring[US_MEDIAN_N];
+    uint8_t  ring_idx;
 } UltrasonicState;
 
 static UltrasonicState us[ULTRASONIC_MAX];
@@ -24,6 +31,8 @@ void ultrasonic_init(uint8_t slot, uint8_t trig_gpio, uint8_t echo_gpio) {
     u->distance_mm = 0;
     u->valid       = 0;
     u->active      = true;
+    u->ring_idx    = 0;
+    for (uint8_t i = 0; i < US_MEDIAN_N; i++) u->ring[i] = 0xFFFFu;
 
     gpio_init(trig_gpio);
     gpio_set_dir(trig_gpio, GPIO_OUT);
@@ -67,11 +76,32 @@ static void trigger_and_read(uint8_t slot) {
     }
     uint32_t echo_us = time_us_32() - echo_start;
 
-    // Always store echo_us as distance_mm so we can read it from the dashboard
-    // even when OOB — if distance_mm stays 0 the pin never went HIGH at all.
+    // Store raw result in the median ring buffer.
+    // 0xFFFF = invalid (coupling spike, timeout, or out-of-range).
     uint32_t dist_mm = echo_us * 10u / 58u;
-    u->distance_mm = (uint16_t)(dist_mm > ULTRASONIC_MAX_MM ? ULTRASONIC_MAX_MM : dist_mm);
-    u->valid       = (echo_us >= 150u && dist_mm < ULTRASONIC_MAX_MM) ? 1 : 0;
+    uint16_t raw = (echo_us >= 150u && dist_mm < ULTRASONIC_MAX_MM)
+                   ? (uint16_t)dist_mm : 0xFFFFu;
+    u->ring[u->ring_idx] = raw;
+    u->ring_idx = (u->ring_idx + 1u) % US_MEDIAN_N;
+
+    // Median of ring buffer: simple insertion sort on a 3-element copy.
+    uint16_t s[US_MEDIAN_N];
+    for (uint8_t i = 0; i < US_MEDIAN_N; i++) s[i] = u->ring[i];
+    for (uint8_t i = 1; i < US_MEDIAN_N; i++) {
+        uint16_t key = s[i];
+        int8_t   j   = (int8_t)i - 1;
+        while (j >= 0 && s[j] > key) { s[j + 1] = s[j]; j--; }
+        s[j + 1] = key;
+    }
+    uint16_t median = s[US_MEDIAN_N / 2];  // middle element
+
+    if (median == 0xFFFFu) {
+        u->distance_mm = 0;
+        u->valid       = 0;
+    } else {
+        u->distance_mm = median;
+        u->valid       = 1;
+    }
 }
 
 void ultrasonic_update(void) {
