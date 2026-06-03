@@ -378,8 +378,23 @@ class Robot:
             while True:
                 left.speed = 60
         """
-        ok = self._conn.finalize_config()
+        # Quick connectivity check: if the RP2040 has never sent a state packet
+        # (ts == 0) it's not plugged in — give a clear error before trying to
+        # finalize config, which would otherwise look like a PWM conflict.
+        state = self._conn.get_all_state()
+        if state.get("ts", 0) == 0:
+            raise RuntimeError(
+                "RP2040 not detected. Check that the Pico is plugged in "
+                "via USB and that /dev/rp2040 is accessible."
+            )
+
+        ok, error = self._conn.finalize_config()
         if not ok:
+            if "not responding" in error.lower() or not error:
+                raise RuntimeError(
+                    "RP2040 stopped responding during robot.start(). "
+                    "Check the USB cable and try again."
+                )
             raise RuntimeError(
                 "Port configuration rejected by the RP2040. "
                 "Check for PWM conflicts — motors and servos cannot share "

@@ -105,8 +105,11 @@ class Connection:
         except zmq.ZMQError:
             pass  # daemon or RP2040 not ready — not fatal at startup
 
-    def finalize_config(self) -> bool:
-        """Send CMD_CONFIG_DONE and wait for the RP2040 to validate the configuration."""
+    def finalize_config(self) -> tuple[bool, str]:
+        """Send CMD_CONFIG_DONE and wait for the RP2040 to validate the configuration.
+
+        Returns (ok, error_string).  error_string is empty on success.
+        """
         self._req.setsockopt(zmq.RCVTIMEO, 8000)
         try:
             self._req.send_json({"cmd": "finalize"})
@@ -117,7 +120,7 @@ class Connection:
             ) from e
         finally:
             self._req.setsockopt(zmq.RCVTIMEO, CONNECT_TIMEOUT_MS)
-        return bool(reply.get("ok", False))
+        return bool(reply.get("ok", False)), str(reply.get("error", ""))
 
     def configure_port(self, port_id: int, port_type: str, **extra):
         req = {"cmd": "configure", "port": port_id, "type": port_type, **extra}
