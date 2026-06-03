@@ -45,15 +45,14 @@
         label = `P${portId} encoder`;
         unit  = 'ticks/s';
       } else if (type === 'ultrasonic') {
-        if (!portData.valid) continue;
         key   = `ultrasonic_${portId}`;
-        value = +(portData.distance_mm / 10).toFixed(1);
+        value = portData.valid ? +(portData.distance_mm / 10).toFixed(1) : 0;
         label = `P${portId} distance`;
         unit  = 'cm';
       } else if (type === 'vl53l0x') {
-        if (!portData.valid) continue;
         key   = `vl53l0x_${portId}`;
-        value = +(portData.distance_mm / 10).toFixed(1);
+        // 0 when out of range — shows as a line drop rather than a gap
+        value = portData.valid ? +(portData.distance_mm / 10).toFixed(1) : 0;
         label = 'I²C ToF';
         unit  = 'cm';
       } else if (type === 'motor_sm' || type === 'motor_lap' || type === 'motor_servo_signal') {

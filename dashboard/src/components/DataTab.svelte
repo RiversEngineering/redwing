@@ -108,7 +108,7 @@
         key:      `ultrasonic_${portId}`,
         label:    `${pl} distance`,
         unit:     'cm',
-        getValue: () => portData.valid ? +((portData.distance_mm ?? 0) / 10).toFixed(1) : null,
+        getValue: () => portData.valid ? +((portData.distance_mm ?? 0) / 10).toFixed(1) : 0,
       }];
     }
 
@@ -117,7 +117,9 @@
         key:      `vl53l0x_${portId}`,
         label:    'I²C ToF distance',
         unit:     'cm',
-        getValue: () => portData.valid ? +((portData.distance_mm ?? 0) / 10).toFixed(1) : null,
+        // Return 0 when out of range so the graph shows a line drop rather
+        // than a gap — 0 means "no target detected" (matches library behaviour).
+        getValue: () => portData.valid ? +((portData.distance_mm ?? 0) / 10).toFixed(1) : 0,
       }];
     }
 
