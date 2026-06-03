@@ -49,6 +49,11 @@ static void trigger_and_read(uint8_t slot) {
     gpio_put(u->trig, 1);
     sleep_us(10);
     gpio_put(u->trig, 0);
+    // Brief settling delay: RP2040 GPIO edges are fast and can capacitively
+    // couple into the adjacent echo pin. Wait for the trigger line to settle
+    // before sampling echo, otherwise the coupled spike registers as a ~0 µs
+    // echo and reports 0 cm with valid=true.
+    sleep_us(10);
 
     // Wait for echo to go high (max 5 ms before echo starts)
     uint32_t t_start = time_us_32();
@@ -66,9 +71,12 @@ static void trigger_and_read(uint8_t slot) {
     }
     uint32_t echo_us = time_us_32() - echo_start;
 
+    // Minimum echo time for a physically plausible reading.
+    // HC-SR04 min range ~2 cm → round-trip ~120 µs; reject anything shorter
+    // as residual coupling noise.
     // Convert: distance_mm = echo_us * 10 / 58
     uint32_t dist_mm = echo_us * 10u / 58u;
-    if (dist_mm > ULTRASONIC_MAX_MM) {
+    if (echo_us < 150u || dist_mm > ULTRASONIC_MAX_MM) {
         u->distance_mm = 0;
         u->valid       = 0;
     } else {
