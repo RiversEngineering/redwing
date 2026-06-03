@@ -31,8 +31,15 @@
 #define REG_RESULT_RANGE_STATUS                     0x14u
 #define REG_MSRC_CONFIG_CONTROL                     0x60u
 #define REG_FINAL_RANGE_CONFIG_MIN_COUNT_RATE       0x44u
+#define REG_PRE_RANGE_CONFIG_VCSEL_PERIOD           0x50u
+#define REG_PRE_RANGE_CONFIG_TIMEOUT_MACROP_HI      0x51u
+#define REG_PRE_RANGE_CONFIG_TIMEOUT_MACROP_LO      0x52u
+#define REG_FINAL_RANGE_CONFIG_VCSEL_PERIOD         0x70u
+#define REG_FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI    0x71u
+#define REG_FINAL_RANGE_CONFIG_TIMEOUT_MACROP_LO    0x72u
 #define REG_GLOBAL_CONFIG_SPAD_ENABLES_REF_0        0xB0u
 #define REG_GLOBAL_CONFIG_REF_EN_START_SELECT       0xB6u
+
 #define REG_DYNAMIC_SPAD_NUM_REQUESTED_REF_SPAD     0x4Eu
 #define REG_DYNAMIC_SPAD_REF_EN_START_OFFSET        0x4Fu
 #define REG_GPIO_HV_MUX_ACTIVE_HIGH                 0x84u
@@ -72,6 +79,63 @@ static bool wrn(uint8_t reg, const uint8_t *buf, uint8_t len) {
     memcpy(tmp + 1, buf, len);
     return i2c_write_blocking(i2c0, VL53_ADDR, tmp, (uint8_t)(len + 1), false)
            == (int)(len + 1);
+}
+
+// ─── Timing budget helpers (ported from Pololu VL53L0X library) ───────────────
+
+static inline uint32_t calc_macro_period(uint8_t vcsel_pclks) {
+    return ((2304UL * vcsel_pclks * 1655UL) + 500UL) / 1000UL;
+}
+
+static uint32_t decode_timeout(uint16_t val) {
+    return ((uint32_t)(val & 0x00FFu) << ((val >> 8u) + 1u)) + 1u;
+}
+
+static uint16_t encode_timeout(uint32_t mclks) {
+    if (mclks == 0) return 0;
+    uint32_t ls = mclks - 1;
+    uint16_t ms = 0;
+    while (ls & 0xFFFFFF00u) { ls >>= 1; ms++; }
+    return (ms << 8) | (uint16_t)(ls & 0xFFu);
+}
+
+static uint32_t timeout_mclks_to_us(uint32_t mclks, uint8_t vcsel_pclks) {
+    uint32_t mp = calc_macro_period(vcsel_pclks);
+    return ((mclks * mp) + (mp / 2u)) / 1000u;
+}
+
+static uint32_t timeout_us_to_mclks(uint32_t us, uint8_t vcsel_pclks) {
+    uint32_t mp = calc_macro_period(vcsel_pclks);
+    return (((uint32_t)us * 1000u) + (mp / 2u)) / mp;
+}
+
+// Set measurement timing budget to 33 ms (Adafruit/ST API default).
+// With proper integration time the sensor's SNR algorithm rejects phantoms.
+// Assumes sequence = 0xE8 (pre-range + final-range, no MSRC/TCC/DSS).
+static bool set_timing_budget_33ms(void) {
+    const uint32_t START_OH = 1910, END_OH = 960, PRE_OH = 660, FINAL_OH = 550;
+    const uint32_t TARGET_US = 33000;
+
+    uint8_t pre_vcsel_reg, pre_hi, pre_lo;
+    if (!rd1(REG_PRE_RANGE_CONFIG_VCSEL_PERIOD,        &pre_vcsel_reg)) return false;
+    if (!rd1(REG_PRE_RANGE_CONFIG_TIMEOUT_MACROP_HI,   &pre_hi))        return false;
+    if (!rd1(REG_PRE_RANGE_CONFIG_TIMEOUT_MACROP_LO,   &pre_lo))        return false;
+    uint8_t  pre_period = (uint8_t)((pre_vcsel_reg + 1u) << 1u);
+    uint32_t pre_mclks  = decode_timeout((uint16_t)((uint16_t)pre_hi << 8) | pre_lo);
+    uint32_t pre_us     = timeout_mclks_to_us(pre_mclks, pre_period);
+
+    uint8_t final_vcsel_reg;
+    if (!rd1(REG_FINAL_RANGE_CONFIG_VCSEL_PERIOD, &final_vcsel_reg)) return false;
+    uint8_t final_period = (uint8_t)((final_vcsel_reg + 1u) << 1u);
+
+    uint32_t used = START_OH + END_OH + pre_us + PRE_OH + FINAL_OH;
+    if (used >= TARGET_US) return false;
+    uint32_t final_mclks = timeout_us_to_mclks(TARGET_US - used, final_period) + pre_mclks;
+    uint16_t final_reg   = encode_timeout(final_mclks);
+
+    wr1(REG_FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI, (uint8_t)(final_reg >> 8));
+    wr1(REG_FINAL_RANGE_CONFIG_TIMEOUT_MACROP_LO, (uint8_t)(final_reg & 0xFFu));
+    return true;
 }
 
 // ─── SPAD info ────────────────────────────────────────────────────────────────
@@ -222,6 +286,12 @@ bool vl53l0x_init(void) {
 
     wr1(REG_SYSTEM_SEQUENCE_CONFIG, 0xE8);  // restore
 
+    // ── Measurement timing budget ─────────────────────────────────────────────
+    // Set to ~33 ms so the sensor has enough integration time to reject
+    // optical crosstalk / phantom readings via its own SNR algorithm.
+    // This matches the Adafruit/ST API default.
+    set_timing_budget_33ms();   // best-effort; proceed even if it fails
+
     // ── Start continuous back-to-back ranging ─────────────────────────────────
     wr1(0x80, 0x01); wr1(0xFF, 0x01); wr1(0x00, 0x00);
     wr1(0x91, stop_variable);
@@ -231,37 +301,22 @@ bool vl53l0x_init(void) {
     return true;
 }
 
-// Minimum SignalRateRtnMegaCps for a valid reading (9.7 fixed-point, Mcps × 128).
-// 0.25 Mcps = 0x0020 matches the setSignalRateLimit() value set during init.
-// Phantom/crosstalk readings have a near-zero actual laser return signal and
-// are rejected here; real targets at typical indoor distances (10–150 cm)
-// produce return signals well above this floor.
-#define MIN_SIGNAL_RATE_FP  0x0020u
-
 uint16_t vl53l0x_read_mm(bool *valid) {
     // Non-blocking: check interrupt status; update cache if new data is ready.
     uint8_t int_status;
     if (rd1(REG_RESULT_INTERRUPT_STATUS, &int_status) && (int_status & 0x07u) != 0) {
-        // Read 12 bytes from RESULT_RANGE_STATUS (0x14).  Byte layout:
-        //   [0]     0x14  range status  (dev_err in bits [7:3])
-        //   [6:7]   0x1A  SignalRateRtnMegaCps (9.7 fixed-point)
-        //   [10:11] 0x1E  RangeMilliMeter
-        uint8_t buf[12];
-        if (rdn(REG_RESULT_RANGE_STATUS, buf, 12)) {
-            uint8_t  dev_err   = (buf[0] >> 3) & 0x0Fu;
-            // buf[4:5] = AmbientRateRtnMegaCps (background light — NOT the laser return)
-            // buf[8:9] = SignalRateRtnMegaCps  (actual return signal — use this for filtering)
-            uint16_t signal_fp = ((uint16_t)buf[8] << 8) | buf[9];
-            uint16_t range     = ((uint16_t)buf[10] << 8) | buf[11];
-
-            cached_mm = range;
-            // Accept when:
-            //   dev_err 0  = no error; dev_err 11 = valid but no wrap check
-            //   signal_fp  >= 0.25 Mcps (filters window crosstalk / noise)
-            //   range      < 8190 mm (sensor reports this for true out-of-range)
-            cached_valid = (dev_err == 0 || dev_err == 11u)
-                        && signal_fp >= MIN_SIGNAL_RATE_FP
-                        && range < 8190u;
+        uint8_t dev_status;
+        uint8_t range_buf[2];
+        rd1(REG_RESULT_RANGE_STATUS, &dev_status);               // 0x14: error in bits [7:3]
+        if (rdn(REG_RESULT_RANGE_STATUS + 10u, range_buf, 2)) {  // 0x1E-0x1F: range mm
+            uint16_t range   = ((uint16_t)range_buf[0] << 8) | range_buf[1];
+            uint8_t  dev_err = (dev_status >> 3) & 0x0Fu;
+            cached_mm    = range;
+            // dev_err 0  = no error (range valid)
+            // dev_err 11 = range complete, no wrap-around check — still usable
+            // With proper 33 ms timing budget the sensor's own SNR algorithm
+            // rejects phantom/crosstalk readings before they reach us.
+            cached_valid = (dev_err == 0 || dev_err == 11u) && range < 8190u;
         }
         wr1(REG_SYSTEM_INTERRUPT_CLEAR, 0x01);
     }
