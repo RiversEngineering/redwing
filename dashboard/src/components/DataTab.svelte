@@ -80,7 +80,7 @@
     if (isMotor) {
       return [{
         key:      `motor_${portId}`,
-        label:    `${pl} speed`,
+        label:    `${pl} power`,
         unit:     '%',
         getValue: () => +((portData.value ?? 0) / 100).toFixed(2),
       }];

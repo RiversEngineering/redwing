@@ -88,7 +88,7 @@
 
   function liveValue(d) {
     if (!d) return null;
-    if (isMotor(d.type)) return `${((d.value ?? 0) / 100).toFixed(0)}%`;
+    if (isMotor(d.type)) return `${((d.value ?? 0) / 100).toFixed(0)}% pwr`;
     switch (d.type) {
       case 'encoder':    return `${(d.count ?? 0).toLocaleString()} cnt`;
       case 'ultrasonic': return d.valid ? `${(d.distance_mm / 10).toFixed(1)} cm` : 'OOB';
@@ -471,10 +471,10 @@
               <span class="text-4xl font-bold tabular-nums text-blue-400">
                 {((selectedData.value ?? 0) / 100).toFixed(1)}%
               </span>
-              <span class="text-sm text-slate-500">actual (from RP2040)</span>
+              <span class="text-sm text-slate-500">power (from RP2040)</span>
             </div>
 
-            <!-- Speed slider -->
+            <!-- Power slider -->
             <div class="space-y-2">
               <div class="flex justify-between text-xs text-slate-500">
                 <span>−100%</span>
