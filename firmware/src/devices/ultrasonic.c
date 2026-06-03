@@ -78,13 +78,6 @@ static void trigger_and_read(uint8_t slot) {
     }
     uint32_t echo_us = time_us_32() - echo_start;
 
-    // Measure how long echo stays HIGH (0 µs if it never went HIGH at all)
-    uint32_t echo_start = time_us_32();
-    while (gpio_get(u->echo)) {
-        if ((time_us_32() - echo_start) > 38000) break;
-    }
-    uint32_t echo_us = time_us_32() - echo_start;
-
     uint32_t dist_mm = echo_us * 10u / 58u;
     if (echo_us < 150u || dist_mm > ULTRASONIC_MAX_MM) {
         u->distance_mm = 0;
