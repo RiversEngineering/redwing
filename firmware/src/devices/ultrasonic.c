@@ -56,14 +56,28 @@ static void trigger_and_read(uint8_t slot) {
     // ~460 µs after trigger so this safely clears before measurement.
     sleep_us(100);
 
-    // Wait for echo to go HIGH (5 ms max — spec says ~460 µs for echo start)
+    // Scan ALL GPIO pins during the echo window to find which one actually
+    // receives the signal — helps diagnose if the echo is wired to a
+    // different pin than expected.  Store the first GPIO found HIGH in
+    // distance_mm as a debug value (e.g. distance_mm=13 → GP13 was HIGH).
     uint32_t t_start = time_us_32();
-    while (!gpio_get(u->echo)) {
-        if ((time_us_32() - t_start) > 5000) {
-            u->valid = 0;
-            return;
+    uint8_t  found_gpio = 0xFF;
+    while ((time_us_32() - t_start) < 5000) {
+        for (uint8_t g = 0; g < 30; g++) {
+            if (gpio_get(g) && g != u->trig) { found_gpio = g; break; }
         }
+        if (found_gpio != 0xFF) break;
     }
+    if (found_gpio == 0xFF) {
+        u->distance_mm = 0xFF;   // no GPIO went HIGH at all
+        u->valid = 0;
+        return;
+    }
+    // Found a GPIO that went HIGH — store its number × 10 so it's visible
+    // in the dashboard (e.g. GP13 → 130, GP14 → 140, etc.)
+    u->distance_mm = (uint16_t)found_gpio * 10u;
+    u->valid = 0;
+    return;
 
     // Measure how long echo stays HIGH (0 µs if it never went HIGH at all)
     uint32_t echo_start = time_us_32();
