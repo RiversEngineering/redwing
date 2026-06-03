@@ -31,6 +31,7 @@ void ultrasonic_init(uint8_t slot, uint8_t trig_gpio, uint8_t echo_gpio) {
 
     gpio_init(echo_gpio);
     gpio_set_dir(echo_gpio, GPIO_IN);
+    gpio_pull_down(echo_gpio);   // keep echo LOW when sensor is idle; prevents float
 }
 
 void ultrasonic_deinit(uint8_t slot) {
