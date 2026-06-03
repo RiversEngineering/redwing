@@ -52,34 +52,26 @@ static void trigger_and_read(uint8_t slot) {
     gpio_put(u->trig, 0);
     sleep_us(10);   // settle before watching echo
 
-    // Wait for echo to go high (extended to 30 ms to cover slow 3.3 V response)
+    // Wait up to 30 ms for echo to go HIGH (break, not return, so we always
+    // reach the measurement — this lets us see non-zero echo_us even if the
+    // wait times out, which helps diagnose whether the pin ever goes HIGH).
     uint32_t t_start = time_us_32();
     while (!gpio_get(u->echo)) {
-        if ((time_us_32() - t_start) > 30000) {
-            u->valid = 0;
-            return;
-        }
+        if ((time_us_32() - t_start) > 30000) break;
     }
 
-    // Measure pulse width (max 38 ms for no-object)
+    // Measure how long echo stays HIGH (0 µs if it never went HIGH at all)
     uint32_t echo_start = time_us_32();
     while (gpio_get(u->echo)) {
         if ((time_us_32() - echo_start) > 38000) break;
     }
     uint32_t echo_us = time_us_32() - echo_start;
 
-    // Minimum echo time for a physically plausible reading.
-    // HC-SR04 min range ~2 cm → round-trip ~120 µs; reject anything shorter
-    // as residual coupling noise.
-    // Convert: distance_mm = echo_us * 10 / 58
+    // Always store echo_us as distance_mm so we can read it from the dashboard
+    // even when OOB — if distance_mm stays 0 the pin never went HIGH at all.
     uint32_t dist_mm = echo_us * 10u / 58u;
-    if (echo_us < 150u || dist_mm > ULTRASONIC_MAX_MM) {
-        u->distance_mm = 0;
-        u->valid       = 0;
-    } else {
-        u->distance_mm = (uint16_t)dist_mm;
-        u->valid       = 1;
-    }
+    u->distance_mm = (uint16_t)(dist_mm > ULTRASONIC_MAX_MM ? ULTRASONIC_MAX_MM : dist_mm);
+    u->valid       = (echo_us >= 150u && dist_mm < ULTRASONIC_MAX_MM) ? 1 : 0;
 }
 
 void ultrasonic_update(void) {
