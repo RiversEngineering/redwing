@@ -245,7 +245,9 @@ uint16_t vl53l0x_read_mm(bool *valid) {
             uint16_t range  = ((uint16_t)range_buf[0] << 8) | range_buf[1];
             uint8_t dev_err = (dev_status >> 3) & 0x0Fu;
             cached_mm    = range;
-            cached_valid = (dev_err == 0) && range < 8190u;
+            // dev_err 0  = no error (range valid)
+            // dev_err 11 = range valid, no wrap-around check — still usable
+            cached_valid = (dev_err == 0 || dev_err == 11u) && range < 8190u;
         }
         wr1(REG_SYSTEM_INTERRUPT_CLEAR, 0x01);
     }
