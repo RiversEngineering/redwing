@@ -68,15 +68,12 @@ static void trigger_and_read(uint8_t slot) {
         }
         if (found_gpio != 0xFF) break;
     }
-    if (found_gpio == 0xFF) {
-        u->distance_mm = 0xFF;   // no GPIO went HIGH at all
-        u->valid = 0;
-        return;
-    }
-    // Found a GPIO that went HIGH — store its number × 10 so it's visible
-    // in the dashboard (e.g. GP13 → 130, GP14 → 140, etc.)
-    u->distance_mm = (uint16_t)found_gpio * 10u;
-    u->valid = 0;
+    // Report result with valid=1 so it appears in the dashboard.
+    // No GPIO HIGH → 2550 cm (= 255 × 10).
+    // GP13 HIGH    →   13 cm.  GP14 → 14 cm, etc.
+    // Apply VCC to Pico pin 17 (GP13) and watch which number appears.
+    u->distance_mm = (found_gpio == 0xFF) ? 2550u : (uint16_t)found_gpio * 10u;
+    u->valid = 1;
     return;
 
     // Measure how long echo stays HIGH (0 µs if it never went HIGH at all)
