@@ -231,12 +231,14 @@ bool vl53l0x_init(void) {
     return true;
 }
 
-// Minimum signal rate for a valid reading (9.7 fixed-point).
-// 0.25 Mcps = 0x0020 was the setSignalRateLimit() value used in init;
-// raise to 0.40 Mcps = 0x0033 to filter optical crosstalk that sits just
-// above the lower threshold while leaving real target returns (typically
-// much higher) unaffected.  Decrease if legitimate far readings are lost.
-#define MIN_SIGNAL_RATE_FP  0x0033u
+// Minimum signal rate for a valid reading (9.7 fixed-point, Mcps × 128).
+// 1.0 Mcps = 0x0080.  Our simplified init lacks setMeasurementTimingBudget()
+// so the sensor integrates for a shorter window than the full Adafruit/ST API
+// initialisation.  This lets optical crosstalk (~0.4 Mcps) appear valid.
+// Real targets produce 5–500+ Mcps at 10–100 cm so the 1.0 Mcps floor still
+// gives reliable readings across that range.  Lower this value (minimum 0x0020)
+// if you need to detect targets beyond ~1 m.
+#define MIN_SIGNAL_RATE_FP  0x0080u
 
 uint16_t vl53l0x_read_mm(bool *valid) {
     // Non-blocking: check interrupt status; update cache if new data is ready.
