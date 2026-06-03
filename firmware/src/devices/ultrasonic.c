@@ -56,22 +56,26 @@ static void trigger_and_read(uint8_t slot) {
     // ~460 µs after trigger so this safely clears before measurement.
     sleep_us(100);
 
-    // Scan ALL GPIO pins during the echo window to find which one actually
-    // receives the signal — helps diagnose if the echo is wired to a
-    // different pin than expected.  Store the first GPIO found HIGH in
-    // distance_mm as a debug value (e.g. distance_mm=13 → GP13 was HIGH).
+    // Take a baseline snapshot of all GPIO states before watching for echo.
+    // This avoids false positives from pins that are permanently HIGH
+    // (e.g. GP4/GP5 pulled up for I2C).
+    uint32_t baseline = sio_hw->gpio_in;
+
+    // Scan for any GPIO that transitions LOW→HIGH after the trigger.
     uint32_t t_start = time_us_32();
     uint8_t  found_gpio = 0xFF;
     while ((time_us_32() - t_start) < 5000) {
-        for (uint8_t g = 0; g < 30; g++) {
-            if (gpio_get(g) && g != u->trig) { found_gpio = g; break; }
+        uint32_t current = sio_hw->gpio_in;
+        uint32_t new_high = current & ~baseline & ~(1u << u->trig);
+        if (new_high) {
+            // Find lowest-numbered newly-HIGH pin
+            for (uint8_t g = 0; g < 30; g++) {
+                if (new_high & (1u << g)) { found_gpio = g; break; }
+            }
+            break;
         }
-        if (found_gpio != 0xFF) break;
     }
-    // Report result with valid=1 so it appears in the dashboard.
-    // No GPIO HIGH → 2550 cm (= 255 × 10).
-    // GP13 HIGH    →   13 cm.  GP14 → 14 cm, etc.
-    // Apply VCC to Pico pin 17 (GP13) and watch which number appears.
+    // No new GPIO went HIGH → 2550 cm.  GP13 HIGH → 13 cm, GP14 → 14, etc.
     u->distance_mm = (found_gpio == 0xFF) ? 2550u : (uint16_t)found_gpio * 10u;
     u->valid = 1;
     return;
