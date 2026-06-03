@@ -31,7 +31,10 @@ void ultrasonic_init(uint8_t slot, uint8_t trig_gpio, uint8_t echo_gpio) {
 
     gpio_init(echo_gpio);
     gpio_set_dir(echo_gpio, GPIO_IN);
-    gpio_pull_down(echo_gpio);   // keep echo LOW when sensor is idle; prevents float
+    // No pull-down: the 80 kΩ internal pull-down can fight the sensor's echo
+    // driver at 3.3 V, preventing the pin from reaching a HIGH level.
+    // The 10 µs post-trigger settling delay + 150 µs minimum echo check are
+    // sufficient to reject the coupling spike without anchoring the echo line.
 }
 
 void ultrasonic_deinit(uint8_t slot) {
