@@ -54,7 +54,7 @@
   </div>
 
   <!-- Single-pin ports -->
-  <div class="px-2 pt-2 pb-2">
+  <div class="px-2 pt-2">
     <div class="text-[9px] text-slate-600 uppercase tracking-widest mb-1 px-0.5">Single-pin</div>
     <div class="grid grid-cols-8 gap-1.5">
       {#each SINGLE_PORTS as p}
@@ -73,4 +73,23 @@
       {/each}
     </div>
   </div>
+
+  <!-- Dedicated I²C port (port 16) — only shown when a sensor is detected -->
+  {#if $ports[16] && $ports[16].type !== 'i2c'}
+    <div class="px-2 pt-2 pb-2">
+      <div class="text-[9px] text-slate-600 uppercase tracking-widest mb-1 px-0.5">I²C</div>
+      <!-- svelte-ignore a11y-no-static-element-interactions -->
+      <div
+        class="cursor-pointer rounded-lg transition-all duration-100 w-[calc(12.5%-6px)]
+               hover:ring-1 hover:ring-teal-500/50 hover:brightness-125"
+        role="button"
+        tabindex="0"
+        title="Open I²C port in Ports tab"
+        on:click={() => openPort(16)}
+        on:keydown={(e) => e.key === 'Enter' && openPort(16)}
+      >
+        <PortCard portId={16} portLabel="I²C" isDual={true} data={$ports[16]} />
+      </div>
+    </div>
+  {/if}
 </div>

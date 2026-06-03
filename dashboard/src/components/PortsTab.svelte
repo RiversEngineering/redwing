@@ -11,7 +11,8 @@
   // ── Port directory ────────────────────────────────────────────────────────────
   const SINGLE = Array.from({ length: 8 }, (_, i) => ({ id: i,     label: `S${i}`, dual: false }));
   const DUAL   = Array.from({ length: 8 }, (_, i) => ({ id: i + 8, label: `D${i}`, dual: true  }));
-  const ALL_PORTS = [...SINGLE, ...DUAL];
+  const I2C_PORT = { id: 16, label: 'I²C', dual: true };
+  const ALL_PORTS = [...SINGLE, ...DUAL, I2C_PORT];
 
   let selectedId = null;
 
@@ -269,6 +270,34 @@
           </button>
         {/each}
       </div>
+
+      <!-- I²C port (port 16) — shown when a sensor is detected -->
+      {#if $ports[16]}
+        <div class="border-t border-[#2e3340] mx-2 my-1"></div>
+        <div class="px-2 pb-2">
+          <div class="text-[9px] text-slate-700 uppercase tracking-widest px-1 mb-1">I²C</div>
+          {@const d = $ports[16]}
+          <button
+            class="w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors mb-px
+                   {selectedId === 16
+                     ? 'bg-[#252932] ring-1 ring-[#3e4455]'
+                     : 'hover:bg-[#1e2129]'}"
+            on:click={() => selectPort(16)}
+          >
+            <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
+                         bg-slate-700/60 text-slate-400">I²C</span>
+            {#if d}
+              <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {dotColor(d.type)}"></span>
+              <span class="text-[11px] text-slate-300 truncate">{deviceLabel(d.type)}</span>
+              {#if liveValue(d)}
+                <span class="text-[10px] font-mono text-slate-500 ml-auto flex-shrink-0">
+                  {liveValue(d)}
+                </span>
+              {/if}
+            {/if}
+          </button>
+        </div>
+      {/if}
     </div>
   </div>
 
@@ -686,8 +715,8 @@
           </div>
         {/if}
 
-        <!-- Change Type footer — visible when port is configured and config is unlocked -->
-        {#if selectedData && !configFinalized && !reconfiguring}
+        <!-- Change Type footer — not shown for the dedicated I²C port (auto-detected) -->
+        {#if selectedData && !configFinalized && !reconfiguring && selectedId !== 16}
           <div class="mt-6 pt-4 border-t border-[#2e3340]">
             <p class="text-[11px] text-slate-600 mb-2">Need a different device type for this port?</p>
             <button
