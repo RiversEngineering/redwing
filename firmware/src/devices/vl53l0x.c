@@ -222,6 +222,18 @@ bool vl53l0x_init(void) {
 
     wr1(REG_SYSTEM_SEQUENCE_CONFIG, 0xE8);  // restore
 
+    // ── XTALK compensation ────────────────────────────────────────────────────
+    // The sensor's own IR laser can reflect off the cover glass/window and
+    // appear as a phantom target (~100 mm) with a real-looking signal rate.
+    // XTALK_COMPENSATION_PEAK_RATE_MCPS (0x20, 9.7 fixed-point) subtracts this
+    // constant crosstalk contribution from each reading's signal rate.  Setting
+    // it to match the minimum signal threshold (0.25 Mcps = 0x0020) means any
+    // return that is purely crosstalk falls to zero net signal and is rejected,
+    // while a real target adds signal on top of the crosstalk and still passes.
+    wr1(0xFF, 0x00);  // page 0 (XTALK register lives here)
+    wr1(0x20, 0x00);  // XTALK high byte = 0x0020 high = 0x00
+    wr1(0x21, 0x20);  // XTALK low  byte = 0x0020 low  = 0x20  → 0.25 Mcps
+
     // ── Start continuous back-to-back ranging ─────────────────────────────────
     wr1(0x80, 0x01); wr1(0xFF, 0x01); wr1(0x00, 0x00);
     wr1(0x91, stop_variable);
