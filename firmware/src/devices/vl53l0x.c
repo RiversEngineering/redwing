@@ -231,14 +231,12 @@ bool vl53l0x_init(void) {
     return true;
 }
 
-// Minimum signal rate for a valid reading (9.7 fixed-point, Mcps × 128).
-// 1.0 Mcps = 0x0080.  Our simplified init lacks setMeasurementTimingBudget()
-// so the sensor integrates for a shorter window than the full Adafruit/ST API
-// initialisation.  This lets optical crosstalk (~0.4 Mcps) appear valid.
-// Real targets produce 5–500+ Mcps at 10–100 cm so the 1.0 Mcps floor still
-// gives reliable readings across that range.  Lower this value (minimum 0x0020)
-// if you need to detect targets beyond ~1 m.
-#define MIN_SIGNAL_RATE_FP  0x0080u
+// Minimum SignalRateRtnMegaCps for a valid reading (9.7 fixed-point, Mcps × 128).
+// 0.25 Mcps = 0x0020 matches the setSignalRateLimit() value set during init.
+// Phantom/crosstalk readings have a near-zero actual laser return signal and
+// are rejected here; real targets at typical indoor distances (10–150 cm)
+// produce return signals well above this floor.
+#define MIN_SIGNAL_RATE_FP  0x0020u
 
 uint16_t vl53l0x_read_mm(bool *valid) {
     // Non-blocking: check interrupt status; update cache if new data is ready.
@@ -251,7 +249,9 @@ uint16_t vl53l0x_read_mm(bool *valid) {
         uint8_t buf[12];
         if (rdn(REG_RESULT_RANGE_STATUS, buf, 12)) {
             uint8_t  dev_err   = (buf[0] >> 3) & 0x0Fu;
-            uint16_t signal_fp = ((uint16_t)buf[6] << 8) | buf[7];
+            // buf[4:5] = AmbientRateRtnMegaCps (background light — NOT the laser return)
+            // buf[8:9] = SignalRateRtnMegaCps  (actual return signal — use this for filtering)
+            uint16_t signal_fp = ((uint16_t)buf[8] << 8) | buf[9];
             uint16_t range     = ((uint16_t)buf[10] << 8) | buf[11];
 
             cached_mm = range;
