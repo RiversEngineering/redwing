@@ -231,23 +231,32 @@ bool vl53l0x_init(void) {
     return true;
 }
 
+// Minimum signal rate for a valid reading (9.7 fixed-point, 0.25 Mcps = 0x0020).
+// Below this threshold the return is optical crosstalk or noise, not a real target.
+#define MIN_SIGNAL_RATE_FP  0x0020u
+
 uint16_t vl53l0x_read_mm(bool *valid) {
     // Non-blocking: check interrupt status; update cache if new data is ready.
     uint8_t int_status;
     if (rd1(REG_RESULT_INTERRUPT_STATUS, &int_status) && (int_status & 0x07u) != 0) {
-        // Read range directly from RESULT_RANGE_STATUS+10 (0x1E/0x1F),
-        // mirroring the Pololu library's readReg16Bit(RESULT_RANGE_STATUS+10).
-        // Reading just 2 bytes avoids any indexing ambiguity in a larger buffer.
-        uint8_t range_buf[2];
-        uint8_t dev_status;
-        rd1(REG_RESULT_RANGE_STATUS, &dev_status);   // 0x14: error in bits [7:3]
-        if (rdn(REG_RESULT_RANGE_STATUS + 10u, range_buf, 2)) {
-            uint16_t range  = ((uint16_t)range_buf[0] << 8) | range_buf[1];
-            uint8_t dev_err = (dev_status >> 3) & 0x0Fu;
-            cached_mm    = range;
-            // dev_err 0  = no error (range valid)
-            // dev_err 11 = range valid, no wrap-around check — still usable
-            cached_valid = (dev_err == 0 || dev_err == 11u) && range < 8190u;
+        // Read 12 bytes from RESULT_RANGE_STATUS (0x14).  Byte layout:
+        //   [0]     0x14  range status  (dev_err in bits [7:3])
+        //   [6:7]   0x1A  SignalRateRtnMegaCps (9.7 fixed-point)
+        //   [10:11] 0x1E  RangeMilliMeter
+        uint8_t buf[12];
+        if (rdn(REG_RESULT_RANGE_STATUS, buf, 12)) {
+            uint8_t  dev_err   = (buf[0] >> 3) & 0x0Fu;
+            uint16_t signal_fp = ((uint16_t)buf[6] << 8) | buf[7];
+            uint16_t range     = ((uint16_t)buf[10] << 8) | buf[11];
+
+            cached_mm = range;
+            // Accept when:
+            //   dev_err 0  = no error; dev_err 11 = valid but no wrap check
+            //   signal_fp  >= 0.25 Mcps (filters window crosstalk / noise)
+            //   range      < 8190 mm (sensor reports this for true out-of-range)
+            cached_valid = (dev_err == 0 || dev_err == 11u)
+                        && signal_fp >= MIN_SIGNAL_RATE_FP
+                        && range < 8190u;
         }
         wr1(REG_SYSTEM_INTERRUPT_CLEAR, 0x01);
     }
