@@ -45,20 +45,17 @@ static void trigger_and_read(uint8_t slot) {
     UltrasonicState *u = &us[slot];
     if (!u->active) return;
 
-    // Send 10 µs trigger pulse
+    // Send trigger pulse — 50 µs (5× the minimum) for 3.3 V variants that
+    // may need more headroom than the spec 10 µs minimum.
     gpio_put(u->trig, 1);
-    sleep_us(10);
+    sleep_us(50);
     gpio_put(u->trig, 0);
-    // Brief settling delay: RP2040 GPIO edges are fast and can capacitively
-    // couple into the adjacent echo pin. Wait for the trigger line to settle
-    // before sampling echo, otherwise the coupled spike registers as a ~0 µs
-    // echo and reports 0 cm with valid=true.
-    sleep_us(10);
+    sleep_us(10);   // settle before watching echo
 
-    // Wait for echo to go high (max 5 ms before echo starts)
+    // Wait for echo to go high (extended to 30 ms to cover slow 3.3 V response)
     uint32_t t_start = time_us_32();
     while (!gpio_get(u->echo)) {
-        if ((time_us_32() - t_start) > 5000) {
+        if ((time_us_32() - t_start) > 30000) {
             u->valid = 0;
             return;
         }
