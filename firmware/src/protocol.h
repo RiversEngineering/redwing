@@ -39,7 +39,7 @@
 #define PORT_I2C            0x07
 #define PORT_GPIO_IN        0x08
 #define PORT_GPIO_OUT       0x09
-#define PORT_UART           0x0A  // UART bus: D7=UART0 (GP12=TX/GP13=RX) or D6=UART1 (GP24=TX/GP25=RX)
+#define PORT_UART           0x0A  // UART bus: D7=UART0 (GP12=TX/GP13=RX) or D6=UART1 (GP20=TX/GP21=RX)
 #define PORT_VL53L0X        0x0B  // VL53L0X ToF sensor on I²C port (auto-detected at startup)
 
 // ─── Error codes ─────────────────────────────────────────────────────────────
@@ -86,13 +86,13 @@
 //     D3-B (GP11, slice 5B) — PIO PWM  (would conflict with S6 on slice 5B)
 //     D4-B (GP15, slice 7B) — hardware PWM
 //     D5-B (GP14, slice 7A) — hardware PWM
-//     D6-B (GP25, slice 4B) — PIO PWM  (same channel as D1-B GP9)
-//     D7-B (GP13, slice 6B) — PIO PWM  (same slice as S7 GP28 on 6A)
+//     D6-B (GP21, slice 2B) — hardware PWM  (no 50 Hz users on slice 2)
+//     D7-B (GP13, slice 6B) — PIO PWM  (same slice 6 as S7/GP28 on 6A)
 //
 // Special functions:
 //   I2C port (GP4/GP5)  — dedicated I2C0 SDA/SCL; always PORT_I2C, not reconfigurable
 //   D7 (GP12/GP13)      — also UART0 TX/RX; both pins reserved when PORT_UART configured
-//   D6 (GP24/GP25)      — also UART1 TX/RX
+//   D6 (GP20/GP21)      — also UART1 TX/RX
 //   ADC-capable singles: S5=GP26 (ADC0), S6=GP27 (ADC1), S7=GP28 (ADC2)
 
 static const uint8_t SINGLE_GPIO[PORT_COUNT_SINGLE] = {
@@ -107,18 +107,18 @@ static const uint8_t SINGLE_GPIO[PORT_COUNT_SINGLE] = {
 };
 
 // [n][0] = pin A (direction / UART TX),  [n][1] = pin B (speed PWM / UART RX)
-// D0–D5 B pins: slices 4A,4B,5A,5B,7B,7A (motor-safe)
-// D6 B pin (GP25, slice 4B) conflicts with D1-B (GP9, slice 4B) — use PIO PWM when motor.
-// D7 B pin (GP13, slice 6B) — no conflicts.
+// D0–D5 B pins use hardware PWM; D2-B, D3-B, D7-B use PIO PWM (see pio_pwm.h).
+// D6 B pin (GP21, slice 2B) — hardware PWM OK; no 50 Hz users on slice 2.
+// D7 B pin (GP13, slice 6B) — PIO PWM; shares slice 6 with S7/GP28 (6A).
 static const uint8_t DUAL_GPIO[PORT_COUNT_DUAL][2] = {
     {16,  8},  // D0: A=GP16, B=GP8  (slice 4A)
     {17,  9},  // D1: A=GP17, B=GP9  (slice 4B)
-    {18, 10},  // D2: A=GP18, B=GP10 (slice 5A)
-    {19, 11},  // D3: A=GP19, B=GP11 (slice 5B)
+    {18, 10},  // D2: A=GP18, B=GP10 (slice 5A — PIO)
+    {19, 11},  // D3: A=GP19, B=GP11 (slice 5B — PIO)
     {22, 15},  // D4: A=GP22, B=GP15 (slice 7B)
-    {20, 14},  // D5: A=GP20, B=GP14 (slice 7A)
-    {24, 25},  // D6: A=GP24 (UART1 TX, slice 4A), B=GP25 (UART1 RX, slice 4B — PIO PWM when motor)
-    {12, 13},  // D7: A=GP12 (UART0 TX, slice 6A), B=GP13 (UART0 RX, slice 6B)
+    { 7, 14},  // D5: A=GP7,  B=GP14 (slice 7A)  ← GP7 replaces GP20 (freed for D6)
+    {20, 21},  // D6: A=GP20 (UART1 TX, slice 2A), B=GP21 (UART1 RX, slice 2B)
+    {12, 13},  // D7: A=GP12 (UART0 TX, slice 6A), B=GP13 (UART0 RX, slice 6B — PIO)
 };
 
 #define I2C_SDA_GPIO  4   // dedicated I2C port — GP4 = I2C0 SDA

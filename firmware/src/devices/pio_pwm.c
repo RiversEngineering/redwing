@@ -6,10 +6,15 @@
 
 // ─── Which GPIO pins use PIO PWM ─────────────────────────────────────────────
 
-static const uint8_t PIO_PINS[] = {10, 11, 13, 25};  // D2-B, D3-B, D7-B, D6-B
+// D2-B=GP10 conflicts with S5/GP26 (both slice 5A)
+// D3-B=GP11 conflicts with S6/GP27 (both slice 5B)
+// D7-B=GP13 shares slice 6 with S7/GP28 (different channels but same counter)
+// D6-B=GP21 (slice 2B) has no 50 Hz users — uses hardware PWM, NOT listed here
+static const uint8_t PIO_PINS[] = {10, 11, 13};  // D2-B, D3-B, D7-B
+#define PIO_PINS_COUNT ((uint8_t)(sizeof(PIO_PINS) / sizeof(PIO_PINS[0])))
 
 bool pio_pwm_pin(uint8_t gpio) {
-    for (uint8_t i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < PIO_PINS_COUNT; i++) {
         if (PIO_PINS[i] == gpio) return true;
     }
     return false;

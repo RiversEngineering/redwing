@@ -11,12 +11,12 @@
 //   PIO_PWM_WRAP+1 → full OFF (0 %)
 #define PIO_PWM_WRAP 2082u
 
-// Returns true for the four D-port B-pins that use PIO PWM instead of hardware
-// PWM to eliminate slice conflicts with S-port servos and D1/D6 motor conflict:
-//   GP10 = D2-B  (hw slice 5A = same channel as S5/GP26)
-//   GP11 = D3-B  (hw slice 5B = same channel as S6/GP27)
-//   GP13 = D7-B  (hw slice 6B = same slice   as S7/GP28)
-//   GP25 = D6-B  (hw slice 4B = same channel as D1-B/GP9)
+// Returns true for the three D-port B-pins that use PIO PWM instead of hardware
+// PWM to eliminate slice conflicts with S-port servo/motor outputs:
+//   GP10 = D2-B  (hw slice 5A, same slice as S5/GP26 at 50 Hz)
+//   GP11 = D3-B  (hw slice 5B, same slice as S6/GP27 at 50 Hz)
+//   GP13 = D7-B  (hw slice 6B, same slice as S7/GP28 at 50 Hz)
+// D6-B = GP21 (slice 2B) has no 50 Hz users so uses hardware PWM.
 bool pio_pwm_pin(uint8_t gpio);
 
 // Initialise (or reinitialise) PIO PWM on one GPIO.
