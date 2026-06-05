@@ -84,10 +84,7 @@
 //     D1-B (GP9,  slice 4B) — hardware PWM
 //     D2-B (GP10, slice 5A) — PIO PWM  (would conflict with S5 on slice 5A)
 //     D3-B (GP11, slice 5B) — PIO PWM  (would conflict with S6 on slice 5B)
-//     D4-B (GP15, slice 7B) — hardware PWM
-//     D5-B (GP14, slice 7A) — hardware PWM
-//     D6-B (GP21, slice 2B) — hardware PWM  (no 50 Hz users on slice 2)
-//     D7-B (GP13, slice 6B) — PIO PWM  (same slice 6 as S7/GP28 on 6A)
+//     D4-B through D7-B     — all use PIO PWM (eliminates all slice conflicts)
 //
 // Special functions:
 //   I2C port (GP4/GP5)  — dedicated I2C0 SDA/SCL; always PORT_I2C, not reconfigurable
@@ -107,9 +104,8 @@ static const uint8_t SINGLE_GPIO[PORT_COUNT_SINGLE] = {
 };
 
 // [n][0] = pin A (direction / UART TX),  [n][1] = pin B (speed PWM / UART RX)
-// D0–D5 B pins use hardware PWM; D2-B, D3-B, D7-B use PIO PWM (see pio_pwm.h).
-// D6 B pin (GP21, slice 2B) — hardware PWM OK; no 50 Hz users on slice 2.
-// D7 B pin (GP13, slice 6B) — PIO PWM; shares slice 6 with S7/GP28 (6A).
+// All dual-port B-pins use PIO PWM (see pio_pwm.h) so no combination of
+// motor and servo ports can produce a hardware PWM slice conflict.
 static const uint8_t DUAL_GPIO[PORT_COUNT_DUAL][2] = {
     {16,  8},  // D0: A=GP16, B=GP8  (slice 4A)
     {17,  9},  // D1: A=GP17, B=GP9  (slice 4B)

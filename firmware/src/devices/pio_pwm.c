@@ -6,11 +6,19 @@
 
 // ─── Which GPIO pins use PIO PWM ─────────────────────────────────────────────
 
-// D2-B=GP10 conflicts with S5/GP26 (both slice 5A)
-// D3-B=GP11 conflicts with S6/GP27 (both slice 5B)
-// D7-B=GP13 shares slice 6 with S7/GP28 (different channels but same counter)
-// D6-B=GP21 (slice 2B) has no 50 Hz users — uses hardware PWM, NOT listed here
-static const uint8_t PIO_PINS[] = {10, 11, 13};  // D2-B, D3-B, D7-B
+// All dual-port B-pins use PIO PWM so that no combination of motor ports
+// can ever produce a hardware PWM slice conflict, regardless of which S-port
+// servos or motors are also configured.
+static const uint8_t PIO_PINS[] = {
+     8,   // D0-B  GP8  slice 4A
+     9,   // D1-B  GP9  slice 4B
+    10,   // D2-B  GP10 slice 5A (would conflict with S5/GP26)
+    11,   // D3-B  GP11 slice 5B (would conflict with S6/GP27)
+    13,   // D7-B  GP13 slice 6B (same slice 6 as S7/GP28)
+    14,   // D5-B  GP14 slice 7A
+    15,   // D4-B  GP15 slice 7B
+    21,   // D6-B  GP21 slice 2B
+};
 #define PIO_PINS_COUNT ((uint8_t)(sizeof(PIO_PINS) / sizeof(PIO_PINS[0])))
 
 bool pio_pwm_pin(uint8_t gpio) {
