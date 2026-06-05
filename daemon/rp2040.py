@@ -32,6 +32,8 @@ class RP2040:
                 log.warning(f"RP2040 disconnected: {e}. Reconnecting in {RECONNECT_DELAY}s...")
                 self._connected = False
                 self._writer = None
+                async with self._state.lock:
+                    self._state.rp2040_connected = False
                 if self._config_done_future and not self._config_done_future.done():
                     self._config_done_future.set_result(False)
                 if self._reset_future and not self._reset_future.done():
@@ -45,6 +47,8 @@ class RP2040:
         )
         self._writer = writer
         self._connected = True
+        async with self._state.lock:
+            self._state.rp2040_connected = True
         log.info("RP2040 connected")
 
         await self._send_raw(proto.cmd_set_rate(STREAM_HZ))

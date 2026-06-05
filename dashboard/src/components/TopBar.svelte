@@ -1,6 +1,8 @@
 <script>
   import { connected, uptime, robotState } from '../lib/stores.js';
 
+  $: picoConnected = $robotState?.rp2040_connected ?? false;
+
   function formatUptime(secs) {
     if (secs === null || secs === undefined) return '--:--';
     const s = Math.floor(secs);
@@ -37,7 +39,7 @@
 
   <div class="h-6 w-px bg-[#2e3340]"></div>
 
-  <!-- Connection -->
+  <!-- Daemon WebSocket connection -->
   <div class="flex items-center gap-2">
     <span class="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0 transition-colors duration-300"
           class:bg-emerald-400={$connected} class:shadow-[0_0_6px_#34d399]={$connected}
@@ -45,6 +47,20 @@
     <span class="text-sm font-medium"
           class:text-emerald-400={$connected} class:text-red-400={!$connected}>
       {$connected ? 'Connected' : 'Disconnected'}
+    </span>
+  </div>
+
+  <div class="h-6 w-px bg-[#2e3340]"></div>
+
+  <!-- Pico connection -->
+  <div class="flex items-center gap-1.5" title="RP2040 / Pico">
+    <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 transition-colors duration-300"
+          class:bg-emerald-400={picoConnected} class:shadow-[0_0_5px_#34d399]={picoConnected}
+          class:bg-slate-600={!picoConnected}></span>
+    <span class="text-xs font-medium"
+          class:text-emerald-400={picoConnected}
+          class:text-slate-500={!picoConnected}>
+      Pico
     </span>
   </div>
 

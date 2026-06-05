@@ -20,6 +20,19 @@ for i in 0 1 2 3; do
     _mknod_if_present "video${i}"
 done
 
+# RP2040 (ttyACM — USB CDC serial)
+for i in 0 1 2 3; do
+    _mknod_if_present "ttyACM${i}"
+done
+# /dev/rp2040 is a udev symlink on the host; recreate it inside the container.
+if [ -L "/host-dev/rp2040" ]; then
+    TARGET=$(readlink "/host-dev/rp2040" 2>/dev/null)
+    TARGET_NAME="${TARGET##*/}"   # strip /dev/ prefix
+    if [ -e "/dev/$TARGET_NAME" ]; then
+        ln -sf "/dev/$TARGET_NAME" /dev/rp2040 2>/dev/null || true
+    fi
+fi
+
 # LIDAR and other USB serial adapters (ttyUSB)
 for i in 0 1 2 3; do
     _mknod_if_present "ttyUSB${i}"

@@ -70,6 +70,9 @@ class SharedState:
         self.lock = asyncio.Lock()
         self._start = time.monotonic()
 
+        # RP2040 connection status (updated by rp2040.py on connect/disconnect)
+        self.rp2040_connected: bool = False
+
         # Latest data from RP2040
         self.rp2040_ts: int = 0           # RP2040 millisecond timestamp
         self.ports: dict[str, Any] = {}   # port_id → port data dict
@@ -179,6 +182,7 @@ class SharedState:
             "uptime": round(self.uptime, 1),
             "ports": dict(self.ports),
             "config_finalized": self.config_finalized,
+            "rp2040_connected": self.rp2040_connected,
         }
         if self.lidar_scan is not None:
             msg["lidar"] = self.lidar_scan

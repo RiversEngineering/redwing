@@ -9,9 +9,9 @@ services:
     restart: unless-stopped
     privileged: false
     devices:
-      # RP2040 over USB serial — udev rule creates stable symlink /dev/rp2040
-      # See docs/pi-setup.md for the udev rule.
-      - /dev/rp2040:/dev/rp2040
+      # (no explicit device bindings — entrypoint-daemon.sh creates device
+      #  nodes and symlinks from /host-dev at startup so the container can
+      #  start even when the Pico or other peripherals are not plugged in)
     device_cgroup_rules:
       - "c 166:* rmw"   # ttyACM devices (RP2040)
       - "c 188:* rmw"   # ttyUSB devices (RPLidar USB adapter)
