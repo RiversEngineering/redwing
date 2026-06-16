@@ -31,3 +31,8 @@ LIDAR_PORT = os.getenv("REDWING_LIDAR", "")
 # Battery monitor — I²C bus number for the MAX17043/17048 fuel gauge.
 # Set to -1 to disable.
 BATTERY_I2C_BUS = int(os.getenv("REDWING_BATTERY_BUS", "1"))
+
+# Number of Li-Ion/LiPo cells in series.  Set to 0 for auto-detection
+# (daemon infers cell count from the first voltage reading: <5V→1S, <9V→2S,
+# <13V→3S, <17V→4S).  Override with e.g. REDWING_BATTERY_CELLS=2 for 2S.
+BATTERY_CELLS = int(os.getenv("REDWING_BATTERY_CELLS", "0"))

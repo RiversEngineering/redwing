@@ -18,6 +18,8 @@ Li-Ion / 18650 discharge-curve lookup table.
 import asyncio
 import logging
 
+from .config import BATTERY_CELLS
+
 log = logging.getLogger(__name__)
 
 _MAX17043_ADDR = 0x36
@@ -47,12 +49,24 @@ def _voltage_to_soc(voltage: float) -> float:
     return 0.0
 
 
+def _detect_cells(voltage: float) -> int:
+    """Infer series cell count from pack voltage."""
+    if voltage < 5.0:
+        return 1
+    if voltage < 9.0:
+        return 2
+    if voltage < 13.0:
+        return 3
+    return 4
+
+
 class BatteryMonitor:
     def __init__(self, state, bus_num: int = 1):
         self._state      = state
         self._bus_num    = bus_num
         self._chip: str | None = None
         self._ina219_addr: int | None = None
+        self._cells: int = BATTERY_CELLS  # 0 = auto-detect on first read
 
     async def run(self):
         try:
@@ -74,7 +88,13 @@ class BatteryMonitor:
 
         while True:
             try:
-                voltage, soc = await asyncio.to_thread(self._read)
+                voltage, _ = await asyncio.to_thread(self._read)
+                if self._cells == 0:
+                    self._cells = _detect_cells(voltage)
+                    log.info(f"Battery: auto-detected {self._cells}S pack "
+                             f"({voltage:.3f} V total)")
+                cell_v = voltage / self._cells
+                soc = _voltage_to_soc(cell_v)
                 async with self._state.lock:
                     self._state.battery_voltage = round(voltage, 3)
                     self._state.battery_soc     = soc
