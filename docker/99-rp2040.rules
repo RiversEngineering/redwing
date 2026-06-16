@@ -7,4 +7,4 @@
 # Adjust if you changed them.
 
 SUBSYSTEM=="tty", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000a", \
-    ATTRS{manufacturer}=="Redwing", SYMLINK+="rp2040", MODE="0666"
+    ATTRS{product}=="Redwing", SYMLINK+="rp2040", MODE="0666"

@@ -21,7 +21,7 @@ import logging
 log = logging.getLogger(__name__)
 
 _MAX17043_ADDR = 0x36
-_INA219_ADDRS  = [0x40, 0x41, 0x44, 0x45]
+_INA219_ADDRS  = list(range(0x40, 0x50))  # full A1/A0 address range
 
 # Standard Li-Ion / 18650 voltage → SOC (%) breakpoints
 _VCELL_SOC_TABLE = [
@@ -90,7 +90,13 @@ class BatteryMonitor:
 
     def _detect(self) -> tuple[str | None, int | None]:
         from smbus2 import SMBus
-        with SMBus(self._bus_num) as bus:
+        try:
+            bus_ctx = SMBus(self._bus_num)
+        except OSError as e:
+            log.warning(f"Cannot open I²C bus {self._bus_num}: {e}")
+            return None, None
+
+        with bus_ctx as bus:
             # MAX17043/17048 — fixed address 0x36
             try:
                 bus.read_i2c_block_data(_MAX17043_ADDR, 0x02, 2)  # VCELL register
