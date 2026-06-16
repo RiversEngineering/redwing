@@ -113,6 +113,16 @@ sudo modprobe i2c-dev 2>/dev/null || true
 grep -q "^i2c-dev" /etc/modules 2>/dev/null || \
     echo "i2c-dev" | sudo tee -a /etc/modules > /dev/null
 
+# ── 5b. Nintendo Switch controller support (hid-nintendo) ─────────────────────
+# Required for the GameSir Nova Lite (and any Switch-mode controller) to be
+# recognised as a gamepad by evdev. Without it, hid-generic handles the device
+# but produces no standard gamepad events.
+step "Enabling hid-nintendo kernel module..."
+sudo modprobe hid-nintendo 2>/dev/null || warn "hid-nintendo not available on this kernel (may need kernel update)"
+grep -q "^hid-nintendo" /etc/modules 2>/dev/null || \
+    echo "hid-nintendo" | sudo tee -a /etc/modules > /dev/null
+ok "hid-nintendo enabled"
+
 # ── 6. udev rules (stable /dev/rp2040 symlink for RP2040) ─────────────────────
 step "Installing udev rules..."
 sudo cp "$INSTALL_DIR/docker/99-rp2040.rules" /etc/udev/rules.d/

@@ -24,8 +24,15 @@ _BTN_X  = 307   # BTN_WEST
 _BTN_Y  = 308   # BTN_NORTH
 _BTN_LB = 310   # BTN_TL  (left bumper)
 _BTN_RB = 311   # BTN_TR  (right bumper)
-_BTN_LT = 312   # BTN_TL2 (left trigger, digital — some controllers)
-_BTN_RT = 313   # BTN_TR2 (right trigger, digital — some controllers)
+_BTN_LT = 312   # BTN_TL2 (left trigger, digital — Switch mode and some HID controllers)
+_BTN_RT = 313   # BTN_TR2 (right trigger, digital — Switch mode and some HID controllers)
+
+# Nintendo Switch Pro Controller D-pad (hid-nintendo driver maps these as
+# individual buttons rather than ABS_HAT0X/Y on some kernel versions)
+_BTN_DPAD_UP    = 544   # BTN_DPAD_UP
+_BTN_DPAD_DOWN  = 545   # BTN_DPAD_DOWN
+_BTN_DPAD_LEFT  = 546   # BTN_DPAD_LEFT
+_BTN_DPAD_RIGHT = 547   # BTN_DPAD_RIGHT
 
 
 def _normalize(value: int, info) -> float:
@@ -146,6 +153,14 @@ async def gamepad_reader_task(state) -> None:
                             gp.lt = 1.0 if pressed else 0.0
                         elif event.code == _BTN_RT:
                             gp.rt = 1.0 if pressed else 0.0
+                        elif event.code == _BTN_DPAD_UP:
+                            gp.up = pressed
+                        elif event.code == _BTN_DPAD_DOWN:
+                            gp.down = pressed
+                        elif event.code == _BTN_DPAD_LEFT:
+                            gp.left = pressed
+                        elif event.code == _BTN_DPAD_RIGHT:
+                            gp.right = pressed
 
         except OSError:
             log.info(f"Gamepad disconnected: {device.name}")

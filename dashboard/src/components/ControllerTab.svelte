@@ -61,6 +61,20 @@
   let physicalName  = '';
   $: usingPhysical  = physicalIndex !== null;
 
+  // Browsers won't fire gamepadconnected until the user presses a button on
+  // the controller while the tab is focused. Show a prompt until that happens.
+  let gamepadPluggedButInactive = false;
+  let scanInterval = null;
+
+  function scanForInactiveGamepads() {
+    if (physicalIndex !== null) return;
+    const gps = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const gp of gps) {
+      if (gp) { gamepadPluggedButInactive = true; return; }
+    }
+    gamepadPluggedButInactive = false;
+  }
+
   // refs to shoulder buttons so we can reset their latch on disconnect
   let lbBtn, ltBtn, rtBtn, rbBtn;
 
@@ -121,6 +135,7 @@
   function handleConnected(e) {
     physicalIndex = e.gamepad.index;
     physicalName  = e.gamepad.id;
+    gamepadPluggedButInactive = false;
     startPolling();
   }
 
@@ -143,6 +158,9 @@
         if (gp) { physicalIndex = gp.index; physicalName = gp.id; startPolling(); break; }
       }
     }
+    // Poll every second for a plugged-in-but-not-yet-activated gamepad.
+    // Browsers require a button press before firing gamepadconnected.
+    scanInterval = setInterval(scanForInactiveGamepads, 1000);
   });
 
   // ── RAF-throttled send (virtual controls) ────────────────────────────
@@ -173,6 +191,7 @@
   onDestroy(() => {
     window.removeEventListener('gamepadconnected',    handleConnected);
     window.removeEventListener('gamepaddisconnected', handleDisconnected);
+    if (scanInterval) clearInterval(scanInterval);
     sendZero();
   });
 
@@ -323,7 +342,11 @@
 
     {#if usingPhysical}
       <div class="text-[10px] text-blue-400 uppercase tracking-widest truncate max-w-full flex-shrink-0">
-        🎮 {physicalName || 'Physical gamepad'}
+        {physicalName || 'Physical gamepad'}
+      </div>
+    {:else if gamepadPluggedButInactive}
+      <div class="text-[10px] text-amber-400 uppercase tracking-widest flex-shrink-0 animate-pulse">
+        Controller detected — press any button to activate
       </div>
     {/if}
 
