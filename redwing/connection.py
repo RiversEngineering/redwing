@@ -137,6 +137,22 @@ class Connection:
                 f"Could not configure port {port_id}: {reply.get('error', 'unknown error')}"
             )
 
+    def configure_pca_channel(self, channel: int, port_type: str):
+        """Configure a PCA9685 channel for a device type (motor_servo_signal or servo)."""
+        req = {"cmd": "pca_configure", "channel": channel, "type": port_type}
+        try:
+            self._req.send_json(req)
+            reply = self._req.recv_json()
+        except zmq.ZMQError as e:
+            raise ConnectionError(
+                f"Lost connection to the Redwing daemon while configuring PCA channel P{channel}."
+            ) from e
+
+        if not reply.get("ok"):
+            raise RuntimeError(
+                f"Could not configure PCA channel P{channel}: {reply.get('error', 'unknown error')}"
+            )
+
     # ------------------------------------------------------------------
     # UART helpers (used by UartBus)
     # ------------------------------------------------------------------

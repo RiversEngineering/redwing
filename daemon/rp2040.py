@@ -23,6 +23,7 @@ class RP2040:
         self._connected = False
         self._config_done_future: asyncio.Future | None = None
         self._reset_future: asyncio.Future | None = None
+        self._measure_pulse_future: asyncio.Future | None = None
 
     async def run(self):
         while True:
@@ -38,6 +39,8 @@ class RP2040:
                     self._config_done_future.set_result(False)
                 if self._reset_future and not self._reset_future.done():
                     self._reset_future.set_result(False)
+                if self._measure_pulse_future and not self._measure_pulse_future.done():
+                    self._measure_pulse_future.set_result(None)
                 await asyncio.sleep(RECONNECT_DELAY)
 
     async def _connect_and_run(self):
@@ -112,16 +115,27 @@ class RP2040:
                 if self._reset_future and not self._reset_future.done():
                     self._reset_future.set_result(True)
 
+        elif ptype == "measure_pulse":
+            pulse_us = pkt.get("pulse_us", 0)
+            if self._measure_pulse_future and not self._measure_pulse_future.done():
+                self._measure_pulse_future.set_result(pulse_us)
+
         elif ptype == "error":
             code = pkt.get("code", 0)
             msg  = pkt.get("message", "")
             log.error(f"RP2040 error 0x{code:02X}: {msg}")
             async with self._state.lock:
                 self._state.add_log("error", f"[RP2040] {msg}")
-            if self._config_done_future and not self._config_done_future.done():
-                self._config_done_future.set_result(False)
+            # Only a PWM slice conflict during CONFIG_DONE should abort finalize.
+            # Unrelated errors (ERR_CONFIG_LOCKED, ERR_BAD_TYPE, etc.) must not be
+            # misreported as PWM conflicts — those are logged above and ignored here.
+            if code == proto.ERR_PORT_CONFLICT:
+                if self._config_done_future and not self._config_done_future.done():
+                    self._config_done_future.set_result(False)
             if self._reset_future and not self._reset_future.done():
                 self._reset_future.set_result(False)
+            if self._measure_pulse_future and not self._measure_pulse_future.done():
+                self._measure_pulse_future.set_result(None)
 
     # ------------------------------------------------------------------
     # Public command API
@@ -141,6 +155,9 @@ class RP2040:
             self.enqueue(proto.cmd_configure_uart(port_id, baud or 115200))
         else:
             self.enqueue(proto.cmd_configure(port_id, type_id))
+            if type_id == proto.PORT_MOTOR_SERVO:
+                # RC ESC protocol: 1500µs stop, 1100µs full reverse, 1900µs full forward.
+                self.enqueue(proto.cmd_set_servo_range(port_id, 1100, 1900))
         return True
 
     async def finalize_config(self, timeout: float = 2.0):
@@ -176,6 +193,25 @@ class RP2040:
             return False
         finally:
             self._reset_future = None
+
+    async def measure_pulse(self, port_id: int, timeout: float = 3.0) -> int | None:
+        """Send CMD_MEASURE_PULSE and wait for RESP_MEASURE_PULSE.
+
+        Returns measured pulse width in µs, or None on timeout or firmware error.
+        The firmware blocks for up to 150 ms waiting for a pulse — only call during calibration.
+        """
+        loop = asyncio.get_running_loop()
+        self._measure_pulse_future = loop.create_future()
+        self.enqueue(proto.cmd_measure_pulse(port_id))
+        try:
+            return await asyncio.wait_for(
+                asyncio.shield(self._measure_pulse_future), timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            log.warning("CMD_MEASURE_PULSE timed out")
+            return None
+        finally:
+            self._measure_pulse_future = None
 
     def stop_all(self):
         self.enqueue(proto.cmd_stop_all())

@@ -195,6 +195,65 @@
     send({ cmd: 'stop_all' });
     motorSpeed = 0;
   }
+
+  // ── PCA9685 expansion channels ────────────────────────────────────────────────
+  const PCA_CHANNELS = Array.from({ length: 16 }, (_, i) => ({ id: i, label: `P${i}` }));
+
+  let selectedPcaChannel = null;
+  let pcaCalibrating = false;
+  let pcaCalibratePort = 0;     // which S-port (0–7) is wired to PCA channel 0
+  let pcaCalibRunning = false;
+  let pcaPendingType = null;
+  let pcaMotorSpeed = 0;
+  let pcaServoAngle = 150;
+
+  $: pcaState = $robotState?.pca9685 ?? { present: false, channels: {} };
+  $: selectedPcaData = selectedPcaChannel !== null
+    ? (pcaState.channels?.[String(selectedPcaChannel)] ?? null)
+    : null;
+
+  // Detect calibration completion: daemon clears last_calibration before starting,
+  // then sets it to the result dict when done. Watching for non-null is reliable.
+  $: if (pcaCalibRunning && pcaState.last_calibration != null) {
+    pcaCalibRunning = false;
+  }
+
+  function selectPcaChannel(ch) {
+    selectedId = null;
+    selectedPcaChannel = ch;
+    pcaCalibrating = false;
+    pcaPendingType = null;
+    const d = pcaState.channels?.[String(ch)];
+    if (d?.type && isMotor(d.type)) pcaMotorSpeed = 0;
+    if (d?.type === 'servo') pcaServoAngle = Math.round(((d.pulse_us ?? 1500) - 500) / 2000 * 300);
+  }
+
+  function openCalibration() {
+    selectedId = null;
+    selectedPcaChannel = null;
+    pcaCalibrating = true;
+  }
+
+  function runCalibration() {
+    pcaCalibRunning = true;
+    send({ cmd: 'pca_calibrate', pico_port: pcaCalibratePort });
+  }
+
+  function configurePcaChannel() {
+    if (!pcaPendingType || selectedPcaChannel === null) return;
+    send({ cmd: 'pca_configure', channel: selectedPcaChannel, type: pcaPendingType });
+    pcaPendingType = null;
+  }
+
+  function sendPcaMotor(pct) {
+    pcaMotorSpeed = Math.max(-100, Math.min(100, pct));
+    send({ cmd: 'pca_set_motor', channel: selectedPcaChannel, value_pct: pcaMotorSpeed });
+  }
+
+  function sendPcaServo(deg) {
+    pcaServoAngle = Math.max(0, Math.min(300, deg));
+    send({ cmd: 'pca_set_servo', channel: selectedPcaChannel, angle_deg: pcaServoAngle });
+  }
 </script>
 
 <div class="flex h-full overflow-hidden">
@@ -272,6 +331,50 @@
       </div>
 
       <!-- I²C port (port 16) — shown when a sensor is detected -->
+      <!-- PCA9685 expansion channels (P0–P15) — shown when expander is detected -->
+      {#if pcaState.present}
+        <div class="border-t border-[#2e3340] mx-2 my-1"></div>
+        <div class="px-2 pb-1">
+          <div class="flex items-center px-1 mb-1">
+            <div class="text-[9px] text-slate-700 uppercase tracking-widest">PCA9685  P0–P15</div>
+            {#if pcaState.calibrated}
+              <span class="ml-auto text-[8px] text-green-600 font-semibold">calibrated</span>
+            {:else}
+              <button
+                class="ml-auto text-[8px] text-amber-600 hover:text-amber-400 transition-colors cursor-pointer"
+                on:click={openCalibration}
+              >calibrate…</button>
+            {/if}
+          </div>
+          {#each PCA_CHANNELS as ch}
+            {@const chData = pcaState.channels?.[String(ch.id)]}
+            <button
+              class="w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors mb-px
+                     {selectedPcaChannel === ch.id
+                       ? 'bg-[#252932] ring-1 ring-[#3e4455]'
+                       : 'hover:bg-[#1e2129]'}"
+              on:click={() => selectPcaChannel(ch.id)}
+            >
+              <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
+                           bg-purple-900/40 text-purple-400">{ch.label}</span>
+              {#if chData?.type}
+                <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {isMotor(chData.type) ? 'bg-blue-400' : 'bg-amber-400'}"></span>
+                <span class="text-[11px] text-slate-300 truncate">{isMotor(chData.type) ? 'Motor' : 'Servo'}</span>
+              {:else}
+                <span class="text-[11px] text-slate-700 italic">empty</span>
+              {/if}
+            </button>
+          {/each}
+          {#if !pcaState.calibrated}
+            <button
+              class="w-full mt-1 px-2 py-1 rounded text-[9px] text-amber-700 border border-amber-900/40
+                     hover:bg-amber-900/20 hover:text-amber-500 transition-colors text-center"
+              on:click={openCalibration}
+            >⚠ Oscillator uncalibrated — click to calibrate</button>
+          {/if}
+        </div>
+      {/if}
+
       {#if $ports[16]}
         <div class="border-t border-[#2e3340] mx-2 my-1"></div>
         <div class="px-2 pb-2">
@@ -301,7 +404,93 @@
   <!-- ── Detail / control panel (right) ── -->
   <div class="flex-1 min-w-0 flex flex-col overflow-hidden bg-[#161920]">
 
-    {#if selectedId === null}
+    {#if pcaCalibrating}
+      <!-- ── PCA9685 Calibration Wizard ── -->
+      <div class="flex-1 overflow-y-auto p-6">
+        <div class="max-w-md space-y-6">
+          <div>
+            <div class="flex items-center gap-3 mb-1">
+              <span class="text-sm font-bold text-purple-300">PCA9685 Oscillator Calibration</span>
+              <button
+                class="ml-auto text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                on:click={() => pcaCalibrating = false}
+              >✕ Close</button>
+            </div>
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Wires PCA channel 0 to a Pico S-port. The Pico measures the actual pulse width
+              and adjusts the PCA prescale so 1500 µs commands are accurate.
+            </p>
+          </div>
+
+          <div class="bg-[#1e2129] border border-[#2e3340] rounded-lg p-4 space-y-3">
+            <p class="text-[11px] text-slate-400 font-semibold">Step 1 — Physical wiring</p>
+            <p class="text-xs text-slate-500">
+              Connect a wire from the <strong class="text-purple-300">PCA9685 channel 0 output</strong>
+              to a Pico <strong class="text-slate-300">single-pin S-port</strong> (signal line only — no power).
+            </p>
+          </div>
+
+          <div class="space-y-2">
+            <p class="text-[11px] text-slate-400 font-semibold">Step 2 — Select the S-port you wired to</p>
+            <div class="flex flex-wrap gap-1.5">
+              {#each [0,1,2,3,4,5,6,7] as sp}
+                <button
+                  class="px-3 py-1.5 rounded text-xs font-mono border transition-all
+                         {pcaCalibratePort === sp
+                           ? 'bg-purple-600/20 border-purple-500/60 text-purple-300'
+                           : 'bg-[#1e2129] border-[#2e3340] text-slate-400 hover:border-slate-500'}"
+                  on:click={() => pcaCalibratePort = sp}
+                >S{sp}</button>
+              {/each}
+            </div>
+          </div>
+
+          <div>
+            <button
+              disabled={pcaCalibRunning}
+              class="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all
+                     {pcaCalibRunning
+                       ? 'bg-slate-700 border border-[#2e3340] text-slate-500 cursor-wait'
+                       : 'bg-purple-600/30 border border-purple-500/50 text-purple-300 hover:bg-purple-600/50 cursor-pointer'}"
+              on:click={runCalibration}
+            >
+              {#if pcaCalibRunning}
+                <span class="flex items-center gap-2">
+                  <span class="animate-spin inline-block w-3 h-3 border-2 border-purple-400/30 border-t-purple-400 rounded-full"></span>
+                  Measuring pulse on S{pcaCalibratePort}…
+                </span>
+              {:else}
+                Run Calibration via S{pcaCalibratePort}
+              {/if}
+            </button>
+          </div>
+
+          {#if pcaState.last_calibration}
+            {@const r = pcaState.last_calibration}
+            <div class="rounded-lg border p-4 {r.ok
+              ? 'bg-green-900/10 border-green-700/30'
+              : 'bg-red-900/10 border-red-700/30'}">
+              {#if r.ok}
+                <p class="text-sm font-semibold text-green-400 mb-2">✓ Calibration successful</p>
+                <div class="space-y-1 text-xs font-mono text-slate-400">
+                  <div>Measured pulse: <span class="text-slate-200">{r.measured_us} µs</span></div>
+                  <div>Actual oscillator: <span class="text-slate-200">{r.osc_freq.toLocaleString()} Hz</span>
+                    <span class="text-slate-600">
+                      ({r.osc_freq > 25_000_000 ? '+' : ''}{((r.osc_freq/25_000_000-1)*100).toFixed(2)}% vs nominal)
+                    </span>
+                  </div>
+                  <div>Prescale: <span class="text-slate-200">{r.prescale}</span></div>
+                </div>
+              {:else}
+                <p class="text-sm font-semibold text-red-400 mb-1">✗ Calibration failed</p>
+                <p class="text-xs text-red-300/70">{r.error}</p>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      </div>
+
+    {:else if selectedId === null && selectedPcaChannel === null}
       <!-- No port selected -->
       <div class="flex flex-col items-center justify-center h-full gap-3 text-slate-700">
         <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
@@ -310,6 +499,137 @@
           <rect x="17" y="7" width="4" height="10" rx="1"/>
         </svg>
         <span class="text-sm">Select a port from the list</span>
+      </div>
+
+    {:else if selectedPcaChannel !== null}
+      <!-- ── PCA9685 channel detail ── -->
+      <div class="flex items-center gap-3 px-5 py-3 border-b border-[#2e3340] flex-shrink-0 bg-[#1a1d26]">
+        <span class="text-[11px] font-bold font-mono px-2 py-1 rounded bg-purple-900/40 text-purple-300">
+          P{selectedPcaChannel}
+        </span>
+        {#if selectedPcaData}
+          <span class="text-sm font-semibold {isMotor(selectedPcaData.type) ? 'text-blue-400' : 'text-amber-400'}">
+            {isMotor(selectedPcaData.type) ? 'Motor' : 'Servo'}
+          </span>
+          <span class="text-xs text-slate-600">PCA9685 channel {selectedPcaChannel}</span>
+        {:else}
+          <span class="text-sm text-slate-600 italic">not configured</span>
+        {/if}
+        <div class="ml-auto">
+          <button
+            class="px-3 py-1 rounded text-xs font-semibold bg-red-600/20 text-red-400
+                   border border-red-600/30 hover:bg-red-600/40 transition-colors"
+            on:click={() => { send({ cmd: 'pca_set_motor', channel: selectedPcaChannel, value_pct: 0 }); pcaMotorSpeed = 0; }}
+          >Stop</button>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-6">
+        {#if !selectedPcaData}
+          <!-- Unconfigured PCA channel -->
+          <div class="max-w-sm space-y-5">
+            <div>
+              <p class="text-sm font-semibold text-slate-300 mb-1">Choose a device type</p>
+              <p class="text-xs text-slate-600">PCA9685 only supports 50 Hz outputs (servo / RC ESC).</p>
+            </div>
+            <div class="flex gap-2">
+              {#each [['motor_servo_signal', 'Motor', 'RC ESC / servo signal'], ['servo', 'Servo', 'Standard servo']] as [id, label, sub]}
+                <button
+                  class="flex flex-col items-start px-3 py-2 rounded-lg border transition-all text-left
+                         {pcaPendingType === id
+                           ? 'bg-blue-600/20 border-blue-500/60 text-blue-300'
+                           : 'bg-[#1e2129] border-[#2e3340] text-slate-400 hover:border-slate-500 hover:text-slate-300'}"
+                  on:click={() => pcaPendingType = id}
+                >
+                  <span class="text-xs font-semibold leading-tight">{label}</span>
+                  <span class="text-[10px] {pcaPendingType === id ? 'text-blue-400/70' : 'text-slate-600'} leading-tight mt-0.5">{sub}</span>
+                </button>
+              {/each}
+            </div>
+            <button
+              disabled={!pcaPendingType}
+              class="px-5 py-2 rounded-lg text-sm font-semibold transition-all
+                     {pcaPendingType
+                       ? 'bg-blue-600/30 border border-blue-500/50 text-blue-300 hover:bg-blue-600/50 cursor-pointer'
+                       : 'bg-[#1e2129] border border-[#2e3340] text-slate-700 cursor-not-allowed'}"
+              on:click={configurePcaChannel}
+            >
+              {pcaPendingType ? `Configure P${selectedPcaChannel} as ${pcaPendingType === 'servo' ? 'Servo' : 'Motor'}` : 'Select a type above'}
+            </button>
+          </div>
+
+        {:else if isMotor(selectedPcaData.type)}
+          <!-- PCA motor control -->
+          <div class="max-w-lg space-y-6">
+            <div class="flex items-baseline gap-3">
+              <span class="text-4xl font-bold tabular-nums text-blue-400">{pcaMotorSpeed.toFixed(1)}%</span>
+              <span class="text-sm text-slate-500">power</span>
+            </div>
+            <div class="space-y-2">
+              <div class="flex justify-between text-xs text-slate-500">
+                <span>−100%</span>
+                <span class="font-semibold text-slate-300 tabular-nums">{pcaMotorSpeed.toFixed(1)}%</span>
+                <span>+100%</span>
+              </div>
+              <input
+                type="range" min="-100" max="100" step="0.5"
+                value={pcaMotorSpeed}
+                class="w-full h-2 rounded-full appearance-none cursor-pointer
+                       bg-gradient-to-r from-red-600/40 via-slate-600 to-blue-600/40 accent-blue-500"
+                on:input={(e) => sendPcaMotor(Number(e.target.value))}
+              />
+              <div class="relative h-0">
+                <div class="absolute top-0 left-1/2 w-px h-2 bg-slate-600 -translate-y-2"></div>
+              </div>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              {#each [[-100,'−100%'],[-75,'−75%'],[-50,'−50%'],[-25,'−25%']] as [v, label]}
+                <button class="px-3 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
+                               text-red-400 hover:bg-red-900/20 hover:border-red-600/40 transition-colors"
+                  on:click={() => sendPcaMotor(v)}>{label}</button>
+              {/each}
+              <button class="px-4 py-1.5 rounded text-xs font-bold bg-slate-700 border border-slate-600
+                             text-slate-200 hover:bg-slate-600 transition-colors"
+                on:click={() => sendPcaMotor(0)}>STOP</button>
+              {#each [[25,'+25%'],[50,'+50%'],[75,'+75%'],[100,'+100%']] as [v, label]}
+                <button class="px-3 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
+                               text-blue-400 hover:bg-blue-900/20 hover:border-blue-600/40 transition-colors"
+                  on:click={() => sendPcaMotor(v)}>{label}</button>
+              {/each}
+            </div>
+            <p class="text-[11px] text-slate-600">RC ESC protocol: 1500 µs = stop, 1100 µs = full reverse, 1900 µs = full forward.</p>
+          </div>
+
+        {:else if selectedPcaData.type === 'servo'}
+          <!-- PCA servo control -->
+          <div class="max-w-lg space-y-6">
+            <div class="flex items-baseline gap-3">
+              <span class="text-4xl font-bold tabular-nums text-amber-400">{pcaServoAngle.toFixed(1)}°</span>
+              <span class="text-sm text-slate-500">angle</span>
+            </div>
+            <div class="space-y-2">
+              <div class="flex justify-between text-xs text-slate-500">
+                <span>0°</span>
+                <span class="font-semibold text-slate-300 tabular-nums">{pcaServoAngle.toFixed(1)}°</span>
+                <span>300°</span>
+              </div>
+              <input
+                type="range" min="0" max="300" step="1"
+                value={pcaServoAngle}
+                class="w-full h-2 rounded-full appearance-none cursor-pointer
+                       bg-gradient-to-r from-amber-800/40 via-amber-600/20 to-amber-800/40 accent-amber-400"
+                on:input={(e) => sendPcaServo(Number(e.target.value))}
+              />
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              {#each [[0,'0°'],[75,'75°'],[150,'150° (center)'],[225,'225°'],[300,'300°']] as [v, label]}
+                <button class="px-3 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
+                               text-amber-400 hover:bg-amber-900/20 hover:border-amber-600/40 transition-colors"
+                  on:click={() => sendPcaServo(v)}>{label}</button>
+              {/each}
+            </div>
+          </div>
+        {/if}
       </div>
 
     {:else}

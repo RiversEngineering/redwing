@@ -126,6 +126,14 @@ class SharedState:
         self._max_plot_points = 500
         self._plot_total_count = 0
 
+        # PCA9685 I²C PWM expander (optional — detected at startup)
+        self.pca9685_present: bool = False
+        self.pca9685_address: int = 0x40
+        self.pca9685_calibrated: bool = False
+        self.pca9685_osc_freq: int = 25_000_000
+        self.pca9685_channels: dict[int, dict] = {}   # channel → {type, pulse_us}
+        self.pca9685_last_calibration: dict | None = None  # result of last calibrate() call
+
         # Student map buffer — world-frame (x, y) obstacle points from robot.map_point()
         self.map_points_buf: list[tuple[float, float]] = []
         self._max_map_buf = 10_000
@@ -202,4 +210,12 @@ class SharedState:
                 "voltage": self.battery_voltage,
                 "chip":    self.battery_chip,
             }
+        msg["pca9685"] = {
+            "present":    self.pca9685_present,
+            "address":    self.pca9685_address,
+            "calibrated": self.pca9685_calibrated,
+            "osc_freq":   self.pca9685_osc_freq,
+            "channels":          {str(k): v for k, v in self.pca9685_channels.items()},
+            "last_calibration":  self.pca9685_last_calibration,
+        }
         return msg

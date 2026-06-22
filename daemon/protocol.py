@@ -29,14 +29,28 @@ CMD_CONFIG_DONE     = 0x0C
 CMD_UART_TX         = 0x0D
 CMD_RESET           = 0x0E
 CMD_HEARTBEAT       = 0x0F
+CMD_MEASURE_PULSE   = 0x10  # payload: [port_id:u8] — measure pulse on a single-pin port
 
 # -------------------------------------------------------------------
 # RP2040 → Pi response types
 # -------------------------------------------------------------------
-RSP_STATE   = 0x81
-RSP_ERROR   = 0x82
-RSP_ACK     = 0x83
-RSP_UART_RX = 0x84
+RSP_STATE          = 0x81
+RSP_ERROR          = 0x82
+RSP_ACK            = 0x83
+RSP_UART_RX        = 0x84
+RSP_MEASURE_PULSE  = 0x85  # payload: [pulse_us:u32 LE]
+
+# -------------------------------------------------------------------
+# RP2040 error codes (must match firmware protocol.h)
+# -------------------------------------------------------------------
+ERR_UNKNOWN_CMD     = 0x01
+ERR_BAD_PORT        = 0x02
+ERR_BAD_TYPE        = 0x03
+ERR_BAD_CRC         = 0x04
+ERR_BAD_LEN         = 0x05
+ERR_WRONG_PORT_TYPE = 0x06
+ERR_PORT_CONFLICT   = 0x07   # PWM slice conflict between two ports
+ERR_CONFIG_LOCKED   = 0x08   # CMD_CONFIGURE received after CMD_CONFIG_DONE
 
 # -------------------------------------------------------------------
 # Port type enum (must match firmware port_manager.h)
@@ -148,6 +162,9 @@ def cmd_reset() -> bytes:
 def cmd_heartbeat() -> bytes:
     return build_packet(CMD_HEARTBEAT)
 
+def cmd_measure_pulse(port_id: int) -> bytes:
+    return build_packet(CMD_MEASURE_PULSE, bytes([port_id]))
+
 def cmd_configure_uart(port_id: int, baud: int = 115200) -> bytes:
     return build_packet(CMD_CONFIGURE, struct.pack("<BBI", port_id, PORT_UART, baud))
 
@@ -223,6 +240,10 @@ class PacketParser:
         if msg_type == RSP_UART_RX:
             port_id = payload[0] if len(payload) >= 1 else 15
             return {"type": "uart_rx", "port": port_id, "data": bytes(payload[1:])}
+
+        if msg_type == RSP_MEASURE_PULSE and len(payload) >= 4:
+            pulse_us = struct.unpack_from("<I", payload, 0)[0]
+            return {"type": "measure_pulse", "pulse_us": pulse_us}
 
         return {"type": "unknown", "msg_type": msg_type, "payload": payload.hex()}
 

@@ -47,7 +47,7 @@ extern bool config_locked;
 
 // ─── UART port IDs ───────────────────────────────────────────────────────────
 #define UART0_PORT_ID  15u   // D7: GP12=TX, GP13=RX (UART0)
-#define UART1_PORT_ID  14u   // D6: GP24=TX, GP25=RX (UART1)
+#define UART1_PORT_ID  14u   // D6: GP20=TX, GP21=RX (UART1)
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 

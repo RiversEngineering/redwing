@@ -159,6 +159,9 @@ bool port_configure(uint8_t id, uint8_t port_type) {
             break;
 
         case PORT_MOTOR_SERVO:
+            // RC ESC protocol: 1500µs = stop, 1100µs = full reverse, 1900µs = full forward.
+            p->servo_min_us = 1100;
+            p->servo_max_us = 1900;
             servo_init(a, p->servo_min_us, p->servo_max_us);
             break;
 

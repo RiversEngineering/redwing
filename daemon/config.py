@@ -36,3 +36,8 @@ BATTERY_I2C_BUS = int(os.getenv("REDWING_BATTERY_BUS", "1"))
 # (daemon infers cell count from the first voltage reading: <5V→1S, <9V→2S,
 # <13V→3S, <17V→4S).  Override with e.g. REDWING_BATTERY_CELLS=2 for 2S.
 BATTERY_CELLS = int(os.getenv("REDWING_BATTERY_CELLS", "0"))
+
+# PCA9685 I²C PWM expander — I²C bus and 7-bit address.
+# Set REDWING_PCA_BUS=-1 to disable PCA9685 detection.
+PCA_I2C_BUS  = int(os.getenv("REDWING_PCA_BUS",  "1"))
+PCA_I2C_ADDR = int(os.getenv("REDWING_PCA_ADDR", "0x40"), 16)

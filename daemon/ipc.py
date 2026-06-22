@@ -31,6 +31,10 @@ class IPCServer:
     def __init__(self, state: SharedState, rp: RP2040):
         self._state = state
         self._rp = rp
+        self._pca = None   # set by main.py via set_pca()
+
+    def set_pca(self, pca) -> None:
+        self._pca = pca
         self._ctx = zmq.asyncio.Context()
 
         self._pub  = self._ctx.socket(zmq.PUB)
@@ -181,6 +185,24 @@ class IPCServer:
                 async with self._state.lock:
                     self._state.add_plot(label, value)
 
+        elif c == "pca_set_motor":
+            channel = int(cmd["channel"])
+            val_x100 = int(cmd["value"])   # -10000..+10000 (same scale as RP2040 motors)
+            if self._pca and self._pca.present:
+                # RC ESC: 1500 µs stop, 1100 µs full reverse, 1900 µs full forward
+                pulse_us = 1500 + (val_x100 * 400) // 10000
+                self._pca.set_channel_pulse_us(channel, pulse_us)
+                async with self._state.lock:
+                    self._state.pca9685_channels.setdefault(channel, {})["pulse_us"] = pulse_us
+
+        elif c == "pca_set_servo":
+            channel  = int(cmd["channel"])
+            pulse_us = int(cmd["pulse_us"])
+            if self._pca and self._pca.present:
+                self._pca.set_channel_pulse_us(channel, pulse_us)
+                async with self._state.lock:
+                    self._state.pca9685_channels.setdefault(channel, {})["pulse_us"] = pulse_us
+
         elif c == "log":
             level   = cmd.get("level", "info")
             message = cmd.get("message", "")
@@ -210,6 +232,10 @@ class IPCServer:
             return await self._do_finalize()
         if cmd == "reset":
             return await self._do_reset()
+        if cmd == "pca_configure":
+            return await self._do_pca_configure(req)
+        if cmd == "pca_calibrate":
+            return await self._do_pca_calibrate(req)
         return {"ok": False, "error": f"Unknown config request: {cmd!r}"}
 
     async def _do_configure(self, req: dict) -> dict:
@@ -270,6 +296,31 @@ class IPCServer:
         else:
             log.error("RP2040 rejected configuration — PWM slice conflict (see dashboard log).")
         return {"ok": ok, "error": "" if ok else "RP2040 rejected configuration"}
+
+    async def _do_pca_configure(self, req: dict) -> dict:
+        channel   = int(req.get("channel", -1))
+        port_type = str(req.get("type", ""))
+        if channel < 0 or channel > 15:
+            return {"ok": False, "error": f"Invalid PCA channel {channel}. Must be 0–15."}
+        if port_type not in ("motor_servo_signal", "servo"):
+            return {"ok": False, "error": f"PCA9685 only supports 'motor_servo_signal' and 'servo', got {port_type!r}"}
+        if not self._pca or not self._pca.present:
+            return {"ok": False, "error": "PCA9685 not detected"}
+        self._pca.configure_channel(channel, port_type)
+        async with self._state.lock:
+            self._state.pca9685_channels[channel] = {"type": port_type, "pulse_us": 1500}
+        return {"ok": True}
+
+    async def _do_pca_calibrate(self, req: dict) -> dict:
+        pico_port = int(req.get("pico_port", -1))
+        if pico_port < 0 or pico_port > 7:
+            return {"ok": False, "error": f"pico_port must be a single-pin port 0–7 (S0–S7), got {pico_port}"}
+        if not self._pca or not self._pca.present:
+            return {"ok": False, "error": "PCA9685 not detected"}
+        result = await self._pca.calibrate(pico_port)
+        async with self._state.lock:
+            self._state.pca9685_last_calibration = result
+        return result
 
     async def _do_reset(self) -> dict:
         ok = await self._rp.reset()

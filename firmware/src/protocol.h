@@ -21,12 +21,14 @@
 #define CMD_UART_TX         0x0D  // send bytes out UART; payload: [port_id:u8][len:u8][data...]
 #define CMD_RESET           0x0E  // stop all motors, unlock config, reset all ports
 #define CMD_HEARTBEAT       0x0F  // keepalive — resets the watchdog timer; no reply
+#define CMD_MEASURE_PULSE   0x10  // measure pulse width on a single-pin port; payload: [port_id:u8]
 
 // ─── RP2040 → Pi response types ──────────────────────────────────────────────
-#define RESP_STATE    0x81
-#define RESP_ERROR    0x82
-#define RESP_ACK      0x83
-#define RESP_UART_RX  0x84  // bytes received on UART; payload: [port_id:u8][data...]
+#define RESP_STATE         0x81
+#define RESP_ERROR         0x82
+#define RESP_ACK           0x83
+#define RESP_UART_RX       0x84  // bytes received on UART; payload: [port_id:u8][data...]
+#define RESP_MEASURE_PULSE 0x85  // pulse width result; payload: [pulse_us:u32 LE]
 
 // ─── Port type enum ──────────────────────────────────────────────────────────
 #define PORT_UNCONFIGURED   0x00
@@ -156,5 +158,6 @@ typedef struct { uint8_t port_id; uint16_t min_us; uint16_t max_us; } CmdSetServ
 typedef struct { uint8_t motor_port; uint8_t encoder_port; }          CmdAttachEnc;
 // CMD_UART_TX: [port_id:u8][len:u8][data...]
 typedef struct { uint8_t port_id; uint8_t len; }                       CmdUartTx;
+typedef struct { uint8_t port_id; }                                    CmdMeasurePulse;
 
 #pragma pack(pop)

@@ -23,7 +23,7 @@ BOUNDARY = b"--frame"
 MJPEG_CONTENT_TYPE = "multipart/x-mixed-replace; boundary=frame"
 
 
-def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastAPI:
+def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None) -> FastAPI:
     app = FastAPI(title="Redwing Dashboard")
 
     ws_clients: set[WebSocket] = set()
@@ -106,6 +106,55 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040") -> FastA
                     except Exception:
                         dead.add(ws)
                 ws_clients.difference_update(dead)
+
+            elif cmd == "pca_configure":
+                channel   = int(msg["channel"])
+                port_type = str(msg["type"])
+                if port_type not in ("motor_servo_signal", "servo"):
+                    async with state.lock:
+                        state.add_log("error", f"[Dashboard] PCA channel type must be motor_servo_signal or servo")
+                    return
+                if not pca or not pca.present:
+                    async with state.lock:
+                        state.add_log("warning", "[Dashboard] PCA9685 not detected")
+                    return
+                pca.configure_channel(channel, port_type)
+                async with state.lock:
+                    state.pca9685_channels[channel] = {"type": port_type, "pulse_us": 1500}
+                    state.add_log("info", f"[Dashboard] PCA P{channel} configured as {port_type}")
+
+            elif cmd == "pca_set_motor":
+                channel  = int(msg["channel"])
+                val_x100 = int(max(-10000, min(10000, float(msg.get("value_pct", 0)) * 100)))
+                if pca and pca.present:
+                    pulse_us = 1500 + (val_x100 * 400) // 10000
+                    pca.set_channel_pulse_us(channel, pulse_us)
+                    async with state.lock:
+                        state.pca9685_channels.setdefault(channel, {})["pulse_us"] = pulse_us
+
+            elif cmd == "pca_set_servo":
+                channel  = int(msg["channel"])
+                angle    = max(0.0, min(300.0, float(msg.get("angle_deg", 150))))
+                pulse_us = int(500 + angle / 300.0 * 2000)
+                if pca and pca.present:
+                    pca.set_channel_pulse_us(channel, pulse_us)
+                    async with state.lock:
+                        state.pca9685_channels.setdefault(channel, {})["pulse_us"] = pulse_us
+
+            elif cmd == "pca_calibrate":
+                pico_port = int(msg.get("pico_port", 0))
+                if pca and pca.present:
+                    result = await pca.calibrate(pico_port)
+                    async with state.lock:
+                        state.pca9685_last_calibration = result
+                        if result["ok"]:
+                            state.add_log(
+                                "info",
+                                f"[Dashboard] PCA9685 calibrated: osc={result['osc_freq']} Hz, "
+                                f"prescale={result['prescale']}, measured={result['measured_us']} µs"
+                            )
+                        else:
+                            state.add_log("error", f"[Dashboard] PCA calibration failed: {result['error']}")
 
             elif cmd == "set_lidar_config":
                 async with state.lock:

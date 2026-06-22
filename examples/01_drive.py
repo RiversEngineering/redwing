@@ -1,29 +1,21 @@
-"""Example 1 — Drive forward, then stop.
+"""Example 1 — Drive a single motor.
 
-This is the simplest possible program. It drives the robot forward
-for 2 seconds, then stops.
+The simplest possible program. One motor runs at half power for two
+seconds, then stops.
 
-Hardware needed:
-  Port 1: left motor  (sign-magnitude motor controller)
-  Port 2: right motor (sign-magnitude motor controller)
+Hardware
+--------
+- Motor controller wired to port D0 (dual-pin, sign-magnitude mode)
 """
 
-import redwing
+from redwing import Robot
 
-robot = redwing.Robot()
+robot = Robot()
 
-left  = robot.D0.motor()
-right = robot.D1.motor()
+motor = robot.D0.motor()   # configure D0 as a sign-magnitude motor
 
-# If the right motor drives backward when you expect forward,
-# set right.inverted = True instead of rewiring the motor.
+robot.start()              # lock in configuration and enable commands
 
-robot.log("Driving forward for 2 seconds...")
-
-left.speed  = 60   # 60% forward
-right.speed = 60
-
+motor.set_power(50)        # 50 % forward (-100 to +100)
 robot.sleep(2)
-
-robot.stop()
-robot.log("Done!")
+motor.stop()

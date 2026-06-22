@@ -7,6 +7,7 @@ import time
 
 from .connection import Connection
 from .port import Port
+from .pca_port import PcaPort
 from .devices.camera import Camera
 from .devices.encoder import Encoder
 from .devices.gamepad import Gamepad
@@ -81,6 +82,9 @@ class Robot:
             self._ports[i] = Port(i, self._conn, dual_pin=False)
         for i in _DUAL_IDS:
             self._ports[i] = Port(i, self._conn, dual_pin=True)
+        self._pca_ports: dict[int, PcaPort] = {
+            i: PcaPort(i, self._conn, robot=self) for i in range(16)
+        }
         self._camera = Camera(self._conn)
         self._gamepad = Gamepad(self._conn)
         self._uart_buses: dict[int, UartBus] = {}
@@ -186,6 +190,91 @@ class Robot:
         Also serves as UART0 when ``robot.uart()`` is called (GP12=TX, GP13=RX).
         """
         return self._ports[15]
+
+    # ------------------------------------------------------------------
+    # PCA9685 expansion ports P0–P15
+    # All channels run at 50 Hz; support motor (RC ESC) and servo outputs.
+    # ------------------------------------------------------------------
+
+    @property
+    def P0(self) -> PcaPort:
+        """PCA9685 channel 0. 50 Hz servo/ESC output."""
+        return self._pca_ports[0]
+
+    @property
+    def P1(self) -> PcaPort:
+        """PCA9685 channel 1."""
+        return self._pca_ports[1]
+
+    @property
+    def P2(self) -> PcaPort:
+        """PCA9685 channel 2."""
+        return self._pca_ports[2]
+
+    @property
+    def P3(self) -> PcaPort:
+        """PCA9685 channel 3."""
+        return self._pca_ports[3]
+
+    @property
+    def P4(self) -> PcaPort:
+        """PCA9685 channel 4."""
+        return self._pca_ports[4]
+
+    @property
+    def P5(self) -> PcaPort:
+        """PCA9685 channel 5."""
+        return self._pca_ports[5]
+
+    @property
+    def P6(self) -> PcaPort:
+        """PCA9685 channel 6."""
+        return self._pca_ports[6]
+
+    @property
+    def P7(self) -> PcaPort:
+        """PCA9685 channel 7."""
+        return self._pca_ports[7]
+
+    @property
+    def P8(self) -> PcaPort:
+        """PCA9685 channel 8."""
+        return self._pca_ports[8]
+
+    @property
+    def P9(self) -> PcaPort:
+        """PCA9685 channel 9."""
+        return self._pca_ports[9]
+
+    @property
+    def P10(self) -> PcaPort:
+        """PCA9685 channel 10."""
+        return self._pca_ports[10]
+
+    @property
+    def P11(self) -> PcaPort:
+        """PCA9685 channel 11."""
+        return self._pca_ports[11]
+
+    @property
+    def P12(self) -> PcaPort:
+        """PCA9685 channel 12."""
+        return self._pca_ports[12]
+
+    @property
+    def P13(self) -> PcaPort:
+        """PCA9685 channel 13."""
+        return self._pca_ports[13]
+
+    @property
+    def P14(self) -> PcaPort:
+        """PCA9685 channel 14."""
+        return self._pca_ports[14]
+
+    @property
+    def P15(self) -> PcaPort:
+        """PCA9685 channel 15."""
+        return self._pca_ports[15]
 
     # ------------------------------------------------------------------
     # Camera

@@ -23,10 +23,11 @@ import uvicorn
 from .api import create_app
 from .camera import CameraCapture
 from .battery import BatteryMonitor
-from .config import WEB_HOST, WEB_PORT, SERIAL_PORT, LIDAR_PORT, BATTERY_I2C_BUS
+from .config import WEB_HOST, WEB_PORT, SERIAL_PORT, LIDAR_PORT, BATTERY_I2C_BUS, PCA_I2C_BUS, PCA_I2C_ADDR
 from .gamepad_reader import gamepad_reader_task
 from .ipc import IPCServer
 from .lidar import LidarCapture
+from .pca9685 import PCA9685
 from .rp2040 import RP2040
 from .state import SharedState
 
@@ -46,8 +47,11 @@ async def main():
     state  = SharedState()
     rp     = RP2040(state)
     camera = CameraCapture(state)
+    pca    = PCA9685(state, rp, PCA_I2C_BUS, PCA_I2C_ADDR) if PCA_I2C_BUS >= 0 else None
     ipc    = IPCServer(state, rp)
-    app    = create_app(state, camera, rp)
+    if pca:
+        ipc.set_pca(pca)
+    app    = create_app(state, camera, rp, pca)
 
     config = uvicorn.Config(
         app,
@@ -61,6 +65,9 @@ async def main():
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, lambda: asyncio.create_task(_shutdown(server, rp)))
+
+    if pca:
+        asyncio.ensure_future(pca.detect())
 
     tasks = [rp.run(), ipc.run(), camera.run(), server.serve(), gamepad_reader_task(state)]
     if LIDAR_PORT:

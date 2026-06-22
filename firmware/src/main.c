@@ -37,6 +37,34 @@ static bool pid_timer_cb(struct repeating_timer *t) {
 static uint8_t us_frame_counter = 0;
 #define US_FRAME_INTERVAL 3
 
+// ─── Pulse measurement helper ─────────────────────────────────────────────────
+// Measures the HIGH pulse width on a GPIO pin.
+// Temporarily reconfigures the pin as a floating input, measures, then leaves it
+// as a high-impedance input (caller is responsible for any needed restore).
+// Returns pulse width in µs, or 0 on timeout.
+static uint32_t measure_pulse_us(uint8_t gpio, uint32_t timeout_us) {
+    gpio_init(gpio);
+    gpio_set_dir(gpio, GPIO_IN);
+    gpio_disable_pulls(gpio);
+
+    uint64_t t0 = to_us_since_boot(get_absolute_time());
+
+    // Wait for line to go LOW (idle gap between pulses)
+    while (gpio_get(gpio)) {
+        if (to_us_since_boot(get_absolute_time()) - t0 > timeout_us) return 0;
+    }
+    // Wait for rising edge (start of pulse)
+    while (!gpio_get(gpio)) {
+        if (to_us_since_boot(get_absolute_time()) - t0 > timeout_us) return 0;
+    }
+    uint64_t rise = to_us_since_boot(get_absolute_time());
+    // Wait for falling edge (end of pulse)
+    while (gpio_get(gpio)) {
+        if (to_us_since_boot(get_absolute_time()) - t0 > timeout_us) return 0;
+    }
+    return (uint32_t)(to_us_since_boot(get_absolute_time()) - rise);
+}
+
 // ─── Command dispatcher ───────────────────────────────────────────────────────
 
 static void handle_command(uint8_t type, const uint8_t *payload, uint8_t len) {
@@ -175,6 +203,30 @@ static void handle_command(uint8_t type, const uint8_t *payload, uint8_t len) {
 
         case CMD_HEARTBEAT: {
             // Watchdog is reset at the top of handle_command.  No reply needed.
+            break;
+        }
+
+        case CMD_MEASURE_PULSE: {
+            if (len < sizeof(CmdMeasurePulse)) goto bad_len;
+            const CmdMeasurePulse *cmd = (const CmdMeasurePulse *)payload;
+            if (!IS_SINGLE_PORT(cmd->port_id)) {
+                usb_comm_send_error(ERR_BAD_PORT, "not a single-pin port");
+                break;
+            }
+            uint8_t gpio = SINGLE_GPIO[cmd->port_id];
+            // 150 ms = 7.5 periods of 50 Hz — enough to catch a full pulse cycle.
+            uint32_t pulse_us = measure_pulse_us(gpio, 150000);
+            if (pulse_us == 0) {
+                usb_comm_send_error(ERR_BAD_PORT, "pulse timeout");
+            } else {
+                uint8_t resp[4] = {
+                    (uint8_t)(pulse_us),
+                    (uint8_t)(pulse_us >> 8),
+                    (uint8_t)(pulse_us >> 16),
+                    (uint8_t)(pulse_us >> 24),
+                };
+                usb_comm_send(RESP_MEASURE_PULSE, resp, 4);
+            }
             break;
         }
 
