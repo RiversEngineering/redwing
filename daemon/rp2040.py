@@ -97,6 +97,11 @@ class RP2040:
                 self._state.rp2040_ts = pkt["ts"]
                 for port_id, pdata in pkt["ports"].items():
                     existing = self._state.ports.get(port_id, {})
+                    # TF sensors are configured as UART in firmware, so the
+                    # firmware reports type="uart". Don't let that overwrite
+                    # the daemon's logical type (tfluna/tfmini).
+                    if self._state.port_config.get(port_id) in ("tfluna", "tfmini"):
+                        pdata = {k: v for k, v in pdata.items() if k != "type"}
                     existing.update(pdata)
                     self._state.ports[port_id] = existing
 
