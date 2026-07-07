@@ -24,6 +24,7 @@ class RP2040:
         self._config_done_future: asyncio.Future | None = None
         self._reset_future: asyncio.Future | None = None
         self._measure_pulse_future: asyncio.Future | None = None
+        self._tf_bufs: dict[int, bytearray] = {}   # port_id → unparsed UART bytes for TF sensors
 
     async def run(self):
         while True:
@@ -101,10 +102,16 @@ class RP2040:
 
         elif ptype == "uart_rx":
             async with self._state.lock:
-                port_id = pkt.get("port", 15)
-                buf = self._state.uart_rx_buffers.get(port_id)
-                if buf is not None:
+                port_id   = pkt.get("port", 15)
+                port_type = self._state.port_config.get(str(port_id), "")
+                if port_type in ("tfluna", "tfmini"):
+                    buf = self._tf_bufs.setdefault(port_id, bytearray())
                     buf.extend(pkt["data"])
+                    self._parse_tf_frames(port_id, buf, port_type)
+                else:
+                    buf = self._state.uart_rx_buffers.get(port_id)
+                    if buf is not None:
+                        buf.extend(pkt["data"])
 
         elif ptype == "ack":
             cmd = pkt.get("cmd")
@@ -138,6 +145,43 @@ class RP2040:
                 self._measure_pulse_future.set_result(None)
 
     # ------------------------------------------------------------------
+    # TF-Mini / TF-Luna frame parser (called while holding state.lock)
+    # ------------------------------------------------------------------
+
+    _TF_FRAME_LEN   = 9
+    _TF_HEADER      = (0x59, 0x59)
+    _TF_MIN_STRENGTH = 100
+
+    def _parse_tf_frames(self, port_id: int, buf: bytearray, port_type: str):
+        """Parse Benewake 9-byte frames from buf and update port state.
+
+        Modifies buf in-place (consumed bytes are deleted).
+        Must be called while holding self._state.lock.
+        """
+        while len(buf) >= self._TF_FRAME_LEN:
+            if buf[0] != self._TF_HEADER[0] or buf[1] != self._TF_HEADER[1]:
+                del buf[0]
+                continue
+            frame = buf[:self._TF_FRAME_LEN]
+            if (sum(frame[:8]) & 0xFF) != frame[8]:
+                del buf[0]
+                continue
+
+            dist_cm  = frame[2] | (frame[3] << 8)
+            strength = frame[4] | (frame[5] << 8)
+            raw_temp = frame[6] | (frame[7] << 8)
+            valid    = dist_cm > 0 and strength >= self._TF_MIN_STRENGTH
+            del buf[:self._TF_FRAME_LEN]
+
+            port_data = self._state.ports.setdefault(str(port_id), {})
+            port_data["type"]        = port_type
+            port_data["distance_cm"] = dist_cm
+            port_data["strength"]    = strength
+            port_data["valid"]       = valid
+            if port_type == "tfluna":
+                port_data["temperature"] = raw_temp / 100.0
+
+    # ------------------------------------------------------------------
     # Public command API
     # ------------------------------------------------------------------
 
@@ -151,7 +195,7 @@ class RP2040:
         type_id = proto.PORT_TYPE_IDS.get(port_type_str)
         if type_id is None:
             return False
-        if type_id == proto.PORT_UART:
+        if type_id in (proto.PORT_UART, proto.PORT_TFLUNA, proto.PORT_TFMINI):
             self.enqueue(proto.cmd_configure_uart(port_id, baud or 115200))
         else:
             self.enqueue(proto.cmd_configure(port_id, type_id))
@@ -181,6 +225,7 @@ class RP2040:
 
     async def reset(self, timeout: float = 2.0) -> bool:
         """Send CMD_RESET and wait for ACK. Returns True on success."""
+        self._tf_bufs.clear()
         loop = asyncio.get_running_loop()
         self._reset_future = loop.create_future()
         self.enqueue(proto.cmd_reset())

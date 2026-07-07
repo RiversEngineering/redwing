@@ -264,8 +264,8 @@ class IPCServer:
                         "Each port can only be configured once."
                     ),
                 }
-            if port_type == "uart" and port_id not in (14, 15):
-                return {"ok": False, "error": "UART is only available on D6 (port 14) or D7 (port 15)."}
+            if port_type in ("uart", "tfluna", "tfmini") and port_id not in (14, 15):
+                return {"ok": False, "error": "UART / TF-Luna / TF-Mini is only available on D6 (port 14) or D7 (port 15)."}
 
         ok = await self._rp.configure_port(port_id, port_type, baud)
         if ok:
