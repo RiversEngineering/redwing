@@ -106,8 +106,22 @@ class CameraCapture:
             # cap.set(CAP_PROP_FRAME_WIDTH/HEIGHT) to scale — many cameras
             # satisfy the request by cropping from the top-left corner of
             # the sensor instead, showing only a portion of the image.
+            # Crop to the target aspect ratio first so a wide-sensor camera
+            # (e.g. 1920×1200 = 16:10) doesn't squish into a 4:3 output.
             h, w = frame.shape[:2]
             if w != CAMERA_WIDTH or h != CAMERA_HEIGHT:
+                src_ar = w / h
+                dst_ar = CAMERA_WIDTH / CAMERA_HEIGHT
+                if src_ar > dst_ar:
+                    # Source is wider — trim left and right equally
+                    new_w = int(h * dst_ar)
+                    x0 = (w - new_w) // 2
+                    frame = frame[:, x0:x0 + new_w]
+                elif src_ar < dst_ar:
+                    # Source is taller — trim top and bottom equally
+                    new_h = int(w / dst_ar)
+                    y0 = (h - new_h) // 2
+                    frame = frame[y0:y0 + new_h, :]
                 frame = cv2.resize(frame, (CAMERA_WIDTH, CAMERA_HEIGHT),
                                    interpolation=cv2.INTER_AREA)
 
