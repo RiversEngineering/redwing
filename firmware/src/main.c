@@ -7,6 +7,7 @@
 #include "port_manager.h"
 #include "devices/encoder.h"
 #include "devices/ultrasonic.h"
+#include "devices/pca9685.h"
 #include <string.h>
 
 // ─── Configurable stream rate ─────────────────────────────────────────────────
@@ -228,6 +229,39 @@ static void handle_command(uint8_t type, const uint8_t *payload, uint8_t len) {
                 usb_comm_send(RESP_MEASURE_PULSE, resp, 4);
             }
             break;
+        }
+
+        case CMD_PCA_INIT: {
+            if (len < sizeof(CmdPcaInit)) goto bad_len;
+            const CmdPcaInit *cmd = (const CmdPcaInit *)payload;
+            if (pca9685_init(0x40, cmd->prescale)) {
+                usb_comm_send_ack(type);
+            } else {
+                usb_comm_send_error(ERR_BAD_TYPE, "PCA9685 not found at 0x40");
+            }
+            break;
+        }
+
+        case CMD_PCA_SET_CH: {
+            if (len < sizeof(CmdPcaSetCh)) goto bad_len;
+            const CmdPcaSetCh *cmd = (const CmdPcaSetCh *)payload;
+            if (cmd->ch > 15) {
+                usb_comm_send_error(ERR_BAD_PORT, "PCA9685 ch must be 0-15");
+                break;
+            }
+            pca9685_set_channel(0x40, cmd->ch, cmd->on, cmd->off);
+            break;  // fire-and-forget; no ACK
+        }
+
+        case CMD_PCA_CH_OFF: {
+            if (len < sizeof(CmdPcaChOff)) goto bad_len;
+            const CmdPcaChOff *cmd = (const CmdPcaChOff *)payload;
+            if (cmd->ch > 15) {
+                usb_comm_send_error(ERR_BAD_PORT, "PCA9685 ch must be 0-15");
+                break;
+            }
+            pca9685_channel_off(0x40, cmd->ch);
+            break;  // fire-and-forget; no ACK
         }
 
         default:

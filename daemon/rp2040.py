@@ -24,6 +24,7 @@ class RP2040:
         self._config_done_future: asyncio.Future | None = None
         self._reset_future: asyncio.Future | None = None
         self._measure_pulse_future: asyncio.Future | None = None
+        self._pca_init_future: asyncio.Future | None = None
         self._tf_bufs: dict[int, bytearray] = {}   # port_id → unparsed UART bytes for TF sensors
 
     async def run(self):
@@ -42,6 +43,8 @@ class RP2040:
                     self._reset_future.set_result(False)
                 if self._measure_pulse_future and not self._measure_pulse_future.done():
                     self._measure_pulse_future.set_result(None)
+                if self._pca_init_future and not self._pca_init_future.done():
+                    self._pca_init_future.set_result(False)
                 await asyncio.sleep(RECONNECT_DELAY)
 
     async def _connect_and_run(self):
@@ -126,6 +129,9 @@ class RP2040:
             elif cmd == proto.CMD_RESET:
                 if self._reset_future and not self._reset_future.done():
                     self._reset_future.set_result(True)
+            elif cmd == proto.CMD_PCA_INIT:
+                if self._pca_init_future and not self._pca_init_future.done():
+                    self._pca_init_future.set_result(True)
 
         elif ptype == "measure_pulse":
             pulse_us = pkt.get("pulse_us", 0)
@@ -148,6 +154,8 @@ class RP2040:
                 self._reset_future.set_result(False)
             if self._measure_pulse_future and not self._measure_pulse_future.done():
                 self._measure_pulse_future.set_result(None)
+            if self._pca_init_future and not self._pca_init_future.done():
+                self._pca_init_future.set_result(False)
 
     # ------------------------------------------------------------------
     # TF-Mini / TF-Luna frame parser (called while holding state.lock)
@@ -243,6 +251,24 @@ class RP2040:
             return False
         finally:
             self._reset_future = None
+
+    async def pca_init(self, prescale: int, timeout: float = 2.0) -> bool:
+        """Send CMD_PCA_INIT and wait for ACK (PCA9685 found) or ERROR (not found).
+
+        Returns True if the PCA9685 was detected and initialised, False otherwise.
+        """
+        loop = asyncio.get_running_loop()
+        self._pca_init_future = loop.create_future()
+        self.enqueue(proto.cmd_pca_init(prescale))
+        try:
+            return await asyncio.wait_for(
+                asyncio.shield(self._pca_init_future), timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            log.warning("CMD_PCA_INIT timed out — RP2040 may not be connected")
+            return False
+        finally:
+            self._pca_init_future = None
 
     async def measure_pulse(self, port_id: int, timeout: float = 3.0) -> int | None:
         """Send CMD_MEASURE_PULSE and wait for RESP_MEASURE_PULSE.

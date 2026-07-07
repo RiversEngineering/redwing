@@ -22,6 +22,9 @@
 #define CMD_RESET           0x0E  // stop all motors, unlock config, reset all ports
 #define CMD_HEARTBEAT       0x0F  // keepalive — resets the watchdog timer; no reply
 #define CMD_MEASURE_PULSE   0x10  // measure pulse width on a single-pin port; payload: [port_id:u8]
+#define CMD_PCA_INIT        0x11  // detect + init PCA9685; payload: [prescale:u8] → ACK or ERROR
+#define CMD_PCA_SET_CH      0x12  // set channel; payload: [ch:u8][on:u16le][off:u16le] (no ACK)
+#define CMD_PCA_CH_OFF      0x13  // full-off channel; payload: [ch:u8] (no ACK)
 
 // ─── RP2040 → Pi response types ──────────────────────────────────────────────
 #define RESP_STATE         0x81
@@ -159,5 +162,8 @@ typedef struct { uint8_t motor_port; uint8_t encoder_port; }          CmdAttachE
 // CMD_UART_TX: [port_id:u8][len:u8][data...]
 typedef struct { uint8_t port_id; uint8_t len; }                       CmdUartTx;
 typedef struct { uint8_t port_id; }                                    CmdMeasurePulse;
+typedef struct { uint8_t prescale; }                                   CmdPcaInit;
+typedef struct { uint8_t ch; uint16_t on; uint16_t off; }             CmdPcaSetCh;
+typedef struct { uint8_t ch; }                                         CmdPcaChOff;
 
 #pragma pack(pop)
