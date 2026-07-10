@@ -46,17 +46,28 @@ class PCA9685:
     # ------------------------------------------------------------------
 
     async def detect(self) -> bool:
-        """Send CMD_PCA_INIT to the Pico; updates state.pca9685_present on success."""
-        found = await self._rp.pca_init(self._prescale)
-        self._present = found
-        if found:
-            log.info(f"PCA9685 detected on Pico I²C (prescale={self._prescale})")
-            async with self._state.lock:
-                self._state.pca9685_present = True
-                self._state.pca9685_address = 0x40
-        else:
-            log.debug("PCA9685 not detected on Pico I²C (address 0x40)")
-        return found
+        """Send CMD_PCA_INIT to the Pico; updates state.pca9685_present on success.
+
+        Retries up to 10 times (30 s) if the RP2040 isn't connected yet.
+        Stops immediately if the RP2040 IS connected but reports the device absent.
+        """
+        for attempt in range(10):
+            if attempt > 0:
+                await asyncio.sleep(3.0)
+            found = await self._rp.pca_init(self._prescale)
+            if found:
+                self._present = True
+                async with self._state.lock:
+                    self._state.pca9685_present = True
+                    self._state.pca9685_address = 0x40
+                log.info(f"PCA9685 detected on Pico I²C (prescale={self._prescale})")
+                return True
+            if self._rp.connected:
+                # RP2040 responded but PCA9685 isn't on the bus — won't change
+                break
+            log.debug(f"PCA9685 detect attempt {attempt + 1}: RP2040 not connected yet, retrying")
+        log.info("PCA9685 not detected on Pico I²C (address 0x40)")
+        return False
 
     # ------------------------------------------------------------------
     # Pulse-width ↔ count conversion

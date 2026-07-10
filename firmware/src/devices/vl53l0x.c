@@ -243,10 +243,10 @@ bool vl53l0x_init(void) {
     wr1(0xFF, 0x01); wr1(0x8E, 0x01); wr1(0x00, 0x01);
     wr1(0xFF, 0x00); wr1(0x80, 0x00);
 
-    // Set GPIO new-sample-ready interrupt, active-low
-    wr1(REG_SYSTEM_INTERRUPT_CONFIG_GPIO, 0x04);
-    rd1(REG_GPIO_HV_MUX_ACTIVE_HIGH, &v);
-    wr1(REG_GPIO_HV_MUX_ACTIVE_HIGH, v & ~0x10u);
+    // Polling only — do not configure GPIO1 interrupt output.
+    // If the board connects VL53L0X GPIO1 to a user GPIO (e.g. GP6/S4),
+    // configuring GPIO1 as a push-pull output would interfere with that pin.
+    // The interrupt status register is polled via I2C in vl53l0x_read_mm().
     wr1(REG_SYSTEM_INTERRUPT_CLEAR, 0x01);
 
     // Sequence config: disable MSRC + TCC

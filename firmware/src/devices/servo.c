@@ -21,6 +21,9 @@ static uint16_t us_to_level(uint16_t us) {
 
 void servo_init(uint8_t gpio, uint16_t min_us, uint16_t max_us) {
     (void)min_us; (void)max_us;  // stored in port_manager, not here
+    // Match arduino-pico's 12 mA drive so the signal can overcome the ~1 kΩ
+    // pull-up inside many RC servos and ESCs (4 mA default leaves LOW at ~0.5 V).
+    gpio_set_drive_strength(gpio, GPIO_DRIVE_STRENGTH_12MA);
     gpio_set_function(gpio, GPIO_FUNC_PWM);
     uint slice = pwm_gpio_to_slice_num(gpio);
     pwm_config cfg = pwm_get_default_config();

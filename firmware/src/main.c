@@ -217,6 +217,35 @@ static void handle_command(uint8_t type, const uint8_t *payload, uint8_t len) {
             uint8_t gpio = SINGLE_GPIO[cmd->port_id];
             // 150 ms = 7.5 periods of 50 Hz — enough to catch a full pulse cycle.
             uint32_t pulse_us = measure_pulse_us(gpio, 150000);
+
+            // measure_pulse_us() leaves the pin as a floating input.
+            // Restore the GPIO function so the port continues to work normally.
+            {
+                const PortState *mp = &ports[cmd->port_id];
+                switch (mp->type) {
+                    case PORT_SERVO:
+                    case PORT_MOTOR_SERVO:
+                        // Re-connect the pin to PWM so the servo keeps its signal.
+                        gpio_set_drive_strength(gpio, GPIO_DRIVE_STRENGTH_12MA);
+                        gpio_set_function(gpio, GPIO_FUNC_PWM);
+                        break;
+                    case PORT_GPIO_OUT:
+                        gpio_set_drive_strength(gpio, GPIO_DRIVE_STRENGTH_12MA);
+                        gpio_set_function(gpio, GPIO_FUNC_SIO);
+                        gpio_set_dir(gpio, GPIO_OUT);
+                        gpio_put(gpio, mp->gpio_state);
+                        break;
+                    case PORT_GPIO_IN:
+                        gpio_set_function(gpio, GPIO_FUNC_SIO);
+                        gpio_set_dir(gpio, GPIO_IN);
+                        gpio_pull_up(gpio);
+                        break;
+                    default:
+                        // UNCONFIGURED or other: leave as input — safe.
+                        break;
+                }
+            }
+
             if (pulse_us == 0) {
                 usb_comm_send_error(ERR_BAD_PORT, "pulse timeout");
             } else {

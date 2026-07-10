@@ -8,6 +8,7 @@
 #include "devices/pio_pwm.h"
 #include "devices/vl53l0x.h"
 #include "hardware/gpio.h"
+#include "hardware/pwm.h"
 #include "hardware/i2c.h"
 #include "hardware/uart.h"
 #include "pico/stdlib.h"
@@ -56,11 +57,27 @@ static void port_deinit(uint8_t id) {
             pio_pwm_stop(p->pin_b);  // no-op for non-PIO pins
             break;
         case PORT_MOTOR_LAP:
-        case PORT_MOTOR_SERVO:
             motor_stop(p->type, p->pin_a, p->pin_b);
             break;
-        case PORT_SERVO:
-            break;  // leave at midpoint — safe
+        case PORT_MOTOR_SERVO:
+            motor_stop(p->type, p->pin_a, p->pin_b);
+            // Stop the PWM slice and release the pin, same as PORT_SERVO.
+            {
+                uint slice = pwm_gpio_to_slice_num(p->pin_a);
+                pwm_set_enabled(slice, false);
+                gpio_init(p->pin_a);
+            }
+            break;
+        case PORT_SERVO: {
+            // Stop the PWM slice and release the pin so the next port type
+            // can claim it cleanly.  servo_set_raw_us() has already driven
+            // the servo to its last commanded position; stopping the slice
+            // here lets the servo hold that mechanically before going limp.
+            uint slice = pwm_gpio_to_slice_num(p->pin_a);
+            pwm_set_enabled(slice, false);
+            gpio_init(p->pin_a);   // resets to SIO + input; clears GPIO_FUNC_PWM
+            break;
+        }
         case PORT_ENCODER:
             encoder_deinit(DUAL_SLOT(id));
             break;
@@ -194,6 +211,7 @@ bool port_configure(uint8_t id, uint8_t port_type) {
 
         case PORT_GPIO_OUT:
             gpio_init(a);
+            gpio_set_drive_strength(a, GPIO_DRIVE_STRENGTH_12MA);
             gpio_set_dir(a, GPIO_OUT);
             gpio_put(a, 0);
             p->gpio_state = 0;
