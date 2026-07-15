@@ -20,7 +20,7 @@ typedef struct {
 
     // Encoder link: which DUAL_SLOT feeds this motor port, or -1 = none
     int8_t   enc_slot;
-    // PID state
+    // Velocity PID state
     bool     pid_enabled;
     int32_t  pid_target;     // velocity target, ticks/s × 10
     float    pid_kp;
@@ -28,6 +28,10 @@ typedef struct {
     float    pid_kd;
     float    pid_integral;
     float    pid_last_error;
+    // Position PID state (mutually exclusive with velocity PID)
+    bool     pos_pid_enabled;
+    int32_t  pos_target;      // target encoder tick count
+    uint16_t pos_speed_limit; // max motor output 0–10000; 0 = full (10000)
 
     // GPIO
     uint8_t  gpio_state;
@@ -89,6 +93,11 @@ void port_attach_encoder(uint8_t motor_port, uint8_t encoder_port);
 
 // Set PID target velocity (ticks/s × 10).
 void port_set_velocity(uint8_t port_id, int32_t velocity_x10);
+
+// Set position PID target (absolute encoder tick count).
+// speed_limit caps the motor output (0–10000); 0 means no cap (full 10000).
+// Clears velocity PID; mutually exclusive with port_set_velocity.
+void port_set_position(uint8_t port_id, int32_t target, uint16_t speed_limit);
 
 // Set PID gains.
 void port_set_pid(uint8_t port_id, float kp, float ki, float kd);

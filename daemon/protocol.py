@@ -33,6 +33,7 @@ CMD_MEASURE_PULSE   = 0x10  # payload: [port_id:u8] — measure pulse on a singl
 CMD_PCA_INIT        = 0x11  # payload: [prescale:u8] — detect+init PCA9685; ACK on success, ERROR if absent
 CMD_PCA_SET_CH      = 0x12  # payload: [ch:u8][on:u16le][off:u16le] — set channel counts (no ACK)
 CMD_PCA_CH_OFF      = 0x13  # payload: [ch:u8] — full-off a channel (no ACK)
+CMD_SET_POSITION    = 0x14  # payload: [port_id:u8][target:i32le][speed_limit:u16le]
 
 # -------------------------------------------------------------------
 # RP2040 → Pi response types
@@ -184,6 +185,9 @@ def cmd_pca_set_ch(channel: int, on_count: int, off_count: int) -> bytes:
 
 def cmd_pca_ch_off(channel: int) -> bytes:
     return build_packet(CMD_PCA_CH_OFF, bytes([channel & 0xFF]))
+
+def cmd_set_position(port_id: int, target: int, speed_limit: int) -> bytes:
+    return build_packet(CMD_SET_POSITION, struct.pack("<BiH", port_id, target, speed_limit))
 
 def cmd_configure_uart(port_id: int, baud: int = 115200) -> bytes:
     return build_packet(CMD_CONFIGURE, struct.pack("<BBI", port_id, PORT_UART, baud))

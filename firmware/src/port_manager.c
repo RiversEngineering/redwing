@@ -158,6 +158,7 @@ bool port_configure(uint8_t id, uint8_t port_type) {
     p->type           = port_type;
     p->motor_value    = 0;
     p->pid_enabled    = false;
+    p->pos_pid_enabled = false;
     p->pid_integral   = 0.0f;
     p->pid_last_error = 0.0f;
     p->enc_slot       = -1;
@@ -395,9 +396,23 @@ void port_set_velocity(uint8_t id, int32_t velocity_x10) {
     if (!valid_port(id)) return;
     PortState *p = &ports[id];
     if (p->enc_slot < 0) return;
-    p->pid_target  = velocity_x10;
-    p->pid_enabled = true;
-    p->pid_integral = 0.0f;
+    p->pid_target      = velocity_x10;
+    p->pid_enabled     = true;
+    p->pos_pid_enabled = false;
+    p->pid_integral    = 0.0f;
+    p->pid_last_error  = 0.0f;
+}
+
+void port_set_position(uint8_t id, int32_t target, uint16_t speed_limit) {
+    if (!valid_port(id)) return;
+    PortState *p = &ports[id];
+    if (p->enc_slot < 0) return;
+    p->pos_target      = target;
+    p->pos_speed_limit = speed_limit;
+    p->pos_pid_enabled = true;
+    p->pid_enabled     = false;
+    p->pid_integral    = 0.0f;
+    p->pid_last_error  = 0.0f;
 }
 
 void port_set_pid(uint8_t id, float kp, float ki, float kd) {
@@ -429,8 +444,9 @@ void port_set_gpio(uint8_t id, uint8_t state) {
 void port_stop_all(void) {
     for (uint8_t i = 0; i < PORT_COUNT_TOTAL; i++) {
         PortState *p = &ports[i];
-        p->pid_enabled = false;
-        p->pid_integral = 0.0f;
+        p->pid_enabled     = false;
+        p->pos_pid_enabled = false;
+        p->pid_integral    = 0.0f;
         switch (p->type) {
             case PORT_MOTOR_SM:
                 motor_sm_set(p->pin_a, p->pin_b, 0);
@@ -460,11 +476,12 @@ void port_reset(void) {
         PortState *p = &ports[i];
         port_deinit(i);   // clean up encoder PIO, ultrasonic, GPIO state
         p->type           = PORT_UNCONFIGURED;
-        p->motor_value    = 0;
-        p->pid_enabled    = false;
-        p->pid_integral   = 0.0f;
-        p->pid_last_error = 0.0f;
-        p->enc_slot       = -1;
+        p->motor_value     = 0;
+        p->pid_enabled     = false;
+        p->pos_pid_enabled = false;
+        p->pid_integral    = 0.0f;
+        p->pid_last_error  = 0.0f;
+        p->enc_slot        = -1;
     }
 }
 
@@ -475,10 +492,24 @@ void port_pid_update(void) {
 
     for (uint8_t i = 0; i < PORT_COUNT_TOTAL; i++) {
         PortState *p = &ports[i];
-        if (!p->pid_enabled || p->enc_slot < 0) continue;
+        if (p->enc_slot < 0) continue;
 
-        int32_t measured = encoder_get_velocity((uint8_t)p->enc_slot);
-        float error      = (float)(p->pid_target - measured);
+        float error;
+        float limit;
+
+        if (p->pid_enabled) {
+            // Velocity PID: error in ticks/s × 10
+            int32_t measured = encoder_get_velocity((uint8_t)p->enc_slot);
+            error = (float)(p->pid_target - measured);
+            limit = 10000.0f;
+        } else if (p->pos_pid_enabled) {
+            // Position PID: error in encoder ticks
+            int32_t current = encoder_get_count((uint8_t)p->enc_slot);
+            error = (float)(p->pos_target - current);
+            limit = (p->pos_speed_limit > 0) ? (float)p->pos_speed_limit : 10000.0f;
+        } else {
+            continue;
+        }
 
         p->pid_integral  += error * dt;
         float derivative  = (error - p->pid_last_error) / dt;
@@ -488,8 +519,8 @@ void port_pid_update(void) {
                      + p->pid_ki * p->pid_integral
                      + p->pid_kd * derivative;
 
-        if (output >  10000.0f) { output =  10000.0f; p->pid_integral -= error * dt; }
-        if (output < -10000.0f) { output = -10000.0f; p->pid_integral -= error * dt; }
+        if (output >  limit) { output =  limit; p->pid_integral -= error * dt; }
+        if (output < -limit) { output = -limit; p->pid_integral -= error * dt; }
 
         int16_t cmd = (int16_t)output;
         p->motor_value = cmd;

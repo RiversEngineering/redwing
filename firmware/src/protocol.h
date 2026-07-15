@@ -25,6 +25,7 @@
 #define CMD_PCA_INIT        0x11  // detect + init PCA9685; payload: [prescale:u8] → ACK or ERROR
 #define CMD_PCA_SET_CH      0x12  // set channel; payload: [ch:u8][on:u16le][off:u16le] (no ACK)
 #define CMD_PCA_CH_OFF      0x13  // full-off channel; payload: [ch:u8] (no ACK)
+#define CMD_SET_POSITION    0x14  // position PID; payload: [port_id:u8][target:i32le][speed_limit:u16le]
 
 // ─── RP2040 → Pi response types ──────────────────────────────────────────────
 #define RESP_STATE         0x81
@@ -165,5 +166,6 @@ typedef struct { uint8_t port_id; }                                    CmdMeasur
 typedef struct { uint8_t prescale; }                                   CmdPcaInit;
 typedef struct { uint8_t ch; uint16_t on; uint16_t off; }             CmdPcaSetCh;
 typedef struct { uint8_t ch; }                                         CmdPcaChOff;
+typedef struct { uint8_t port_id; int32_t target; uint16_t speed_limit; } CmdSetPosition;
 
 #pragma pack(pop)

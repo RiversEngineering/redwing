@@ -108,6 +108,12 @@ class IPCServer:
                 self._state.target_velocities[port] = float(cmd["velocity"])
                 self._state.ports.setdefault(str(port), {})["target_velocity"] = float(cmd["velocity"])
 
+        elif c == "set_position":
+            port        = cmd["port"]
+            target      = int(cmd["target"])
+            speed_limit = int(cmd.get("speed_limit", 0))
+            self._rp.enqueue(proto.cmd_set_position(port, target, speed_limit))
+
         elif c == "set_pid":
             self._rp.enqueue(
                 proto.cmd_set_pid(cmd["port"], cmd["kp"], cmd["ki"], cmd["kd"])

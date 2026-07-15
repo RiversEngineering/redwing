@@ -125,8 +125,74 @@ class Motor:
         return self._encoder.velocity
 
     def set_pid(self, kp: float, ki: float, kd: float):
-        """Set PID gains for closed-loop velocity control.
+        """Set PID gains for closed-loop velocity or position control.
 
         Only needed if the default tuning does not work well for your robot.
         """
         self._conn.send_command(cmd="set_pid", port=self._id, kp=kp, ki=ki, kd=kd)
+
+    # ------------------------------------------------------------------
+    # Closed-loop position control
+    # ------------------------------------------------------------------
+
+    def go_to_position(self, target: float, max_speed: float = None):
+        """Move to an absolute encoder position using PID control.
+
+        The motor runs until the encoder count reaches *target* ticks.
+        Use :attr:`Encoder.count` to check progress, or poll until the
+        encoder count is close enough for your application.
+
+        Calling this cancels any active velocity control on this motor.
+
+        Args:
+            target: Target encoder tick count (absolute).
+            max_speed: Optional speed cap as a percentage (0–100). Defaults
+                to full speed. Useful for approaching a position slowly.
+
+        Example::
+
+            arm_motor.go_to_position(500)             # full speed to tick 500
+            arm_motor.go_to_position(500, max_speed=30)  # cap at 30% power
+        """
+        self._check_started()
+        if self._encoder is None:
+            raise RuntimeError(
+                "No encoder attached to this motor. "
+                "Call motor.attach_encoder(encoder) before using position control."
+            )
+        speed_limit = 0
+        if max_speed is not None:
+            speed_limit = max(0, min(10000, int(float(max_speed) * 100)))
+        self._conn.send_command(
+            cmd="set_position",
+            port=self._id,
+            target=int(target),
+            speed_limit=speed_limit,
+        )
+
+    def move_by(self, delta: float, max_speed: float = None):
+        """Move by a relative number of encoder ticks from the current position.
+
+        Reads the current encoder count and calls :meth:`go_to_position` with
+        ``current + delta`` as the absolute target. Behaves like a stepper motor
+        command: positive *delta* moves forward, negative moves backward.
+
+        Calling this cancels any active velocity control on this motor.
+
+        Args:
+            delta: Number of encoder ticks to move relative to the current position.
+            max_speed: Optional speed cap as a percentage (0–100). Defaults to full speed.
+
+        Example::
+
+            arm_motor.move_by(200)              # move 200 ticks forward
+            arm_motor.move_by(-100, max_speed=40)  # move 100 ticks back at 40% speed
+        """
+        self._check_started()
+        if self._encoder is None:
+            raise RuntimeError(
+                "No encoder attached to this motor. "
+                "Call motor.attach_encoder(encoder) before using position control."
+            )
+        current = self._encoder.count
+        self.go_to_position(current + delta, max_speed)
