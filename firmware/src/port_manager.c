@@ -501,11 +501,13 @@ void port_pid_update(void) {
         float out_scale;
 
         if (p->pid_enabled) {
-            // Velocity PID: output in motor-units (−10000 to +10000), error in ticks/s × 10
-            int32_t measured = encoder_get_velocity((uint8_t)p->enc_slot);
-            error     = (float)(p->pid_target - measured);
-            limit     = 10000.0f;
-            out_scale = 1.0f;
+            // Velocity PID: output in percent (−100 to +100); gains are % per (ticks/s)
+            // Divide by 10 to convert from the ×10 wire encoding to actual ticks/s.
+            float measured = (float)encoder_get_velocity((uint8_t)p->enc_slot) / 10.0f;
+            float target   = (float)p->pid_target / 10.0f;
+            error     = target - measured;
+            limit     = 100.0f;
+            out_scale = 100.0f;
         } else if (p->pos_pid_enabled) {
             // Position PID: output in percent (−100 to +100); gains are % per tick
             int32_t current = encoder_get_count((uint8_t)p->enc_slot);
