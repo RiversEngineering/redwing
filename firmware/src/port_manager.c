@@ -114,6 +114,7 @@ void port_manager_init(void) {
         ports[i].pid_ki           = 0.5f;
         ports[i].pid_kd           = 0.1f;
         ports[i].pid_integral_max = 0.0f;
+        ports[i].pid_last_count   = 0;
     }
     // Initialise I²C0 at 400 kHz on GP4 (SDA) / GP5 (SCL) and scan for VL53L0X.
     i2c_init(i2c0, 400 * 1000);
@@ -413,9 +414,10 @@ void port_set_position(uint8_t id, int32_t target, uint16_t speed_limit, bool ke
     p->pos_speed_limit = speed_limit;
     p->pos_pid_enabled = true;
     p->pid_enabled     = false;
+    // Seed the previous encoder count so the first derivative tick is 0, not a spike.
+    p->pid_last_count  = encoder_get_count((uint8_t)p->enc_slot);
     if (!keep_integral) {
-        p->pid_integral   = 0.0f;
-        p->pid_last_error = 0.0f;
+        p->pid_integral = 0.0f;
     }
 }
 
@@ -499,21 +501,28 @@ void port_pid_update(void) {
         if (p->enc_slot < 0) continue;
 
         float error;
+        float derivative;
         float limit;
         float out_scale;
 
         if (p->pid_enabled) {
-            // Velocity PID: output in percent (−100 to +100); gains are % per (ticks/s)
-            // Divide by 10 to convert from the ×10 wire encoding to actual ticks/s.
+            // Velocity PID — derivative on error: responds to rate of velocity error change.
             float measured = (float)encoder_get_velocity((uint8_t)p->enc_slot) / 10.0f;
             float target   = (float)p->pid_target / 10.0f;
-            error     = target - measured;
+            error      = target - measured;
+            derivative = (error - p->pid_last_error) / dt;
+            p->pid_last_error = error;
             limit     = 100.0f;
             out_scale = 100.0f;
         } else if (p->pos_pid_enabled) {
-            // Position PID: output in percent (−100 to +100); gains are % per tick
+            // Position PID — derivative on measurement: d(encoder)/dt gives velocity.
+            // Using the encoder directly means setpoint changes produce zero derivative
+            // (the encoder hasn't moved yet), eliminating derivative kick entirely.
             int32_t current = encoder_get_count((uint8_t)p->enc_slot);
-            error     = (float)(p->pos_target - current);
+            error      = (float)(p->pos_target - current);
+            // Negative: moving toward target (count increasing) → negative derivative → damps output.
+            derivative = -(float)(current - p->pid_last_count) / dt;
+            p->pid_last_count = current;
             limit     = (p->pos_speed_limit > 0) ? (float)p->pos_speed_limit / 100.0f : 100.0f;
             out_scale = 100.0f;
         } else {
@@ -525,9 +534,6 @@ void port_pid_update(void) {
             if (p->pid_integral >  p->pid_integral_max) p->pid_integral =  p->pid_integral_max;
             if (p->pid_integral < -p->pid_integral_max) p->pid_integral = -p->pid_integral_max;
         }
-
-        float derivative  = (error - p->pid_last_error) / dt;
-        p->pid_last_error = error;
 
         float output = p->pid_kp * error
                      + p->pid_ki * p->pid_integral

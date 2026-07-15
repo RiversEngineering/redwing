@@ -27,12 +27,13 @@ typedef struct {
     float    pid_ki;
     float    pid_kd;
     float    pid_integral;
-    float    pid_last_error;
+    float    pid_last_error;   // velocity PID: previous error for d-on-error
     float    pid_integral_max; // 0 = uncapped; > 0 = clamp accumulator to ±this value
     // Position PID state (mutually exclusive with velocity PID)
     bool     pos_pid_enabled;
     int32_t  pos_target;      // target encoder tick count
     uint16_t pos_speed_limit; // max motor output 0–10000; 0 = full (10000)
+    int32_t  pid_last_count;  // position PID: previous encoder count for d-on-measurement
 
     // GPIO
     uint8_t  gpio_state;
