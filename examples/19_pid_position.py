@@ -18,8 +18,11 @@ Position PID error is in encoder ticks, not ticks/s, so the gains will be
 very different from velocity PID.  Start here and adjust:
 
   KP — increase until the motor reaches position quickly without overshooting.
+       Gains are in percent-per-tick: KP=10 gives 10% motor power per tick of
+       error (full power when error ≥ 10 ticks with KP=10).
   KD — add to damp oscillation / overshoot near the target.
   KI — keep small or zero; a large KI can cause slow windup oscillation.
+       Use integral_max to bound KI's contribution: integral_max = max_pct / KI.
 
 Hardware
 --------
@@ -30,10 +33,11 @@ Hardware
 import time
 from redwing import Robot
 
-# PID gains — tune for your motor and encoder resolution.
-KP = 0.8
+# PID gains — in percent-per-tick (position PID only).
+# KP=10 → full power (100%) when error ≥ 10 ticks; adjust to your range of motion.
+KP = 10.0
 KI = 0.0
-KD = 0.05
+KD = 0.5
 
 robot = Robot()
 

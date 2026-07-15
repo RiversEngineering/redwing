@@ -498,17 +498,20 @@ void port_pid_update(void) {
 
         float error;
         float limit;
+        float out_scale;
 
         if (p->pid_enabled) {
-            // Velocity PID: error in ticks/s × 10
+            // Velocity PID: output in motor-units (−10000 to +10000), error in ticks/s × 10
             int32_t measured = encoder_get_velocity((uint8_t)p->enc_slot);
-            error = (float)(p->pid_target - measured);
-            limit = 10000.0f;
+            error     = (float)(p->pid_target - measured);
+            limit     = 10000.0f;
+            out_scale = 1.0f;
         } else if (p->pos_pid_enabled) {
-            // Position PID: error in encoder ticks
+            // Position PID: output in percent (−100 to +100); gains are % per tick
             int32_t current = encoder_get_count((uint8_t)p->enc_slot);
-            error = (float)(p->pos_target - current);
-            limit = (p->pos_speed_limit > 0) ? (float)p->pos_speed_limit : 10000.0f;
+            error     = (float)(p->pos_target - current);
+            limit     = (p->pos_speed_limit > 0) ? (float)p->pos_speed_limit / 100.0f : 100.0f;
+            out_scale = 100.0f;
         } else {
             continue;
         }
@@ -529,7 +532,7 @@ void port_pid_update(void) {
         if (output >  limit) { output =  limit; p->pid_integral -= error * dt; }
         if (output < -limit) { output = -limit; p->pid_integral -= error * dt; }
 
-        int16_t cmd = (int16_t)output;
+        int16_t cmd = (int16_t)(output * out_scale);
         p->motor_value = cmd;
 
         switch (p->type) {
