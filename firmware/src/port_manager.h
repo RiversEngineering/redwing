@@ -98,7 +98,7 @@ void port_set_velocity(uint8_t port_id, int32_t velocity_x10);
 // Set position PID target (absolute encoder tick count).
 // speed_limit caps the motor output (0–10000); 0 means no cap (full 10000).
 // Clears velocity PID; mutually exclusive with port_set_velocity.
-void port_set_position(uint8_t port_id, int32_t target, uint16_t speed_limit);
+void port_set_position(uint8_t port_id, int32_t target, uint16_t speed_limit, bool keep_integral);
 
 // Set PID gains.
 void port_set_pid(uint8_t port_id, float kp, float ki, float kd);

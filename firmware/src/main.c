@@ -289,7 +289,9 @@ static void handle_command(uint8_t type, const uint8_t *payload, uint8_t len) {
         case CMD_SET_POSITION: {
             if (len < sizeof(CmdSetPosition)) goto bad_len;
             const CmdSetPosition *cmd = (const CmdSetPosition *)payload;
-            port_set_position(cmd->port_id, cmd->target, cmd->speed_limit);
+            bool keep = (len >= sizeof(CmdSetPositionFull)) &&
+                        (((const CmdSetPositionFull *)payload)->flags & 0x01);
+            port_set_position(cmd->port_id, cmd->target, cmd->speed_limit, keep);
             usb_comm_send_ack(type);
             break;
         }

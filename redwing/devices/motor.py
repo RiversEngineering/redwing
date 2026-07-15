@@ -149,7 +149,7 @@ class Motor:
     # Closed-loop position control
     # ------------------------------------------------------------------
 
-    def go_to_position(self, target: float, max_speed: float = None):
+    def go_to_position(self, target: float, max_speed: float = None, keep_integral: bool = False):
         """Move to an absolute encoder position using PID control.
 
         The motor runs until the encoder count reaches *target* ticks.
@@ -162,11 +162,26 @@ class Motor:
             target: Target encoder tick count (absolute).
             max_speed: Optional speed cap as a percentage (0–100). Defaults
                 to full speed. Useful for approaching a position slowly.
+            keep_integral: When False (the default), the PID integral
+                accumulator is reset to zero before the move starts. This
+                is correct for discrete commanded moves to a new position.
+                Set to True when the target updates continuously (e.g. a
+                joystick streaming small increments, a trajectory follower,
+                or sensor-based position correction) so that the integral
+                can compensate for steady loads such as gravity across
+                successive target updates.
+
+                **Warning**: when True, a stale integral from a previous
+                direction can briefly oppose a reversal until anti-windup
+                clears it.  Always set ``integral_max`` via
+                :meth:`set_pid` when using this option.
 
         Example::
 
-            arm_motor.go_to_position(500)             # full speed to tick 500
-            arm_motor.go_to_position(500, max_speed=30)  # cap at 30% power
+            arm_motor.go_to_position(500)                    # discrete move
+            arm_motor.go_to_position(500, max_speed=30)      # cap at 30%
+            arm_motor.go_to_position(joystick_target,        # streaming
+                                     keep_integral=True)
         """
         self._check_started()
         if self._encoder is None:
@@ -182,9 +197,10 @@ class Motor:
             port=self._id,
             target=int(target),
             speed_limit=speed_limit,
+            keep_integral=bool(keep_integral),
         )
 
-    def move_by(self, delta: float, max_speed: float = None):
+    def move_by(self, delta: float, max_speed: float = None, keep_integral: bool = False):
         """Move by a relative number of encoder ticks from the current position.
 
         Reads the current encoder count and calls :meth:`go_to_position` with
@@ -196,6 +212,8 @@ class Motor:
         Args:
             delta: Number of encoder ticks to move relative to the current position.
             max_speed: Optional speed cap as a percentage (0–100). Defaults to full speed.
+            keep_integral: Passed through to :meth:`go_to_position`. See that
+                method for full documentation.
 
         Example::
 
@@ -209,4 +227,4 @@ class Motor:
                 "Call motor.attach_encoder(encoder) before using position control."
             )
         current = self._encoder.count
-        self.go_to_position(current + delta, max_speed)
+        self.go_to_position(current + delta, max_speed, keep_integral)

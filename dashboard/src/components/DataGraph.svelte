@@ -48,7 +48,24 @@
     };
   }
 
+  // Each selected series gets its own y-scale so series with very different
+  // value ranges (e.g. encoder ticks vs motor %) don't squish each other.
+  function scaleKey(i) { return i === 0 ? 'y' : `y${i}`; }
+
+  function makeRange() {
+    return (u, min, max) => {
+      if (!isFinite(min) || !isFinite(max)) return [-1, 1];
+      const pad = Math.max(1, (max - min) * 0.1) || 1;
+      return [min - pad, max + pad];
+    };
+  }
+
   function buildOpts(selected, w, h) {
+    const scales = { x: { time: true } };
+    for (let i = 0; i < selected.length; i++) {
+      scales[scaleKey(i)] = { auto: true, range: makeRange() };
+    }
+
     return {
       width: w,
       height: h,
@@ -56,16 +73,7 @@
       select: { show: false },
       legend: { show: false },
       padding: [6, 8, 0, 0],
-      scales: {
-        x: { time: true },
-        y: {
-          auto: true,
-          range: (u, min, max) => {
-            const pad = Math.max(1, (max - min) * 0.1) || 1;
-            return [min - pad, max + pad];
-          },
-        },
-      },
+      scales,
       axes: [
         {
           stroke: '#475569',
@@ -81,6 +89,7 @@
             }),
         },
         {
+          scale: 'y',
           stroke: '#64748b',
           ticks: { stroke: '#334155', width: 1, size: 4 },
           grid: { stroke: '#1e293b', width: 1 },
@@ -90,13 +99,14 @@
       ],
       series: [
         {},
-        ...selected.map((s) => ({
+        ...selected.map((s, i) => ({
           label: s.label,
           stroke: s.color,
           width: 1.5,
           fill: `${s.color}12`,
           points: { show: false },
           spanGaps: false,
+          scale: scaleKey(i),
         })),
       ],
     };
@@ -145,10 +155,14 @@
     const selected = getSelectedSeries();
     const { w, h } = getSize();
     const data = buildData(selected);
-    plot = new uPlot(buildOpts(selected, w, h), data, containerEl);
-
-    const now = nowSec || Date.now() / 1000;
-    plot.setScale('x', { min: now - windowSec, max: now });
+    try {
+      plot = new uPlot(buildOpts(selected, w, h), data, containerEl);
+      const now = nowSec || Date.now() / 1000;
+      plot.setScale('x', { min: now - windowSec, max: now });
+    } catch (e) {
+      console.warn('[DataGraph] uPlot init failed:', e);
+      plot = null;
+    }
   }
 
   function updateData() {

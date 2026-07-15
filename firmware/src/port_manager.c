@@ -405,7 +405,7 @@ void port_set_velocity(uint8_t id, int32_t velocity_x10) {
     p->pid_last_error  = 0.0f;
 }
 
-void port_set_position(uint8_t id, int32_t target, uint16_t speed_limit) {
+void port_set_position(uint8_t id, int32_t target, uint16_t speed_limit, bool keep_integral) {
     if (!valid_port(id)) return;
     PortState *p = &ports[id];
     if (p->enc_slot < 0) return;
@@ -413,8 +413,10 @@ void port_set_position(uint8_t id, int32_t target, uint16_t speed_limit) {
     p->pos_speed_limit = speed_limit;
     p->pos_pid_enabled = true;
     p->pid_enabled     = false;
-    p->pid_integral    = 0.0f;
-    p->pid_last_error  = 0.0f;
+    if (!keep_integral) {
+        p->pid_integral   = 0.0f;
+        p->pid_last_error = 0.0f;
+    }
 }
 
 void port_set_pid(uint8_t id, float kp, float ki, float kd) {

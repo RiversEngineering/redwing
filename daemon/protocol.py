@@ -188,7 +188,9 @@ def cmd_pca_set_ch(channel: int, on_count: int, off_count: int) -> bytes:
 def cmd_pca_ch_off(channel: int) -> bytes:
     return build_packet(CMD_PCA_CH_OFF, bytes([channel & 0xFF]))
 
-def cmd_set_position(port_id: int, target: int, speed_limit: int) -> bytes:
+def cmd_set_position(port_id: int, target: int, speed_limit: int, keep_integral: bool = False) -> bytes:
+    if keep_integral:
+        return build_packet(CMD_SET_POSITION, struct.pack("<BiHB", port_id, target, speed_limit, 0x01))
     return build_packet(CMD_SET_POSITION, struct.pack("<BiH", port_id, target, speed_limit))
 
 def cmd_configure_uart(port_id: int, baud: int = 115200) -> bytes:
