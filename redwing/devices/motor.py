@@ -124,12 +124,26 @@ class Motor:
             return 0.0
         return self._encoder.velocity
 
-    def set_pid(self, kp: float, ki: float, kd: float):
+    def set_pid(self, kp: float, ki: float, kd: float, integral_max: float = None):
         """Set PID gains for closed-loop velocity or position control.
 
-        Only needed if the default tuning does not work well for your robot.
+        Args:
+            kp: Proportional gain.
+            ki: Integral gain.
+            kd: Derivative gain.
+            integral_max: Optional cap on the integral accumulator. When set, the
+                integral term can contribute at most ``ki * integral_max`` to the
+                motor output, preventing runaway windup from long-held errors.
+                Omit or pass ``None`` to leave uncapped (the default).
+
+        Example::
+
+            # Cap the integral so KI can contribute at most 3000 (30% power)
+            # when ki=100: integral_max = 3000 / 100 = 30
+            motor.set_pid(20, 100, 0.5, integral_max=30)
         """
-        self._conn.send_command(cmd="set_pid", port=self._id, kp=kp, ki=ki, kd=kd)
+        kw = {} if integral_max is None else {"integral_max": float(integral_max)}
+        self._conn.send_command(cmd="set_pid", port=self._id, kp=kp, ki=ki, kd=kd, **kw)
 
     # ------------------------------------------------------------------
     # Closed-loop position control

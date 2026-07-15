@@ -116,7 +116,8 @@ class IPCServer:
 
         elif c == "set_pid":
             self._rp.enqueue(
-                proto.cmd_set_pid(cmd["port"], cmd["kp"], cmd["ki"], cmd["kd"])
+                proto.cmd_set_pid(cmd["port"], cmd["kp"], cmd["ki"], cmd["kd"],
+                                  float(cmd.get("integral_max", 0)))
             )
 
         elif c == "reset_encoder":

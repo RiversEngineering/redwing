@@ -154,7 +154,8 @@ typedef struct { uint8_t port_id; uint8_t port_type; uint32_t baud; } CmdConfigu
 typedef struct { uint8_t port_id; int16_t value; }                    CmdSetMotor;
 typedef struct { uint8_t port_id; uint16_t angle; }                   CmdSetServo;
 typedef struct { uint8_t port_id; int32_t velocity; }                 CmdSetVelocity;
-typedef struct { uint8_t port_id; float kp; float ki; float kd; }     CmdSetPid;
+typedef struct { uint8_t port_id; float kp; float ki; float kd; }              CmdSetPid;
+typedef struct { uint8_t port_id; float kp; float ki; float kd; float imax; } CmdSetPidFull;
 typedef struct { uint8_t port_id; }                                    CmdResetEnc;
 typedef struct { uint8_t port_id; uint8_t state; }                    CmdSetGpio;
 typedef struct { uint16_t rate; }                                      CmdSetRate;

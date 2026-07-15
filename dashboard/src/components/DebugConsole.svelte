@@ -119,7 +119,7 @@
                 </span>
               </td>
               <!-- Message -->
-              <td class="px-2 py-0.5 align-top {levelClass(entry.level)} break-all">
+              <td class="px-2 py-0.5 align-top {levelClass(entry.level)} whitespace-pre-wrap break-words">
                 {entry.message}
               </td>
             </tr>

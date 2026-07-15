@@ -124,6 +124,10 @@ static void handle_command(uint8_t type, const uint8_t *payload, uint8_t len) {
             if (len < sizeof(CmdSetPid)) goto bad_len;
             const CmdSetPid *cmd = (const CmdSetPid *)payload;
             port_set_pid(cmd->port_id, cmd->kp, cmd->ki, cmd->kd);
+            if (len >= sizeof(CmdSetPidFull)) {
+                float imax = ((const CmdSetPidFull *)payload)->imax;
+                ports[cmd->port_id].pid_integral_max = (imax > 0.0f) ? imax : 0.0f;
+            }
             usb_comm_send_ack(type);
             break;
         }

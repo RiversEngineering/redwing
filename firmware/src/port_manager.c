@@ -110,9 +110,10 @@ void port_manager_init(void) {
         ports[i].enc_slot     = -1;
         ports[i].servo_min_us = SERVO_MIN_US_DEFAULT;
         ports[i].servo_max_us = SERVO_MAX_US_DEFAULT;
-        ports[i].pid_kp       = 1.0f;
-        ports[i].pid_ki       = 0.5f;
-        ports[i].pid_kd       = 0.1f;
+        ports[i].pid_kp           = 1.0f;
+        ports[i].pid_ki           = 0.5f;
+        ports[i].pid_kd           = 0.1f;
+        ports[i].pid_integral_max = 0.0f;
     }
     // Initialise I²C0 at 400 kHz on GP4 (SDA) / GP5 (SCL) and scan for VL53L0X.
     i2c_init(i2c0, 400 * 1000);
@@ -337,7 +338,8 @@ void port_set_motor(uint8_t id, int16_t value) {
     if (!valid_port(id)) return;
     PortState *p = &ports[id];
     p->motor_value = value;
-    p->pid_enabled = false;   // direct power overrides PID
+    p->pid_enabled     = false;   // direct power overrides both PID modes
+    p->pos_pid_enabled = false;
 
     uint8_t a = p->pin_a;
     uint8_t b = p->pin_b;
@@ -511,7 +513,12 @@ void port_pid_update(void) {
             continue;
         }
 
-        p->pid_integral  += error * dt;
+        p->pid_integral += error * dt;
+        if (p->pid_integral_max > 0.0f) {
+            if (p->pid_integral >  p->pid_integral_max) p->pid_integral =  p->pid_integral_max;
+            if (p->pid_integral < -p->pid_integral_max) p->pid_integral = -p->pid_integral_max;
+        }
+
         float derivative  = (error - p->pid_last_error) / dt;
         p->pid_last_error = error;
 

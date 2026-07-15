@@ -144,7 +144,9 @@ def cmd_set_servo(port_id: int, pulse_us: int) -> bytes:
 def cmd_set_velocity(port_id: int, velocity_x10: int) -> bytes:
     return build_packet(CMD_SET_VELOCITY, struct.pack("<Bi", port_id, velocity_x10))
 
-def cmd_set_pid(port_id: int, kp: float, ki: float, kd: float) -> bytes:
+def cmd_set_pid(port_id: int, kp: float, ki: float, kd: float, integral_max: float = 0.0) -> bytes:
+    if integral_max > 0.0:
+        return build_packet(CMD_SET_PID, struct.pack("<Bffff", port_id, kp, ki, kd, float(integral_max)))
     return build_packet(CMD_SET_PID, struct.pack("<Bfff", port_id, kp, ki, kd))
 
 def cmd_reset_encoder(port_id: int) -> bytes:

@@ -28,6 +28,7 @@ typedef struct {
     float    pid_kd;
     float    pid_integral;
     float    pid_last_error;
+    float    pid_integral_max; // 0 = uncapped; > 0 = clamp accumulator to ±this value
     // Position PID state (mutually exclusive with velocity PID)
     bool     pos_pid_enabled;
     int32_t  pos_target;      // target encoder tick count
