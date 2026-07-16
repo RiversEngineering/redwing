@@ -428,13 +428,14 @@ void port_set_position(uint8_t id, int32_t target, uint16_t speed_limit, bool ke
     }
 }
 
-void port_set_pos_options(uint8_t id, float deadband, float output_floor, float ramp_rate, float d_alpha) {
+void port_set_pos_options(uint8_t id, float deadband, float output_floor, float ramp_rate, float d_alpha, float approach_factor) {
     if (!valid_port(id)) return;
     PortState *p = &ports[id];
-    p->pos_deadband     = (deadband > 0.0f)     ? deadband     : 0.0f;
-    p->pos_output_floor = (output_floor > 0.0f) ? output_floor : 0.0f;
-    p->pos_ramp_rate    = (ramp_rate > 0.0f)    ? ramp_rate    : 0.0f;
-    p->pid_d_alpha      = (d_alpha > 0.0f && d_alpha <= 1.0f) ? d_alpha : 1.0f;
+    p->pos_deadband       = (deadband > 0.0f)                         ? deadband       : 0.0f;
+    p->pos_output_floor   = (output_floor > 0.0f)                     ? output_floor   : 0.0f;
+    p->pos_ramp_rate      = (ramp_rate > 0.0f)                        ? ramp_rate      : 0.0f;
+    p->pid_d_alpha        = (d_alpha > 0.0f && d_alpha <= 1.0f)       ? d_alpha        : 1.0f;
+    p->pos_approach_factor = (approach_factor > 0.0f && approach_factor <= 1.0f) ? approach_factor : 0.0f;
 }
 
 void port_set_pid(uint8_t id, float kp, float ki, float kd) {
@@ -543,6 +544,12 @@ void port_pid_update(void) {
             if (p->pos_ramp_rate > 0.0f) {
                 float step = p->pos_ramp_rate * dt;
                 float diff = (float)p->pos_target - p->pos_ramp_setpoint;
+                // Approach factor: decelerate the ramp as it nears the final target.
+                // step is capped to |remaining| × factor, so the ramp slows proportionally.
+                if (p->pos_approach_factor > 0.0f) {
+                    float approach_step = fabsf(diff) * p->pos_approach_factor;
+                    if (approach_step < step) step = approach_step;
+                }
                 if (fabsf(diff) <= step) {
                     p->pos_ramp_setpoint = (float)p->pos_target;
                 } else {

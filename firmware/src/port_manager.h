@@ -39,8 +39,9 @@ typedef struct {
     // Position PID options
     float    pos_deadband;      // ticks; |error| ≤ this → zero output, integral frozen (0 = off)
     float    pos_output_floor;  // %; minimum output magnitude when outside deadband (0 = off)
-    float    pos_ramp_rate;     // ticks/s; internal setpoint ramps at this rate (0 = instant)
-    float    pos_ramp_setpoint; // internal: current interpolated setpoint for ramp
+    float    pos_ramp_rate;       // ticks/s; internal setpoint ramps at this rate (0 = instant)
+    float    pos_approach_factor; // 0 = off; >0: caps ramp step to |remaining| × factor near target
+    float    pos_ramp_setpoint;   // internal: current interpolated setpoint for ramp
 
     // GPIO
     uint8_t  gpio_state;
@@ -113,7 +114,7 @@ void port_set_position(uint8_t port_id, int32_t target, uint16_t speed_limit, bo
 //   output_floor: %; minimum motor output when outside deadband (overcomes stiction). 0 = off.
 //   ramp_rate:    ticks/s; max rate the internal setpoint moves toward the target. 0 = instant.
 //   d_alpha:      EMA alpha for derivative filter; 1.0 = no filter, lower = more smoothing.
-void port_set_pos_options(uint8_t port_id, float deadband, float output_floor, float ramp_rate, float d_alpha);
+void port_set_pos_options(uint8_t port_id, float deadband, float output_floor, float ramp_rate, float d_alpha, float approach_factor);
 
 // Set PID gains.
 void port_set_pid(uint8_t port_id, float kp, float ki, float kd);

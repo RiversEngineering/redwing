@@ -300,7 +300,7 @@ static void handle_command(uint8_t type, const uint8_t *payload, uint8_t len) {
             if (len < sizeof(CmdSetPosOptions)) goto bad_len;
             const CmdSetPosOptions *cmd = (const CmdSetPosOptions *)payload;
             port_set_pos_options(cmd->port_id, cmd->deadband, cmd->output_floor,
-                                 cmd->ramp_rate, cmd->d_alpha);
+                                 cmd->ramp_rate, cmd->d_alpha, cmd->approach_factor);
             usb_comm_send_ack(type);
             break;
         }

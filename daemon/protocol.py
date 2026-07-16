@@ -195,9 +195,10 @@ def cmd_set_position(port_id: int, target: int, speed_limit: int, keep_integral:
     return build_packet(CMD_SET_POSITION, struct.pack("<BiH", port_id, target, speed_limit))
 
 def cmd_set_pos_options(port_id: int, deadband: float = 0.0, output_floor: float = 0.0,
-                        ramp_rate: float = 0.0, d_alpha: float = 1.0) -> bytes:
+                        ramp_rate: float = 0.0, d_alpha: float = 1.0,
+                        approach_factor: float = 0.0) -> bytes:
     return build_packet(CMD_SET_POS_OPTIONS,
-                        struct.pack("<Bffff", port_id, deadband, output_floor, ramp_rate, d_alpha))
+                        struct.pack("<Bfffff", port_id, deadband, output_floor, ramp_rate, d_alpha, approach_factor))
 
 def cmd_configure_uart(port_id: int, baud: int = 115200) -> bytes:
     return build_packet(CMD_CONFIGURE, struct.pack("<BBI", port_id, PORT_UART, baud))

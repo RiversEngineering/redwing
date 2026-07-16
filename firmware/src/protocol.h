@@ -171,6 +171,6 @@ typedef struct { uint8_t ch; uint16_t on; uint16_t off; }             CmdPcaSetC
 typedef struct { uint8_t ch; }                                         CmdPcaChOff;
 typedef struct { uint8_t port_id; int32_t target; uint16_t speed_limit; }           CmdSetPosition;
 typedef struct { uint8_t port_id; int32_t target; uint16_t speed_limit; uint8_t flags; } CmdSetPositionFull;
-typedef struct { uint8_t port_id; float deadband; float output_floor; float ramp_rate; float d_alpha; } CmdSetPosOptions;
+typedef struct { uint8_t port_id; float deadband; float output_floor; float ramp_rate; float d_alpha; float approach_factor; } CmdSetPosOptions;
 
 #pragma pack(pop)

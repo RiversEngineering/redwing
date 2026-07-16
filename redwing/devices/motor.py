@@ -209,7 +209,8 @@ class Motor:
         )
 
     def set_position_options(self, deadband: float = 0, output_floor: float = 0,
-                             ramp_rate: float = 0, d_alpha: float = 1.0):
+                             ramp_rate: float = 0, d_alpha: float = 1.0,
+                             approach_factor: float = 0):
         """Configure position PID options. All settings persist until changed.
 
         Args:
@@ -226,16 +227,24 @@ class Motor:
                 Lower values filter more aggressively. 1.0 = no filter (default).
                 Values around 0.1–0.3 attenuate chain/belt chatter without
                 significantly lagging the damping response.
+            approach_factor: Deceleration factor for the setpoint ramp (0 < factor ≤ 1.0).
+                The ramp step is capped to ``|remaining| × factor`` so the setpoint
+                slows proportionally as it nears the final target — fast on the bulk
+                of the move, automatic deceleration in the approach zone. Default 0 (off).
+                With ramp_rate=300, factor=0.1 starts decelerating ~30 ticks before
+                the ramp setpoint reaches the target. Lower values decelerate earlier
+                and more gradually; try 0.05–0.15.
 
         Example::
 
-            # Shoulder with plastic chain: filter derivative noise, add deadband,
-            # floor to overcome stiction, and ramp to soften the initial impulse.
+            # Shoulder with plastic chain: fast bulk move, automatic deceleration
+            # on approach, derivative noise filter, deadband for final settling.
             shoulder.set_position_options(
+                ramp_rate=300,
+                approach_factor=0.1,
+                d_alpha=0.15,
                 deadband=5,
-                output_floor=8,
-                ramp_rate=200,
-                d_alpha=0.2,
+                output_floor=7,
             )
         """
         self._conn.send_command(
@@ -245,6 +254,7 @@ class Motor:
             output_floor=float(output_floor),
             ramp_rate=float(ramp_rate),
             d_alpha=float(d_alpha),
+            approach_factor=float(approach_factor),
         )
 
     def move_by(self, delta: float, max_speed: float = None, keep_integral: bool = False):
