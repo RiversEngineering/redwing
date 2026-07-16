@@ -53,18 +53,10 @@
   // value ranges (e.g. encoder ticks vs motor %) don't squish each other.
   function scaleKey(i) { return i === 0 ? 'y' : `y${i}`; }
 
-  function makeRange() {
-    return (u, min, max) => {
-      if (!isFinite(min) || !isFinite(max)) return [-1, 1];
-      const pad = Math.max(1, (max - min) * 0.1) || 1;
-      return [min - pad, max + pad];
-    };
-  }
-
   function buildOpts(selected, w, h) {
     const scales = { x: { time: true } };
     for (let i = 0; i < selected.length; i++) {
-      scales[scaleKey(i)] = { auto: true, range: makeRange() };
+      scales[scaleKey(i)] = { auto: false };  // we set bounds explicitly via setScale()
     }
 
     return {
@@ -158,8 +150,7 @@
     const data = buildData(selected);
     try {
       plot = new uPlot(buildOpts(selected, w, h), data, containerEl);
-      const now = nowSec || Date.now() / 1000;
-      plot.setScale('x', { min: now - windowSec, max: now });
+      updateData();  // sets x-scale and all y-scales from the actual data
     } catch (e) {
       console.warn('[DataGraph] uPlot init failed:', e);
       plot = null;
@@ -172,8 +163,29 @@
     if (!selected.length) return;
     const data = buildData(selected);
     plot.setData(data);
+
     const now = nowSec || Date.now() / 1000;
     plot.setScale('x', { min: now - windowSec, max: now });
+
+    // Explicitly compute and set each y-scale.  uPlot's auto-range callback is
+    // unreliable with multiple per-series scales and NaN-padded data arrays —
+    // managing bounds here avoids the -1 to 1 stall.
+    for (let i = 0; i < selected.length; i++) {
+      const vals = data[i + 1];  // data[0] is timestamps
+      let dmin = Infinity, dmax = -Infinity;
+      for (let j = 0; j < vals.length; j++) {
+        const v = vals[j];
+        if (isFinite(v)) {
+          if (v < dmin) dmin = v;
+          if (v > dmax) dmax = v;
+        }
+      }
+      if (isFinite(dmin) && isFinite(dmax)) {
+        const pad = Math.max(1, (dmax - dmin) * 0.1);
+        plot.setScale(scaleKey(i), { min: dmin - pad, max: dmax + pad });
+      }
+    }
+
     // Update last-value display in the legend
     const lv = {};
     for (const s of selected) {
