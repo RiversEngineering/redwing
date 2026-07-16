@@ -109,7 +109,7 @@ class SharedState:
 
         # Battery (MAX17043/17048 or INA219 via Pi I²C — auto-detected)
         self.battery_present: bool  = False
-        self.battery_voltage: float = 0.0    # cell voltage in V
+        self.battery_voltage: float = 0.0    # pack voltage in V (cell_v × cell_count)
         self.battery_soc:     float = 0.0    # state of charge in %
         self.battery_chip:    str   = ""     # detected chip name
 

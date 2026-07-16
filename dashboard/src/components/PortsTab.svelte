@@ -338,6 +338,14 @@
 
       <!-- I²C port (port 16) — shown when a sensor is detected -->
       <!-- PCA9685 expansion channels (P0–P15) — shown when expander is detected -->
+      {#if !pcaState.present}
+        <div class="border-t border-[#2e3340] mx-2 my-1"></div>
+        <div class="px-3 py-1.5 flex items-center gap-1.5">
+          <span class="text-[9px] text-slate-700 uppercase tracking-widest">PCA9685</span>
+          <span class="ml-auto text-[8px] text-slate-700 italic">not detected</span>
+        </div>
+      {:else}
+      {/if}
       {#if pcaState.present}
         <div class="border-t border-[#2e3340] mx-2 my-1"></div>
         <div class="px-2 pb-1">

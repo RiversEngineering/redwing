@@ -31,6 +31,7 @@ services:
       REDWING_PORT:   "8000"
       REDWING_HZ:     "50"
       REDWING_LIDAR: /dev/ttyUSB0
+      # REDWING_BATTERY_CELLS: "4"  # set per-robot if battery module has internal voltage divider
     network_mode: host   # ports: is redundant with host networking
 
   code-server:

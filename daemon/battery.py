@@ -89,14 +89,22 @@ class BatteryMonitor:
         while True:
             try:
                 voltage, _ = await asyncio.to_thread(self._read)
+                auto_cells = _detect_cells(voltage)
                 if self._cells == 0:
-                    self._cells = _detect_cells(voltage)
+                    self._cells = auto_cells
                     log.info(f"Battery: auto-detected {self._cells}S pack "
                              f"({voltage:.3f} V total)")
-                cell_v = voltage / self._cells
+                # When BATTERY_CELLS is configured higher than what the raw voltage
+                # implies, the chip has an internal voltage divider and already
+                # reports a per-cell equivalent — don't divide again.
+                if self._cells > auto_cells:
+                    cell_v = voltage
+                else:
+                    cell_v = voltage / self._cells
+                pack_v = cell_v * self._cells
                 soc = _voltage_to_soc(cell_v)
                 async with self._state.lock:
-                    self._state.battery_voltage = round(voltage, 3)
+                    self._state.battery_voltage = round(pack_v, 3)
                     self._state.battery_soc     = soc
                     self._state.battery_chip    = self._chip
                     self._state.battery_present = True
