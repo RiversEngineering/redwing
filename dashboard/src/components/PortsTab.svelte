@@ -71,6 +71,8 @@
 
   function selectPort(id) {
     selectedId = id;
+    selectedPcaChannel = null;
+    pcaCalibrating = false;
     reconfiguring = false;
     const d = $ports[id];
     if (!d) return;
@@ -596,7 +598,7 @@
                 <div class="absolute top-0 left-1/2 w-px h-2 bg-slate-600 -translate-y-2"></div>
               </div>
             </div>
-            <div class="flex gap-2 flex-wrap">
+            <div class="flex gap-2">
               {#each [[-100,'−100%'],[-75,'−75%'],[-50,'−50%'],[-25,'−25%']] as [v, label]}
                 <button class="px-3 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
                                text-red-400 hover:bg-red-900/20 hover:border-red-600/40 transition-colors"
