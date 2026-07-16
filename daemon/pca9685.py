@@ -10,7 +10,9 @@ so that 1500 µs commands genuinely produce 1500 µs pulses.
 """
 
 import asyncio
+import json
 import logging
+import os
 
 from . import protocol as proto
 from .state import SharedState
@@ -19,6 +21,7 @@ log = logging.getLogger(__name__)
 
 _DEFAULT_OSC_FREQ = 25_000_000   # 25 MHz nominal
 _TARGET_HZ        = 50           # all channels at 50 Hz (servo / RC ESC)
+_CAL_FILE         = "/workspace/.redwing_pca9685_cal.json"
 
 
 def _calc_prescale(osc_freq: int, target_hz: float) -> int:
@@ -45,22 +48,69 @@ class PCA9685:
     # Detection
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # Calibration persistence
+    # ------------------------------------------------------------------
+
+    def _load_calibration(self) -> bool:
+        """Load saved calibration from disk. Returns True if loaded."""
+        try:
+            with open(_CAL_FILE) as f:
+                data = json.load(f)
+            self._osc_freq = int(data["osc_freq"])
+            self._prescale = int(data["prescale"])
+            log.info(
+                f"PCA9685: loaded saved calibration "
+                f"(osc={self._osc_freq} Hz, prescale={self._prescale})"
+            )
+            return True
+        except (FileNotFoundError, KeyError, ValueError, OSError):
+            return False
+
+    def _save_calibration(self):
+        """Persist current osc_freq and prescale to disk."""
+        try:
+            parent = os.path.dirname(_CAL_FILE)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+            with open(_CAL_FILE, "w") as f:
+                json.dump({"osc_freq": self._osc_freq, "prescale": self._prescale}, f)
+        except OSError as e:
+            log.warning(f"PCA9685: could not save calibration: {e}")
+
+    # ------------------------------------------------------------------
+    # Detection
+    # ------------------------------------------------------------------
+
     async def detect(self) -> bool:
         """Probe for PCA9685 until found. Runs indefinitely in the background.
 
         Retries every 3 s while the RP2040 is not yet connected, then every
         10 s once the RP2040 is up — so plugging the PCA9685 in after the
         daemon has started is detected within 10 s.
+
+        If a saved calibration exists it is loaded before the first pca_init,
+        so the corrected prescale is applied immediately rather than the
+        nominal default.
         """
+        self._load_calibration()   # sets self._prescale if file exists
+        calibrated = self._osc_freq != _DEFAULT_OSC_FREQ
+
         attempt = 0
         while True:
             found = await self._rp.pca_init(self._prescale)
             if found:
                 self._present = True
                 async with self._state.lock:
-                    self._state.pca9685_present = True
-                    self._state.pca9685_address = 0x40
-                log.info(f"PCA9685 detected on Pico I²C (prescale={self._prescale})")
+                    self._state.pca9685_present    = True
+                    self._state.pca9685_address    = 0x40
+                    self._state.pca9685_calibrated = calibrated
+                    self._state.pca9685_osc_freq   = self._osc_freq
+                log.info(
+                    f"PCA9685 detected on Pico I²C "
+                    f"(prescale={self._prescale}"
+                    f"{', calibrated' if calibrated else ', nominal'})"
+                )
                 return True
             if self._rp.connected:
                 if attempt == 0:
@@ -180,6 +230,8 @@ class PCA9685:
                 self.set_channel_pulse_us(ch, pulse_us)
             else:
                 self.set_channel_off(ch)
+
+        self._save_calibration()
 
         async with self._state.lock:
             self._state.pca9685_calibrated = True

@@ -32,8 +32,29 @@ LIDAR_PORT = os.getenv("REDWING_LIDAR", "")
 # Set to -1 to disable.
 BATTERY_I2C_BUS = int(os.getenv("REDWING_BATTERY_BUS", "1"))
 
+def _pi_model() -> str:
+    """Read the Raspberry Pi model string from /proc/device-tree/model or /proc/cpuinfo."""
+    try:
+        with open("/proc/device-tree/model") as f:
+            return f.read().rstrip("\x00")
+    except OSError:
+        pass
+    try:
+        with open("/proc/cpuinfo") as f:
+            for line in f:
+                if line.startswith("Model"):
+                    return line.split(":", 1)[1].strip()
+    except OSError:
+        pass
+    return ""
+
+PI_MODEL = _pi_model()
+
 # Number of Li-Ion/LiPo cells in series.  Set to 0 for auto-detection
 # (daemon infers cell count from the first voltage reading: <5V→1S, <9V→2S,
-# <13V→3S, <17V→4S).  Override with e.g. REDWING_BATTERY_CELLS=2 for 2S.
-BATTERY_CELLS = int(os.getenv("REDWING_BATTERY_CELLS", "0"))
+# <13V→3S, <17V→4S).  Defaults to 4 on Pi 5 (which uses 4S battery modules
+# with internal voltage dividers that report per-cell voltage).
+# Override with REDWING_BATTERY_CELLS to force a specific count on any robot.
+_default_cells = 4 if "Raspberry Pi 5" in PI_MODEL else 0
+BATTERY_CELLS = int(os.getenv("REDWING_BATTERY_CELLS", str(_default_cells)))
 
