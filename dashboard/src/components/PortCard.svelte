@@ -160,6 +160,11 @@
           {secondaryText}
         </div>
       {/if}
+      {#if data.type === 'encoder' && data.inverted}
+        <div class="inline-flex items-center gap-0.5 mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold font-mono uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30 w-fit">
+          ⇅ inverted
+        </div>
+      {/if}
       {#if data.type === 'ultrasonic' && !data.valid}
         <div class="text-[10px] text-red-400 mt-0.5">out of range</div>
       {/if}

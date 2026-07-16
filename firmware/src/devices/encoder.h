@@ -14,6 +14,11 @@ void encoder_deinit(uint8_t slot);
 // Reset tick count for the given slot to zero.
 void encoder_reset(uint8_t slot);
 
+// Set whether count and velocity are negated before being returned.
+// Use when the encoder is physically mounted such that positive motor direction
+// produces a decreasing count.  Does not affect the raw IRQ accumulator.
+void encoder_set_inverted(uint8_t slot, bool inverted);
+
 // Read current tick count.
 int32_t encoder_get_count(uint8_t slot);
 

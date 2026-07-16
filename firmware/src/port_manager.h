@@ -109,6 +109,11 @@ void port_set_velocity(uint8_t port_id, int32_t velocity_x10);
 // Clears velocity PID; mutually exclusive with port_set_velocity.
 void port_set_position(uint8_t port_id, int32_t target, uint16_t speed_limit, bool keep_integral);
 
+// Set encoder inversion. When inverted, count and velocity are negated before being
+// returned by encoder_get_count / encoder_get_velocity, so PID and user reads both
+// see the corrected sign.  port_id must be an active PORT_ENCODER port.
+void port_set_encoder_inverted(uint8_t port_id, bool inverted);
+
 // Set position PID options. All options persist until changed.
 //   deadband:     ticks; within ±deadband, output is zeroed and integral frozen. 0 = off.
 //   output_floor: %; minimum motor output when outside deadband (overcomes stiction). 0 = off.

@@ -115,6 +115,13 @@ class IPCServer:
             keep         = bool(cmd.get("keep_integral", False))
             self._rp.enqueue(proto.cmd_set_position(port, target, speed_limit, keep))
 
+        elif c == "invert_encoder":
+            port = cmd["port"]
+            inverted = bool(cmd.get("inverted", False))
+            self._rp.enqueue(proto.cmd_invert_encoder(port, inverted))
+            async with self._state.lock:
+                self._state.ports.setdefault(str(port), {})["inverted"] = inverted
+
         elif c == "set_pos_options":
             self._rp.enqueue(proto.cmd_set_pos_options(
                 cmd["port"],

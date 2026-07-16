@@ -13,6 +13,7 @@ typedef struct {
     uint8_t  pin_a;
     uint8_t  pin_b;
     bool     active;
+    bool     inverted;               // when true, count and velocity are negated on read
     volatile int32_t count;          // raw tick count (ISR-written)
     int32_t  snap[VEL_SAMPLES];      // circular snapshot buffer
     uint8_t  snap_idx;
@@ -74,6 +75,7 @@ void encoder_init(uint8_t slot, uint8_t pin_a, uint8_t pin_b) {
     e->count        = 0;
     e->velocity_x10 = 0;
     e->snap_idx     = 0;
+    e->inverted     = false;
     memset(e->snap, 0, sizeof(e->snap));
     enc_state[slot] = 0;
     e->active       = true;
@@ -126,12 +128,19 @@ void encoder_reset(uint8_t slot) {
 
 int32_t encoder_get_count(uint8_t slot) {
     if (slot >= ENCODER_MAX || !enc[slot].active) return 0;
-    return enc[slot].count;   // 32-bit read is atomic on Cortex-M0+
+    int32_t v = enc[slot].count;   // 32-bit read is atomic on Cortex-M0+
+    return enc[slot].inverted ? -v : v;
 }
 
 int32_t encoder_get_velocity(uint8_t slot) {
     if (slot >= ENCODER_MAX || !enc[slot].active) return 0;
-    return enc[slot].velocity_x10;
+    int32_t v = enc[slot].velocity_x10;
+    return enc[slot].inverted ? -v : v;
+}
+
+void encoder_set_inverted(uint8_t slot, bool inverted) {
+    if (slot >= ENCODER_MAX) return;
+    enc[slot].inverted = inverted;
 }
 
 // Called at 100 Hz — computes velocity over the last 100 ms window

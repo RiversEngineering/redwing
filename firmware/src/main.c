@@ -296,6 +296,14 @@ static void handle_command(uint8_t type, const uint8_t *payload, uint8_t len) {
             break;
         }
 
+        case CMD_INVERT_ENCODER: {
+            if (len < sizeof(CmdInvertEncoder)) goto bad_len;
+            const CmdInvertEncoder *cmd = (const CmdInvertEncoder *)payload;
+            port_set_encoder_inverted(cmd->port_id, cmd->inverted != 0);
+            usb_comm_send_ack(type);
+            break;
+        }
+
         case CMD_SET_POS_OPTIONS: {
             if (len < sizeof(CmdSetPosOptions)) goto bad_len;
             const CmdSetPosOptions *cmd = (const CmdSetPosOptions *)payload;

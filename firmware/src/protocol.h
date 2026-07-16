@@ -27,7 +27,8 @@
 #define CMD_PCA_CH_OFF      0x13  // full-off channel; payload: [ch:u8] (no ACK)
 #define CMD_SET_POSITION    0x14  // position PID; payload: [port_id:u8][target:i32le][speed_limit:u16le][flags:u8 opt]
                                   //   flags bit 0 (0x01): keep_integral — do not reset the integral accumulator
-#define CMD_SET_POS_OPTIONS 0x15  // position PID options; payload: CmdSetPosOptions
+#define CMD_SET_POS_OPTIONS  0x15  // position PID options; payload: CmdSetPosOptions
+#define CMD_INVERT_ENCODER   0x16  // flip encoder count/velocity sign; payload: CmdInvertEncoder
 
 // ─── RP2040 → Pi response types ──────────────────────────────────────────────
 #define RESP_STATE         0x81
@@ -172,5 +173,6 @@ typedef struct { uint8_t ch; }                                         CmdPcaChO
 typedef struct { uint8_t port_id; int32_t target; uint16_t speed_limit; }           CmdSetPosition;
 typedef struct { uint8_t port_id; int32_t target; uint16_t speed_limit; uint8_t flags; } CmdSetPositionFull;
 typedef struct { uint8_t port_id; float deadband; float output_floor; float ramp_rate; float d_alpha; float approach_factor; } CmdSetPosOptions;
+typedef struct { uint8_t port_id; uint8_t inverted; } CmdInvertEncoder;
 
 #pragma pack(pop)

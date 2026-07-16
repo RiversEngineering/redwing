@@ -19,10 +19,35 @@ class Encoder:
         self._id = port_id
         self._conn = conn
         self._robot = robot
+        self._inverted = False
 
     def _check_started(self):
         if self._robot is not None and not self._robot._started:
             raise RuntimeError("Call robot.start() before reading encoder values.")
+
+    @property
+    def inverted(self) -> bool:
+        """Whether the encoder count direction is inverted.
+
+        Set to True when positive motor output produces a decreasing encoder
+        count — for example, when the motor is physically mounted or wired in
+        reverse.  Inversion is applied in firmware so both user reads and PID
+        loops see the corrected sign.
+
+        Check this as part of motor/encoder setup before enabling PID: run the
+        motor forward at low power, observe whether the count increases. If it
+        decreases, set ``encoder.inverted = True``.
+
+        Example::
+
+            shoulder_enc.inverted = True   # down is positive for this arm
+        """
+        return self._inverted
+
+    @inverted.setter
+    def inverted(self, value: bool):
+        self._inverted = bool(value)
+        self._conn.send_command(cmd="invert_encoder", port=self._id, inverted=self._inverted)
 
     @property
     def count(self) -> int:

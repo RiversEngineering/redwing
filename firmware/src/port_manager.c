@@ -428,6 +428,13 @@ void port_set_position(uint8_t id, int32_t target, uint16_t speed_limit, bool ke
     }
 }
 
+void port_set_encoder_inverted(uint8_t id, bool inverted) {
+    if (!valid_port(id)) return;
+    PortState *p = &ports[id];
+    if (p->type != PORT_ENCODER) return;
+    encoder_set_inverted(p->enc_self_slot, inverted);
+}
+
 void port_set_pos_options(uint8_t id, float deadband, float output_floor, float ramp_rate, float d_alpha, float approach_factor) {
     if (!valid_port(id)) return;
     PortState *p = &ports[id];
