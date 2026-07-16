@@ -6,9 +6,10 @@
 // Period = 3 + 3*(PIO_PWM_WRAP+1) = 6252 cycles @125 MHz → ~20 kHz.
 //
 // Duty level mapping (argument to pio_pwm_set_level):
-//   0              → full ON  (100 %)
-//   PIO_PWM_WRAP   → ~0.05 % ON
-//   PIO_PWM_WRAP+1 → full OFF (0 %)
+//   PIO_PWM_WRAP+1 → full OFF (0 %) — y never reaches WRAP+1
+//   0              → ~0.05 % ON     — y reaches 0 only on the last tick
+//   PIO_PWM_WRAP   → ~100 % ON      — y reaches WRAP immediately, stays HIGH all period
+// Higher level = more ON time.  Use value_to_pio_level() to convert motor values.
 #define PIO_PWM_WRAP 2082u
 
 // Returns true for all eight dual-port B-pins, which use PIO PWM so that

@@ -3,10 +3,12 @@
 ;
 ; ISR must be preloaded with PIO_PWM_WRAP (2082) before enabling the SM.
 ;
-; TX FIFO input: duty threshold.
-;   0             → full ON  (100 %)
-;   PIO_PWM_WRAP  → 1 cycle HIGH per period (≈ 0.05 %)
-;   PIO_PWM_WRAP+1→ full OFF (0 %)
+; TX FIFO input: duty threshold (x register).
+; The pin drives HIGH from the first count where y==x until y reaches 0.
+; Higher threshold = pin goes HIGH sooner = more ON time.
+;   PIO_PWM_WRAP+1 → y never matches → full OFF (0 %)
+;   0              → matches only on the last tick → ~0.05 % ON
+;   PIO_PWM_WRAP   → matches on the first tick → ~100 % ON
 ;
 ; Period = 3 (setup) + 3×(PIO_PWM_WRAP+1) = 6252 cycles @125 MHz → 19993 Hz ≈ 20 kHz
 ;

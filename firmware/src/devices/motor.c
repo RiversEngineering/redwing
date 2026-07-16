@@ -28,14 +28,19 @@ static uint16_t value_to_hw_level(int16_t value) {
     return (uint16_t)((abs_val * (int32_t)PWM_WRAP) / 10000);
 }
 
-// Convert -10000..+10000 to a PIO PWM duty threshold (0 = full on, WRAP+1 = off)
+// Convert -10000..+10000 to a PIO PWM duty threshold.
+// PIO convention: output is HIGH from when the countdown y reaches x to y=0.
+//   WRAP+1 → y never reaches WRAP+1 → fully OFF (0 %)
+//   0      → y reaches 0 on the last tick only → ~0.05 % ON (minimum)
+//   WRAP   → y reaches WRAP immediately → ~100 % ON (maximum)
+// So larger threshold = more ON time — pass duty directly.
 static uint16_t value_to_pio_level(int16_t value) {
     if (value < -10000) value = -10000;
     if (value >  10000) value =  10000;
     int32_t abs_val = (value < 0) ? -value : value;
     if (abs_val == 0) return (uint16_t)(PIO_PWM_WRAP + 1u);  // fully off
     uint32_t duty = ((uint32_t)abs_val * PIO_PWM_WRAP) / 10000;
-    return (uint16_t)(PIO_PWM_WRAP - duty);
+    return (uint16_t)duty;
 }
 
 void motor_sm_init(uint8_t dir_gpio, uint8_t pwm_gpio) {
