@@ -34,6 +34,7 @@ CMD_PCA_INIT        = 0x11  # payload: [prescale:u8] — detect+init PCA9685; AC
 CMD_PCA_SET_CH      = 0x12  # payload: [ch:u8][on:u16le][off:u16le] — set channel counts (no ACK)
 CMD_PCA_CH_OFF      = 0x13  # payload: [ch:u8] — full-off a channel (no ACK)
 CMD_SET_POSITION    = 0x14  # payload: [port_id:u8][target:i32le][speed_limit:u16le]
+CMD_SET_POS_OPTIONS = 0x15  # payload: [port_id:u8][deadband:f32][output_floor:f32][ramp_rate:f32][d_alpha:f32]
 
 # -------------------------------------------------------------------
 # RP2040 → Pi response types
@@ -192,6 +193,11 @@ def cmd_set_position(port_id: int, target: int, speed_limit: int, keep_integral:
     if keep_integral:
         return build_packet(CMD_SET_POSITION, struct.pack("<BiHB", port_id, target, speed_limit, 0x01))
     return build_packet(CMD_SET_POSITION, struct.pack("<BiH", port_id, target, speed_limit))
+
+def cmd_set_pos_options(port_id: int, deadband: float = 0.0, output_floor: float = 0.0,
+                        ramp_rate: float = 0.0, d_alpha: float = 1.0) -> bytes:
+    return build_packet(CMD_SET_POS_OPTIONS,
+                        struct.pack("<Bffff", port_id, deadband, output_floor, ramp_rate, d_alpha))
 
 def cmd_configure_uart(port_id: int, baud: int = 115200) -> bytes:
     return build_packet(CMD_CONFIGURE, struct.pack("<BBI", port_id, PORT_UART, baud))

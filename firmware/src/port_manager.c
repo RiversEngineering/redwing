@@ -14,6 +14,7 @@
 #include "pico/stdlib.h"
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 
 // S0–S7 at [0–7], D0–D7 at [8–15], dedicated I2C at [16]
 PortState ports[PORT_COUNT_TOTAL];
@@ -115,6 +116,7 @@ void port_manager_init(void) {
         ports[i].pid_kd           = 0.1f;
         ports[i].pid_integral_max = 0.0f;
         ports[i].pid_last_count   = 0;
+        ports[i].pid_d_alpha      = 1.0f;
     }
     // Initialise I²C0 at 400 kHz on GP4 (SDA) / GP5 (SCL) and scan for VL53L0X.
     i2c_init(i2c0, 400 * 1000);
@@ -410,15 +412,29 @@ void port_set_position(uint8_t id, int32_t target, uint16_t speed_limit, bool ke
     if (!valid_port(id)) return;
     PortState *p = &ports[id];
     if (p->enc_slot < 0) return;
+    if (!p->pos_pid_enabled) {
+        // First enable: seed ramp setpoint and derivative state from current encoder.
+        int32_t current      = encoder_get_count((uint8_t)p->enc_slot);
+        p->pos_ramp_setpoint = (float)current;
+        p->pid_last_count    = current;
+        p->pid_d_prev        = 0.0f;
+    }
     p->pos_target      = target;
     p->pos_speed_limit = speed_limit;
     p->pos_pid_enabled = true;
     p->pid_enabled     = false;
-    // Seed the previous encoder count so the first derivative tick is 0, not a spike.
-    p->pid_last_count  = encoder_get_count((uint8_t)p->enc_slot);
     if (!keep_integral) {
         p->pid_integral = 0.0f;
     }
+}
+
+void port_set_pos_options(uint8_t id, float deadband, float output_floor, float ramp_rate, float d_alpha) {
+    if (!valid_port(id)) return;
+    PortState *p = &ports[id];
+    p->pos_deadband     = (deadband > 0.0f)     ? deadband     : 0.0f;
+    p->pos_output_floor = (output_floor > 0.0f) ? output_floor : 0.0f;
+    p->pos_ramp_rate    = (ramp_rate > 0.0f)    ? ramp_rate    : 0.0f;
+    p->pid_d_alpha      = (d_alpha > 0.0f && d_alpha <= 1.0f) ? d_alpha : 1.0f;
 }
 
 void port_set_pid(uint8_t id, float kp, float ki, float kd) {
@@ -500,49 +516,78 @@ void port_pid_update(void) {
         PortState *p = &ports[i];
         if (p->enc_slot < 0) continue;
 
-        float error;
-        float derivative;
-        float limit;
-        float out_scale;
+        float output = 0.0f;
 
         if (p->pid_enabled) {
-            // Velocity PID — derivative on error: responds to rate of velocity error change.
-            float measured = (float)encoder_get_velocity((uint8_t)p->enc_slot) / 10.0f;
-            float target   = (float)p->pid_target / 10.0f;
-            error      = target - measured;
-            derivative = (error - p->pid_last_error) / dt;
+            // Velocity PID — derivative on error
+            float measured   = (float)encoder_get_velocity((uint8_t)p->enc_slot) / 10.0f;
+            float target     = (float)p->pid_target / 10.0f;
+            float error      = target - measured;
+            float derivative = (error - p->pid_last_error) / dt;
             p->pid_last_error = error;
-            limit     = 100.0f;
-            out_scale = 100.0f;
+
+            p->pid_integral += error * dt;
+            if (p->pid_integral_max > 0.0f) {
+                if (p->pid_integral >  p->pid_integral_max) p->pid_integral =  p->pid_integral_max;
+                if (p->pid_integral < -p->pid_integral_max) p->pid_integral = -p->pid_integral_max;
+            }
+
+            output = p->pid_kp * error + p->pid_ki * p->pid_integral + p->pid_kd * derivative;
+            if (output >  100.0f) { output =  100.0f; p->pid_integral -= error * dt; }
+            if (output < -100.0f) { output = -100.0f; p->pid_integral -= error * dt; }
+
         } else if (p->pos_pid_enabled) {
-            // Position PID — derivative on measurement: d(encoder)/dt gives velocity.
-            // Using the encoder directly means setpoint changes produce zero derivative
-            // (the encoder hasn't moved yet), eliminating derivative kick entirely.
             int32_t current = encoder_get_count((uint8_t)p->enc_slot);
-            error      = (float)(p->pos_target - current);
-            // Negative: moving toward target (count increasing) → negative derivative → damps output.
-            derivative = -(float)(current - p->pid_last_count) / dt;
+
+            // Setpoint ramp: move pos_ramp_setpoint toward pos_target at pos_ramp_rate ticks/s.
+            if (p->pos_ramp_rate > 0.0f) {
+                float step = p->pos_ramp_rate * dt;
+                float diff = (float)p->pos_target - p->pos_ramp_setpoint;
+                if (fabsf(diff) <= step) {
+                    p->pos_ramp_setpoint = (float)p->pos_target;
+                } else {
+                    p->pos_ramp_setpoint += (diff > 0.0f) ? step : -step;
+                }
+            } else {
+                p->pos_ramp_setpoint = (float)p->pos_target;
+            }
+
+            float error = p->pos_ramp_setpoint - (float)current;
+
+            // Derivative on measurement with EMA low-pass filter.
+            float d_raw      = -(float)(current - p->pid_last_count) / dt;
             p->pid_last_count = current;
-            limit     = (p->pos_speed_limit > 0) ? (float)p->pos_speed_limit / 100.0f : 100.0f;
-            out_scale = 100.0f;
+            float derivative  = p->pid_d_alpha * d_raw + (1.0f - p->pid_d_alpha) * p->pid_d_prev;
+            p->pid_d_prev     = derivative;
+
+            float limit = (p->pos_speed_limit > 0) ? (float)p->pos_speed_limit / 100.0f : 100.0f;
+
+            if (p->pos_deadband > 0.0f && fabsf(error) <= p->pos_deadband) {
+                // Inside deadband: freeze integral, reset filter state, command zero.
+                p->pid_d_prev = 0.0f;
+                output = 0.0f;
+            } else {
+                p->pid_integral += error * dt;
+                if (p->pid_integral_max > 0.0f) {
+                    if (p->pid_integral >  p->pid_integral_max) p->pid_integral =  p->pid_integral_max;
+                    if (p->pid_integral < -p->pid_integral_max) p->pid_integral = -p->pid_integral_max;
+                }
+
+                output = p->pid_kp * error + p->pid_ki * p->pid_integral + p->pid_kd * derivative;
+                if (output >  limit) { output =  limit; p->pid_integral -= error * dt; }
+                if (output < -limit) { output = -limit; p->pid_integral -= error * dt; }
+
+                // Output floor: guarantee minimum output to overcome stiction.
+                if (p->pos_output_floor > 0.0f &&
+                    fabsf(output) > 0.0f && fabsf(output) < p->pos_output_floor) {
+                    output = (output > 0.0f) ? p->pos_output_floor : -p->pos_output_floor;
+                }
+            }
         } else {
             continue;
         }
 
-        p->pid_integral += error * dt;
-        if (p->pid_integral_max > 0.0f) {
-            if (p->pid_integral >  p->pid_integral_max) p->pid_integral =  p->pid_integral_max;
-            if (p->pid_integral < -p->pid_integral_max) p->pid_integral = -p->pid_integral_max;
-        }
-
-        float output = p->pid_kp * error
-                     + p->pid_ki * p->pid_integral
-                     + p->pid_kd * derivative;
-
-        if (output >  limit) { output =  limit; p->pid_integral -= error * dt; }
-        if (output < -limit) { output = -limit; p->pid_integral -= error * dt; }
-
-        int16_t cmd = (int16_t)(output * out_scale);
+        int16_t cmd = (int16_t)(output * 100.0f);
         p->motor_value = cmd;
 
         switch (p->type) {

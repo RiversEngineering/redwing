@@ -22,6 +22,7 @@
   let plot = null;
   let mounted = false;
   let selectedKeys = new Set();
+  let lastValues = {};  // key → most recent non-null value, updated each data tick
 
   $: seriesKeys = Object.keys(allSeries).sort();
 
@@ -173,6 +174,17 @@
     plot.setData(data);
     const now = nowSec || Date.now() / 1000;
     plot.setScale('x', { min: now - windowSec, max: now });
+    // Update last-value display in the legend
+    const lv = {};
+    for (const s of selected) {
+      for (let i = s.values.length - 1; i >= 0; i--) {
+        if (s.values[i] !== null && s.values[i] !== undefined && isFinite(s.values[i])) {
+          lv[s.key] = s.values[i];
+          break;
+        }
+      }
+    }
+    lastValues = lv;
   }
 
   // New data arrived
@@ -264,11 +276,18 @@
                border-b border-[#2e3340] flex-shrink-0"
       >
         {#each [...selectedKeys].filter((k) => allSeries[k]) as key (key)}
+          {@const s = allSeries[key]}
+          {@const lv = lastValues[key]}
           <div class="flex items-center gap-1.5">
-            <div class="w-5 h-0.5 rounded-full" style="background-color: {allSeries[key].color}"></div>
-            <span class="text-[10px] text-slate-400 whitespace-nowrap">
-              {allSeries[key].label}{allSeries[key].unit ? ` (${allSeries[key].unit})` : ''}
-            </span>
+            <div class="w-5 h-0.5 rounded-full flex-shrink-0" style="background-color: {s.color}"></div>
+            <span class="text-[10px] text-slate-400 whitespace-nowrap">{s.label}</span>
+            {#if lv !== undefined}
+              <span class="text-[10px] font-mono font-semibold text-slate-100 whitespace-nowrap">
+                {Number.isInteger(lv) ? lv : lv.toFixed(2)}{s.unit ? ' ' + s.unit : ''}
+              </span>
+            {:else if s.unit}
+              <span class="text-[10px] text-slate-600 whitespace-nowrap">({s.unit})</span>
+            {/if}
           </div>
         {/each}
       </div>

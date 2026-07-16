@@ -115,6 +115,15 @@ class IPCServer:
             keep         = bool(cmd.get("keep_integral", False))
             self._rp.enqueue(proto.cmd_set_position(port, target, speed_limit, keep))
 
+        elif c == "set_pos_options":
+            self._rp.enqueue(proto.cmd_set_pos_options(
+                cmd["port"],
+                float(cmd.get("deadband",     0.0)),
+                float(cmd.get("output_floor", 0.0)),
+                float(cmd.get("ramp_rate",    0.0)),
+                float(cmd.get("d_alpha",      1.0)),
+            ))
+
         elif c == "set_pid":
             self._rp.enqueue(
                 proto.cmd_set_pid(cmd["port"], cmd["kp"], cmd["ki"], cmd["kd"],

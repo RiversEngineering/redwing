@@ -34,6 +34,13 @@ typedef struct {
     int32_t  pos_target;      // target encoder tick count
     uint16_t pos_speed_limit; // max motor output 0–10000; 0 = full (10000)
     int32_t  pid_last_count;  // position PID: previous encoder count for d-on-measurement
+    float    pid_d_alpha;     // EMA alpha for derivative low-pass filter (1.0 = no filter)
+    float    pid_d_prev;      // EMA state: previous filtered derivative value
+    // Position PID options
+    float    pos_deadband;      // ticks; |error| ≤ this → zero output, integral frozen (0 = off)
+    float    pos_output_floor;  // %; minimum output magnitude when outside deadband (0 = off)
+    float    pos_ramp_rate;     // ticks/s; internal setpoint ramps at this rate (0 = instant)
+    float    pos_ramp_setpoint; // internal: current interpolated setpoint for ramp
 
     // GPIO
     uint8_t  gpio_state;
@@ -100,6 +107,13 @@ void port_set_velocity(uint8_t port_id, int32_t velocity_x10);
 // speed_limit caps the motor output (0–10000); 0 means no cap (full 10000).
 // Clears velocity PID; mutually exclusive with port_set_velocity.
 void port_set_position(uint8_t port_id, int32_t target, uint16_t speed_limit, bool keep_integral);
+
+// Set position PID options. All options persist until changed.
+//   deadband:     ticks; within ±deadband, output is zeroed and integral frozen. 0 = off.
+//   output_floor: %; minimum motor output when outside deadband (overcomes stiction). 0 = off.
+//   ramp_rate:    ticks/s; max rate the internal setpoint moves toward the target. 0 = instant.
+//   d_alpha:      EMA alpha for derivative filter; 1.0 = no filter, lower = more smoothing.
+void port_set_pos_options(uint8_t port_id, float deadband, float output_floor, float ramp_rate, float d_alpha);
 
 // Set PID gains.
 void port_set_pid(uint8_t port_id, float kp, float ki, float kd);

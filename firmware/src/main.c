@@ -296,6 +296,15 @@ static void handle_command(uint8_t type, const uint8_t *payload, uint8_t len) {
             break;
         }
 
+        case CMD_SET_POS_OPTIONS: {
+            if (len < sizeof(CmdSetPosOptions)) goto bad_len;
+            const CmdSetPosOptions *cmd = (const CmdSetPosOptions *)payload;
+            port_set_pos_options(cmd->port_id, cmd->deadband, cmd->output_floor,
+                                 cmd->ramp_rate, cmd->d_alpha);
+            usb_comm_send_ack(type);
+            break;
+        }
+
         case CMD_PCA_CH_OFF: {
             if (len < sizeof(CmdPcaChOff)) goto bad_len;
             const CmdPcaChOff *cmd = (const CmdPcaChOff *)payload;

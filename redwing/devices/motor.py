@@ -37,7 +37,15 @@ class Motor:
 
     @property
     def power(self) -> float:
-        """Last commanded power as a percentage from -100 to +100."""
+        """Current motor power as a percentage from -100 to +100.
+
+        During open-loop control this reflects the last commanded value.
+        During PID control (velocity or position) this reflects the actual
+        output being driven by the firmware, updated at the state broadcast rate.
+        """
+        state = self._conn.get_port_state(self._id)
+        if state and "value" in state:
+            return state["value"] / 100.0
         return self._power
 
     def set_power(self, value: float):
@@ -198,6 +206,45 @@ class Motor:
             target=int(target),
             speed_limit=speed_limit,
             keep_integral=bool(keep_integral),
+        )
+
+    def set_position_options(self, deadband: float = 0, output_floor: float = 0,
+                             ramp_rate: float = 0, d_alpha: float = 1.0):
+        """Configure position PID options. All settings persist until changed.
+
+        Args:
+            deadband: Within ±deadband ticks of target, output is zeroed and integral
+                is frozen. Prevents hunting on chain/belt drives with backlash.
+                Default 0 (off).
+            output_floor: Minimum motor output (%) when outside deadband. Ensures
+                the motor overcomes static friction when the PID computes a small
+                output. Default 0 (off).
+            ramp_rate: Max rate (ticks/s) at which the internal setpoint moves toward
+                the commanded target. Limits the initial impulse that excites
+                resonance without requiring ``max_speed``. Default 0 (instant).
+            d_alpha: EMA alpha for the derivative low-pass filter (0 < alpha ≤ 1.0).
+                Lower values filter more aggressively. 1.0 = no filter (default).
+                Values around 0.1–0.3 attenuate chain/belt chatter without
+                significantly lagging the damping response.
+
+        Example::
+
+            # Shoulder with plastic chain: filter derivative noise, add deadband,
+            # floor to overcome stiction, and ramp to soften the initial impulse.
+            shoulder.set_position_options(
+                deadband=5,
+                output_floor=8,
+                ramp_rate=200,
+                d_alpha=0.2,
+            )
+        """
+        self._conn.send_command(
+            cmd="set_pos_options",
+            port=self._id,
+            deadband=float(deadband),
+            output_floor=float(output_floor),
+            ramp_rate=float(ramp_rate),
+            d_alpha=float(d_alpha),
         )
 
     def move_by(self, delta: float, max_speed: float = None, keep_integral: bool = False):
