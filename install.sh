@@ -130,7 +130,11 @@ sudo udevadm control --reload-rules
 sudo udevadm trigger
 ok "/etc/udev/rules.d/99-rp2040.rules installed"
 
-# ── 7. Build Docker images ────────────────────────────────────────────────────
+# ── 7. Build / pull Docker images ────────────────────────────────────────────
+step "Pulling pre-built Docker images (nginx…)..."
+sudo docker compose -f "$COMPOSE_FILE" pull --ignore-buildable
+ok "Images pulled"
+
 step "Building Docker images..."
 echo "  (This takes ~10 min on a Pi 4, ~5 min on a Pi 5 — please wait)"
 sudo docker compose -f "$COMPOSE_FILE" build
@@ -176,8 +180,9 @@ echo "    sudo systemctl restart redwing"
 echo "    journalctl -u redwing -f        # live logs"
 echo ""
 echo "  After reboot:"
-echo "    Dashboard:   http://${PI_IP}:8000"
-echo "    Code editor: http://${PI_IP}:8080  (password: redwing)"
+echo "    Landing page: http://${PI_IP}"
+echo "    Dashboard:    http://${PI_IP}/dashboard"
+echo "    Code editor:  http://${PI_IP}/editor  (password: redwing)"
 echo ""
 echo "  A reboot is required for I²C and docker group changes to take full effect."
 echo ""
