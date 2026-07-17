@@ -13,4 +13,4 @@ if [ -f /opt/redwing/pyproject.toml ]; then
 fi
 
 chown -R coder:coder /home/coder/project 2>/dev/null || true
-exec gosu coder code-server --bind-addr 0.0.0.0:8080 /home/coder/project
+exec gosu coder code-server --bind-addr 0.0.0.0:8080 --base-path /editor /home/coder/project
