@@ -141,9 +141,16 @@ class RP2040:
         elif ptype == "error":
             code = pkt.get("code", 0)
             msg  = pkt.get("message", "")
-            log.error(f"RP2040 error 0x{code:02X}: {msg}")
-            async with self._state.lock:
-                self._state.add_log("error", f"[RP2040] {msg}")
+            pca_pending = (
+                self._pca_init_future and not self._pca_init_future.done()
+            )
+            if pca_pending:
+                # PCA9685 not found on I²C — expected when the board isn't fitted
+                log.debug(f"PCA9685 not present (RP2040: {msg})")
+            else:
+                log.error(f"RP2040 error 0x{code:02X}: {msg}")
+                async with self._state.lock:
+                    self._state.add_log("error", f"[RP2040] {msg}")
             # Only a PWM slice conflict during CONFIG_DONE should abort finalize.
             # Unrelated errors (ERR_CONFIG_LOCKED, ERR_BAD_TYPE, etc.) must not be
             # misreported as PWM conflicts — those are logged above and ignored here.
@@ -154,7 +161,7 @@ class RP2040:
                 self._reset_future.set_result(False)
             if self._measure_pulse_future and not self._measure_pulse_future.done():
                 self._measure_pulse_future.set_result(None)
-            if self._pca_init_future and not self._pca_init_future.done():
+            if pca_pending:
                 self._pca_init_future.set_result(False)
 
     # ------------------------------------------------------------------
