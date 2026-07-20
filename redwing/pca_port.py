@@ -75,7 +75,8 @@ class PcaServo:
         self._angle = (min_deg + max_deg) / 2.0
 
     def _deg_to_us(self, deg: float) -> int:
-        deg = max(self._min_deg, min(self._max_deg, deg))
+        lo, hi = sorted((self._min_deg, self._max_deg))
+        deg = max(lo, min(hi, deg))
         frac = (deg - self._min_deg) / (self._max_deg - self._min_deg)
         return int(self._min_us + frac * (self._max_us - self._min_us))
 

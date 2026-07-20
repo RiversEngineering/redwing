@@ -51,7 +51,8 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                     max_a  = pd.get("max_angle",  300.0)
                     min_us = pd.get("min_pulse_us", 500)
                     max_us = pd.get("max_pulse_us", 2500)
-                angle = max(min_a, min(max_a, float(msg.get("angle_deg", (min_a + max_a) / 2))))
+                lo, hi = (min_a, max_a) if min_a <= max_a else (max_a, min_a)
+                angle = max(lo, min(hi, float(msg.get("angle_deg", (min_a + max_a) / 2))))
                 t = (angle - min_a) / (max_a - min_a) if max_a != min_a else 0.5
                 pulse_us = int(min_us + t * (max_us - min_us))
                 rp.enqueue(proto.cmd_set_servo(port, pulse_us))
@@ -172,7 +173,8 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                     max_a  = cd.get("max_angle",  300.0)
                     min_us = cd.get("min_pulse_us", 500)
                     max_us = cd.get("max_pulse_us", 2500)
-                angle    = max(min_a, min(max_a, float(msg.get("angle_deg", (min_a + max_a) / 2))))
+                lo, hi   = (min_a, max_a) if min_a <= max_a else (max_a, min_a)
+                angle    = max(lo, min(hi, float(msg.get("angle_deg", (min_a + max_a) / 2))))
                 t        = (angle - min_a) / (max_a - min_a) if max_a != min_a else 0.5
                 pulse_us = int(min_us + t * (max_us - min_us))
                 if pca and pca.present:

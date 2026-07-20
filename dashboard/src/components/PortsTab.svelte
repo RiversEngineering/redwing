@@ -185,7 +185,8 @@
 
   // ── Servo commands ────────────────────────────────────────────────────────────
   function sendServo(deg) {
-    servoAngle = Math.max(sr.minAngle, Math.min(sr.maxAngle, deg));
+    const lo = Math.min(sr.minAngle, sr.maxAngle), hi = Math.max(sr.minAngle, sr.maxAngle);
+    servoAngle = Math.max(lo, Math.min(hi, deg));
     send({ cmd: 'set_servo', port: selectedId, angle_deg: servoAngle });
   }
 
@@ -320,7 +321,8 @@
   }
 
   function sendPcaServo(deg) {
-    pcaServoAngle = Math.max(pcaSr.minAngle, Math.min(pcaSr.maxAngle, deg));
+    const lo = Math.min(pcaSr.minAngle, pcaSr.maxAngle), hi = Math.max(pcaSr.minAngle, pcaSr.maxAngle);
+    pcaServoAngle = Math.max(lo, Math.min(hi, deg));
     send({ cmd: 'pca_set_servo', channel: selectedPcaChannel, angle_deg: pcaServoAngle });
   }
 
@@ -705,7 +707,7 @@
                 <span>{pcaSr.maxAngle}°</span>
               </div>
               <input
-                type="range" min={pcaSr.minAngle} max={pcaSr.maxAngle} step="0.5"
+                type="range" min={Math.min(pcaSr.minAngle, pcaSr.maxAngle)} max={Math.max(pcaSr.minAngle, pcaSr.maxAngle)} step="0.5"
                 value={pcaServoAngle}
                 class="w-full h-2 rounded-full appearance-none cursor-pointer
                        bg-gradient-to-r from-amber-800/40 via-amber-600/20 to-amber-800/40 accent-amber-400"
@@ -1023,7 +1025,7 @@
                 <span>{sr.maxAngle}°</span>
               </div>
               <input
-                type="range" min={sr.minAngle} max={sr.maxAngle} step="0.5"
+                type="range" min={Math.min(sr.minAngle, sr.maxAngle)} max={Math.max(sr.minAngle, sr.maxAngle)} step="0.5"
                 value={servoAngle}
                 class="w-full h-2 rounded-full appearance-none cursor-pointer
                        bg-gradient-to-r from-amber-800/40 via-amber-600/20 to-amber-800/40
