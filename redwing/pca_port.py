@@ -157,6 +157,14 @@ class PcaPort:
             arm.angle = 90
         """
         self._configure("servo")
+        self._conn.send_command(
+            cmd="set_pca_servo_range",
+            channel=self._channel,
+            min_angle=min_deg,
+            max_angle=max_deg,
+            min_us=min_us,
+            max_us=max_us,
+        )
         self._device = PcaServo(self._channel, self._conn, min_deg, max_deg, min_us, max_us)
         return self._device
 

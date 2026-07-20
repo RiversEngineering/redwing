@@ -45,9 +45,15 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
 
             elif cmd == "set_servo":
                 port = int(msg["port"])
-                # angle_deg 0..300 → pulse_us 500..2500 µs (default 300° servo range)
-                angle = max(0.0, min(300.0, float(msg.get("angle_deg", 150))))
-                pulse_us = int(500 + angle / 300.0 * 2000)
+                async with state.lock:
+                    pd = state.ports.get(str(port), {})
+                    min_a  = pd.get("min_angle",    0.0)
+                    max_a  = pd.get("max_angle",  300.0)
+                    min_us = pd.get("min_pulse_us", 500)
+                    max_us = pd.get("max_pulse_us", 2500)
+                angle = max(min_a, min(max_a, float(msg.get("angle_deg", (min_a + max_a) / 2))))
+                t = (angle - min_a) / (max_a - min_a) if max_a != min_a else 0.5
+                pulse_us = int(min_us + t * (max_us - min_us))
                 rp.enqueue(proto.cmd_set_servo(port, pulse_us))
 
             elif cmd == "set_gpio":
@@ -132,10 +138,43 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                     async with state.lock:
                         state.pca9685_channels.setdefault(channel, {})["pulse_us"] = pulse_us
 
+            elif cmd == "set_servo_range":
+                port   = int(msg["port"])
+                min_a  = float(msg.get("min_angle",    0.0))
+                max_a  = float(msg.get("max_angle",  300.0))
+                min_us = int(msg.get("min_pulse_us",   500))
+                max_us = int(msg.get("max_pulse_us",  2500))
+                async with state.lock:
+                    pd = state.ports.setdefault(str(port), {})
+                    pd["min_angle"]    = min_a
+                    pd["max_angle"]    = max_a
+                    pd["min_pulse_us"] = min_us
+                    pd["max_pulse_us"] = max_us
+
+            elif cmd == "set_pca_servo_range":
+                ch     = int(msg["channel"])
+                min_a  = float(msg.get("min_angle",    0.0))
+                max_a  = float(msg.get("max_angle",  300.0))
+                min_us = int(msg.get("min_pulse_us",   500))
+                max_us = int(msg.get("max_pulse_us",  2500))
+                async with state.lock:
+                    cd = state.pca9685_channels.setdefault(ch, {})
+                    cd["min_angle"]    = min_a
+                    cd["max_angle"]    = max_a
+                    cd["min_pulse_us"] = min_us
+                    cd["max_pulse_us"] = max_us
+
             elif cmd == "pca_set_servo":
                 channel  = int(msg["channel"])
-                angle    = max(0.0, min(300.0, float(msg.get("angle_deg", 150))))
-                pulse_us = int(500 + angle / 300.0 * 2000)
+                async with state.lock:
+                    cd = state.pca9685_channels.get(channel, {})
+                    min_a  = cd.get("min_angle",    0.0)
+                    max_a  = cd.get("max_angle",  300.0)
+                    min_us = cd.get("min_pulse_us", 500)
+                    max_us = cd.get("max_pulse_us", 2500)
+                angle    = max(min_a, min(max_a, float(msg.get("angle_deg", (min_a + max_a) / 2))))
+                t        = (angle - min_a) / (max_a - min_a) if max_a != min_a else 0.5
+                pulse_us = int(min_us + t * (max_us - min_us))
                 if pca and pca.present:
                     pca.set_channel_pulse_us(channel, pulse_us)
                     async with state.lock:

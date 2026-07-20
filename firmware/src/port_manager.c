@@ -370,7 +370,7 @@ void port_set_servo(uint8_t id, uint16_t pulse_us) {
     PortState *p = &ports[id];
     if (p->type != PORT_SERVO) return;
     p->servo_pulse_us = pulse_us;
-    servo_set_raw_us(p->pin_a, pulse_us, 500, 2500);
+    servo_set_raw_us(p->pin_a, pulse_us, p->servo_min_us, p->servo_max_us);
 }
 
 void port_set_servo_range(uint8_t id, uint16_t min_us, uint16_t max_us) {

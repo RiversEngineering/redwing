@@ -67,7 +67,43 @@
 
   // ── Control state (local; does not track live RP2040 state) ──────────────────
   let motorSpeed = 0;   // -100..+100 (%)
-  let servoAngle = 150; // degrees (default center of 300° range)
+  let servoAngle = 150; // degrees within the port's configured range
+
+  // ── Servo range helpers ───────────────────────────────────────────────────────
+  function servoRangeOf(d) {
+    return {
+      minAngle: d?.min_angle    ?? 0,
+      maxAngle: d?.max_angle    ?? 300,
+      minPulse: d?.min_pulse_us ?? 500,
+      maxPulse: d?.max_pulse_us ?? 2500,
+    };
+  }
+
+  function pulseToAngle(pulse_us, r) {
+    if (r.maxPulse === r.minPulse) return r.minAngle;
+    return r.minAngle + (pulse_us - r.minPulse) / (r.maxPulse - r.minPulse) * (r.maxAngle - r.minAngle);
+  }
+
+  function servoPresets(r) {
+    const fmt = (n) => Number.isInteger(n) ? String(n) : n.toFixed(0);
+    const c = (r.minAngle + r.maxAngle) / 2;
+    return [
+      [r.minAngle, `${fmt(r.minAngle)}°`],
+      [r.minAngle + (r.maxAngle - r.minAngle) * 0.25, `${fmt(r.minAngle + (r.maxAngle - r.minAngle) * 0.25)}°`],
+      [c, `${fmt(c)}° (center)`],
+      [r.minAngle + (r.maxAngle - r.minAngle) * 0.75, `${fmt(r.minAngle + (r.maxAngle - r.minAngle) * 0.75)}°`],
+      [r.maxAngle, `${fmt(r.maxAngle)}°`],
+    ];
+  }
+
+  // Servo range config editing state
+  let servoRangeEditing = false;
+  let srMinAngle = 0, srMaxAngle = 300, srMinPulse = 500, srMaxPulse = 2500;
+  let pcaRangeEditing = false;
+  let pcaSrMinAngle = 0, pcaSrMaxAngle = 300, pcaSrMinPulse = 500, pcaSrMaxPulse = 2500;
+
+  $: sr    = servoRangeOf(selectedData);
+  $: pcaSr = servoRangeOf(selectedPcaData);
 
   function selectPort(id) {
     selectedId = id;
@@ -77,7 +113,11 @@
     const d = $ports[id];
     if (!d) return;
     if (isMotor(d.type)) motorSpeed = +(d.value / 100).toFixed(1);
-    if (d.type === 'servo') servoAngle = +(((d.pulse_us ?? 1500) - 500) / 2000 * 300).toFixed(1);
+    if (d.type === 'servo') {
+      const r = servoRangeOf(d);
+      servoAngle = +pulseToAngle(d.pulse_us ?? 1500, r).toFixed(1);
+      servoAngle = Math.max(r.minAngle, Math.min(r.maxAngle, servoAngle));
+    }
   }
 
   // ── Type helpers ─────────────────────────────────────────────────────────────
@@ -100,7 +140,10 @@
       case 'vl53l0x':   return d.valid ? `${(d.distance_mm / 10).toFixed(1)} cm` : 'OOB';
       case 'tfluna':
       case 'tfmini':    return d.valid ? `${(d.distance_cm ?? 0).toFixed(0)} cm` : 'OOB';
-      case 'servo':      return `${(((d.pulse_us ?? 1500) - 500) / 2000 * 300).toFixed(1)}°`;
+      case 'servo': {
+        const r = servoRangeOf(d);
+        return `${pulseToAngle(d.pulse_us ?? 1500, r).toFixed(1)}°`;
+      }
       case 'gpio_in':
       case 'gpio_out':   return d.state ? 'HIGH' : 'LOW';
       default:           return null;
@@ -142,12 +185,26 @@
 
   // ── Servo commands ────────────────────────────────────────────────────────────
   function sendServo(deg) {
-    servoAngle = Math.max(0, Math.min(300, deg));
+    servoAngle = Math.max(sr.minAngle, Math.min(sr.maxAngle, deg));
     send({ cmd: 'set_servo', port: selectedId, angle_deg: servoAngle });
   }
 
   function onServoSlider(e) {
     sendServo(Number(e.target.value));
+  }
+
+  function openServoRange() {
+    srMinAngle = sr.minAngle; srMaxAngle = sr.maxAngle;
+    srMinPulse = sr.minPulse; srMaxPulse = sr.maxPulse;
+    servoRangeEditing = true;
+  }
+
+  function applyServoRange() {
+    send({ cmd: 'set_servo_range', port: selectedId,
+           min_angle: srMinAngle, max_angle: srMaxAngle,
+           min_pulse_us: srMinPulse, max_pulse_us: srMaxPulse });
+    servoAngle = (srMinAngle + srMaxAngle) / 2;
+    servoRangeEditing = false;
   }
 
   // ── GPIO commands ─────────────────────────────────────────────────────────────
@@ -233,7 +290,11 @@
     pcaPendingType = null;
     const d = pcaState.channels?.[String(ch)];
     if (d?.type && isMotor(d.type)) pcaMotorSpeed = 0;
-    if (d?.type === 'servo') pcaServoAngle = Math.round(((d.pulse_us ?? 1500) - 500) / 2000 * 300);
+    if (d?.type === 'servo') {
+      const r = servoRangeOf(d);
+      pcaServoAngle = +pulseToAngle(d.pulse_us ?? 1500, r).toFixed(1);
+      pcaServoAngle = Math.max(r.minAngle, Math.min(r.maxAngle, pcaServoAngle));
+    }
   }
 
   function openCalibration() {
@@ -259,8 +320,22 @@
   }
 
   function sendPcaServo(deg) {
-    pcaServoAngle = Math.max(0, Math.min(300, deg));
+    pcaServoAngle = Math.max(pcaSr.minAngle, Math.min(pcaSr.maxAngle, deg));
     send({ cmd: 'pca_set_servo', channel: selectedPcaChannel, angle_deg: pcaServoAngle });
+  }
+
+  function openPcaRange() {
+    pcaSrMinAngle = pcaSr.minAngle; pcaSrMaxAngle = pcaSr.maxAngle;
+    pcaSrMinPulse = pcaSr.minPulse; pcaSrMaxPulse = pcaSr.maxPulse;
+    pcaRangeEditing = true;
+  }
+
+  function applyPcaRange() {
+    send({ cmd: 'set_pca_servo_range', channel: selectedPcaChannel,
+           min_angle: pcaSrMinAngle, max_angle: pcaSrMaxAngle,
+           min_pulse_us: pcaSrMinPulse, max_pulse_us: pcaSrMaxPulse });
+    pcaServoAngle = (pcaSrMinAngle + pcaSrMaxAngle) / 2;
+    pcaRangeEditing = false;
   }
 </script>
 
@@ -625,12 +700,12 @@
             </div>
             <div class="space-y-2">
               <div class="flex justify-between text-xs text-slate-500">
-                <span>0°</span>
+                <span>{pcaSr.minAngle}°</span>
                 <span class="font-semibold text-slate-300 tabular-nums">{pcaServoAngle.toFixed(1)}°</span>
-                <span>300°</span>
+                <span>{pcaSr.maxAngle}°</span>
               </div>
               <input
-                type="range" min="0" max="300" step="1"
+                type="range" min={pcaSr.minAngle} max={pcaSr.maxAngle} step="0.5"
                 value={pcaServoAngle}
                 class="w-full h-2 rounded-full appearance-none cursor-pointer
                        bg-gradient-to-r from-amber-800/40 via-amber-600/20 to-amber-800/40 accent-amber-400"
@@ -638,12 +713,56 @@
               />
             </div>
             <div class="flex gap-2 flex-wrap">
-              {#each [[0,'0°'],[75,'75°'],[150,'150° (center)'],[225,'225°'],[300,'300°']] as [v, label]}
+              {#each servoPresets(pcaSr) as [v, label]}
                 <button class="px-3 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
                                text-amber-400 hover:bg-amber-900/20 hover:border-amber-600/40 transition-colors"
                   on:click={() => sendPcaServo(v)}>{label}</button>
               {/each}
             </div>
+            {#if pcaRangeEditing}
+              <div class="border border-amber-500/30 rounded-lg p-4 space-y-3 bg-amber-900/10">
+                <p class="text-xs font-semibold text-amber-400">Set servo range</p>
+                <div class="grid grid-cols-2 gap-3">
+                  <label class="space-y-1">
+                    <span class="text-[10px] text-slate-500 uppercase tracking-wider">Min angle (°)</span>
+                    <input type="number" bind:value={pcaSrMinAngle} step="1"
+                      class="w-full bg-[#1e2129] border border-[#2e3340] rounded px-2 py-1
+                             text-xs text-slate-200 focus:outline-none focus:border-amber-500/60"/>
+                  </label>
+                  <label class="space-y-1">
+                    <span class="text-[10px] text-slate-500 uppercase tracking-wider">Max angle (°)</span>
+                    <input type="number" bind:value={pcaSrMaxAngle} step="1"
+                      class="w-full bg-[#1e2129] border border-[#2e3340] rounded px-2 py-1
+                             text-xs text-slate-200 focus:outline-none focus:border-amber-500/60"/>
+                  </label>
+                  <label class="space-y-1">
+                    <span class="text-[10px] text-slate-500 uppercase tracking-wider">Min pulse (µs)</span>
+                    <input type="number" bind:value={pcaSrMinPulse} step="1"
+                      class="w-full bg-[#1e2129] border border-[#2e3340] rounded px-2 py-1
+                             text-xs text-slate-200 focus:outline-none focus:border-amber-500/60"/>
+                  </label>
+                  <label class="space-y-1">
+                    <span class="text-[10px] text-slate-500 uppercase tracking-wider">Max pulse (µs)</span>
+                    <input type="number" bind:value={pcaSrMaxPulse} step="1"
+                      class="w-full bg-[#1e2129] border border-[#2e3340] rounded px-2 py-1
+                             text-xs text-slate-200 focus:outline-none focus:border-amber-500/60"/>
+                  </label>
+                </div>
+                <div class="flex gap-2">
+                  <button class="px-3 py-1.5 rounded text-xs font-semibold bg-amber-600/30
+                                 border border-amber-500/50 text-amber-300 hover:bg-amber-600/50 transition-colors"
+                    on:click={applyPcaRange}>Apply</button>
+                  <button class="px-3 py-1.5 rounded text-xs text-slate-500 border border-[#2e3340]
+                                 hover:text-slate-300 transition-colors"
+                    on:click={() => pcaRangeEditing = false}>Cancel</button>
+                </div>
+              </div>
+            {:else}
+              <button class="text-[10px] text-slate-600 hover:text-amber-500 transition-colors"
+                on:click={openPcaRange}>
+                ⚙ Range: {pcaSr.minAngle}° – {pcaSr.maxAngle}° ({pcaSr.minPulse}–{pcaSr.maxPulse} µs)
+              </button>
+            {/if}
           </div>
         {/if}
       </div>
@@ -891,7 +1010,7 @@
             <!-- Live readout -->
             <div class="flex items-baseline gap-3">
               <span class="text-4xl font-bold tabular-nums text-amber-400">
-                {(((selectedData.pulse_us ?? 1500) - 500) / 2000 * 300).toFixed(1)}°
+                {pulseToAngle(selectedData.pulse_us ?? 1500, sr).toFixed(1)}°
               </span>
               <span class="text-sm text-slate-500">actual (from RP2040)</span>
             </div>
@@ -899,12 +1018,12 @@
             <!-- Angle slider -->
             <div class="space-y-2">
               <div class="flex justify-between text-xs text-slate-500">
-                <span>0°</span>
+                <span>{sr.minAngle}°</span>
                 <span class="font-semibold text-slate-300 tabular-nums">{servoAngle.toFixed(1)}°</span>
-                <span>300°</span>
+                <span>{sr.maxAngle}°</span>
               </div>
               <input
-                type="range" min="0" max="300" step="1"
+                type="range" min={sr.minAngle} max={sr.maxAngle} step="0.5"
                 value={servoAngle}
                 class="w-full h-2 rounded-full appearance-none cursor-pointer
                        bg-gradient-to-r from-amber-800/40 via-amber-600/20 to-amber-800/40
@@ -914,14 +1033,60 @@
             </div>
 
             <!-- Quick presets -->
-            <div class="flex gap-2">
-              {#each [[0, '0°'], [75, '75°'], [150, '150° (center)'], [225, '225°'], [300, '300°']] as [v, label]}
+            <div class="flex gap-2 flex-wrap">
+              {#each servoPresets(sr) as [v, label]}
                 <button
                   class="px-3 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
                          text-amber-400 hover:bg-amber-900/20 hover:border-amber-600/40 transition-colors"
                   on:click={() => sendServo(v)}>{label}</button>
               {/each}
             </div>
+
+            <!-- Range configuration -->
+            {#if servoRangeEditing}
+              <div class="border border-amber-500/30 rounded-lg p-4 space-y-3 bg-amber-900/10">
+                <p class="text-xs font-semibold text-amber-400">Set servo range</p>
+                <div class="grid grid-cols-2 gap-3">
+                  <label class="space-y-1">
+                    <span class="text-[10px] text-slate-500 uppercase tracking-wider">Min angle (°)</span>
+                    <input type="number" bind:value={srMinAngle} step="1"
+                      class="w-full bg-[#1e2129] border border-[#2e3340] rounded px-2 py-1
+                             text-xs text-slate-200 focus:outline-none focus:border-amber-500/60"/>
+                  </label>
+                  <label class="space-y-1">
+                    <span class="text-[10px] text-slate-500 uppercase tracking-wider">Max angle (°)</span>
+                    <input type="number" bind:value={srMaxAngle} step="1"
+                      class="w-full bg-[#1e2129] border border-[#2e3340] rounded px-2 py-1
+                             text-xs text-slate-200 focus:outline-none focus:border-amber-500/60"/>
+                  </label>
+                  <label class="space-y-1">
+                    <span class="text-[10px] text-slate-500 uppercase tracking-wider">Min pulse (µs)</span>
+                    <input type="number" bind:value={srMinPulse} step="1"
+                      class="w-full bg-[#1e2129] border border-[#2e3340] rounded px-2 py-1
+                             text-xs text-slate-200 focus:outline-none focus:border-amber-500/60"/>
+                  </label>
+                  <label class="space-y-1">
+                    <span class="text-[10px] text-slate-500 uppercase tracking-wider">Max pulse (µs)</span>
+                    <input type="number" bind:value={srMaxPulse} step="1"
+                      class="w-full bg-[#1e2129] border border-[#2e3340] rounded px-2 py-1
+                             text-xs text-slate-200 focus:outline-none focus:border-amber-500/60"/>
+                  </label>
+                </div>
+                <div class="flex gap-2">
+                  <button class="px-3 py-1.5 rounded text-xs font-semibold bg-amber-600/30
+                                 border border-amber-500/50 text-amber-300 hover:bg-amber-600/50 transition-colors"
+                    on:click={applyServoRange}>Apply</button>
+                  <button class="px-3 py-1.5 rounded text-xs text-slate-500 border border-[#2e3340]
+                                 hover:text-slate-300 transition-colors"
+                    on:click={() => servoRangeEditing = false}>Cancel</button>
+                </div>
+              </div>
+            {:else}
+              <button class="text-[10px] text-slate-600 hover:text-amber-500 transition-colors"
+                on:click={openServoRange}>
+                ⚙ Range: {sr.minAngle}° – {sr.maxAngle}° ({sr.minPulse}–{sr.maxPulse} µs)
+              </button>
+            {/if}
 
             <p class="text-[11px] text-slate-600">
               Servos hold their last position — they are not affected by Stop All.

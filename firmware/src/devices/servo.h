@@ -1,9 +1,9 @@
 #pragma once
 #include <stdint.h>
 
-// Default servo pulse range (µs)
-#define SERVO_MIN_US_DEFAULT  1000
-#define SERVO_MAX_US_DEFAULT  2000
+// Default servo pulse range (µs) — widest range; real clamping is done by the daemon
+#define SERVO_MIN_US_DEFAULT  500
+#define SERVO_MAX_US_DEFAULT  2500
 #define SERVO_FREQ_HZ         50
 
 // Initialise RC servo PWM on a GPIO pin.

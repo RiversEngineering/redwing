@@ -359,21 +359,55 @@ class Robot:
         port._device = device
         return device
 
-    def servo(self, port: Port) -> Servo:
+    def servo(
+        self,
+        port: Port,
+        min_angle: float = 0.0,
+        max_angle: float = 300.0,
+        min_pulse_us: int = 500,
+        max_pulse_us: int = 2500,
+    ) -> Servo:
         """Configure *port* as an RC servo and return a Servo object.
 
         S5 (GP26/ADC0), S6 (GP27/ADC1), and S7 (GP28/ADC2) cannot be used as servos —
         they share PWM slices with motor ports D2, D3, and D7 respectively.
 
-        Example::
+        Parameters
+        ----------
+        min_angle / max_angle:
+            Degree range of the servo.  May be negative (e.g. ``min_angle=-90,
+            max_angle=90``).  Defaults to the 300° range of the Redwing servo.
+        min_pulse_us / max_pulse_us:
+            Pulse width in microseconds at the angle extremes.  Defaults match
+            the 300° servo (500–2500 µs).  A standard 180° hobby servo is
+            typically 1000–2000 µs.
 
-            arm = robot.servo(robot.S0)
+        Examples::
+
+            arm = robot.servo(robot.S0)                 # 300° Redwing servo
+            arm = robot.servo(robot.S0, max_angle=180,  # standard 180° servo
+                              min_pulse_us=1000, max_pulse_us=2000)
+            arm = robot.servo(robot.S0,                 # centred ±90° range
+                              min_angle=-90, max_angle=90,
+                              min_pulse_us=1000, max_pulse_us=2000)
             robot.start()
-            arm.angle = 90
+            arm.angle = 0   # centre
         """
         self._check_not_started("configure a servo")
         port._configure("servo")
-        device = Servo(port._id, self._conn, robot=self)
+        self._conn.send_command(
+            cmd="set_servo_range",
+            port=port._id,
+            min_angle=min_angle,
+            max_angle=max_angle,
+            min_us=min_pulse_us,
+            max_us=max_pulse_us,
+        )
+        device = Servo(
+            port._id, self._conn, robot=self,
+            min_deg=min_angle, max_deg=max_angle,
+            min_us=min_pulse_us, max_us=max_pulse_us,
+        )
         port._device = device
         return device
 

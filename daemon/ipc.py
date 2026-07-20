@@ -152,9 +152,30 @@ class IPCServer:
                 self._state.encoder_map[m_port] = e_port
 
         elif c == "set_servo_range":
-            self._rp.enqueue(
-                proto.cmd_set_servo_range(cmd["port"], cmd["min_us"], cmd["max_us"])
-            )
+            port    = int(cmd["port"])
+            min_us  = int(cmd["min_us"])
+            max_us  = int(cmd["max_us"])
+            min_a   = float(cmd.get("min_angle", 0.0))
+            max_a   = float(cmd.get("max_angle", 300.0))
+            async with self._state.lock:
+                pd = self._state.ports.setdefault(str(port), {})
+                pd["min_angle"]    = min_a
+                pd["max_angle"]    = max_a
+                pd["min_pulse_us"] = min_us
+                pd["max_pulse_us"] = max_us
+
+        elif c == "set_pca_servo_range":
+            ch      = int(cmd["channel"])
+            min_us  = int(cmd["min_us"])
+            max_us  = int(cmd["max_us"])
+            min_a   = float(cmd.get("min_angle", 0.0))
+            max_a   = float(cmd.get("max_angle", 300.0))
+            async with self._state.lock:
+                cd = self._state.pca9685_channels.setdefault(ch, {})
+                cd["min_angle"]    = min_a
+                cd["max_angle"]    = max_a
+                cd["min_pulse_us"] = min_us
+                cd["max_pulse_us"] = max_us
 
         elif c == "uart_tx":
             port = int(cmd.get("port", 15))
