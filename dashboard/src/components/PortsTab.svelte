@@ -110,6 +110,7 @@
     selectedPcaChannel = null;
     pcaCalibrating = false;
     reconfiguring = false;
+    gobildaSwitching = false;
     const d = $ports[id];
     if (!d) return;
     if (isMotor(d.type)) motorSpeed = +(d.value / 100).toFixed(1);
@@ -206,6 +207,15 @@
            min_pulse_us: srMinPulse, max_pulse_us: srMaxPulse });
     servoAngle = (srMinAngle + srMaxAngle) / 2;
     servoRangeEditing = false;
+  }
+
+  // ── GoBilda mode switch ────────────────────────────────────────────────────────
+  let gobildaSwitching = false;
+
+  function sendGobildaMode(mode) {
+    gobildaSwitching = true;
+    send({ cmd: 'gobilda_set_mode', port: selectedId, mode });
+    setTimeout(() => { gobildaSwitching = false; }, 700);
   }
 
   // ── GPIO commands ─────────────────────────────────────────────────────────────
@@ -1088,6 +1098,45 @@
                 on:click={openServoRange}>
                 ⚙ Range: {sr.minAngle}° – {sr.maxAngle}° ({sr.minPulse}–{sr.maxPulse} µs)
               </button>
+            {/if}
+
+            <!-- GoBilda dual-mode switch (S-port servos only) -->
+            {#if selectedId !== null && selectedId < 8}
+              <div class="border border-slate-700/40 rounded-lg p-3 space-y-2 bg-[#1a1d26]">
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">GoBilda Mode</span>
+                  <span class="text-[10px] text-slate-700">· dual-mode servos only</span>
+                  {#if selectedData?.gobilda_mode}
+                    <span class="ml-auto text-[10px] font-mono
+                                 {selectedData.gobilda_mode === 'continuous' ? 'text-blue-400' : 'text-amber-400'}">
+                      {selectedData.gobilda_mode}
+                    </span>
+                  {/if}
+                </div>
+                {#if gobildaSwitching}
+                  <div class="flex items-center gap-2 text-xs text-amber-400">
+                    <span class="animate-spin inline-block w-3 h-3 border-2 border-amber-400/30 border-t-amber-400 rounded-full"></span>
+                    Switching mode… (~500 ms)
+                  </div>
+                {:else}
+                  <div class="flex gap-2">
+                    <button
+                      class="px-3 py-1.5 rounded text-xs font-semibold transition-all border
+                             {selectedData?.gobilda_mode === 'positional'
+                               ? 'bg-amber-600/20 border-amber-500/50 text-amber-300'
+                               : 'bg-[#161920] border-[#2e3340] text-slate-500 hover:border-slate-500 hover:text-slate-300'}"
+                      on:click={() => sendGobildaMode('positional')}
+                    >Positional</button>
+                    <button
+                      class="px-3 py-1.5 rounded text-xs font-semibold transition-all border
+                             {selectedData?.gobilda_mode === 'continuous'
+                               ? 'bg-blue-600/20 border-blue-500/50 text-blue-300'
+                               : 'bg-[#161920] border-[#2e3340] text-slate-500 hover:border-slate-500 hover:text-slate-300'}"
+                      on:click={() => sendGobildaMode('continuous')}
+                    >Continuous</button>
+                  </div>
+                {/if}
+              </div>
             {/if}
 
             <p class="text-[11px] text-slate-600">

@@ -164,6 +164,14 @@ class IPCServer:
                 pd["min_pulse_us"] = min_us
                 pd["max_pulse_us"] = max_us
 
+        elif c == "gobilda_set_mode":
+            port = int(cmd["port"])
+            mode = 1 if str(cmd.get("mode", "positional")) == "continuous" else 0
+            self._rp.enqueue(proto.cmd_gobilda_mode(port, mode))
+            async with self._state.lock:
+                pd = self._state.ports.setdefault(str(port), {})
+                pd["gobilda_mode"] = "continuous" if mode == 1 else "positional"
+
         elif c == "set_pca_servo_range":
             ch      = int(cmd["channel"])
             min_us  = int(cmd["min_us"])

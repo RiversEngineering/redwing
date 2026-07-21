@@ -29,6 +29,7 @@
                                   //   flags bit 0 (0x01): keep_integral — do not reset the integral accumulator
 #define CMD_SET_POS_OPTIONS  0x15  // position PID options; payload: CmdSetPosOptions
 #define CMD_INVERT_ENCODER   0x16  // flip encoder count/velocity sign; payload: CmdInvertEncoder
+#define CMD_GOBILDA_MODE     0x17  // switch GoBilda dual-mode servo; payload: [port_id:u8][mode:u8] (0=positional 1=continuous)
 
 // ─── RP2040 → Pi response types ──────────────────────────────────────────────
 #define RESP_STATE         0x81
@@ -174,5 +175,6 @@ typedef struct { uint8_t port_id; int32_t target; uint16_t speed_limit; }       
 typedef struct { uint8_t port_id; int32_t target; uint16_t speed_limit; uint8_t flags; } CmdSetPositionFull;
 typedef struct { uint8_t port_id; float deadband; float output_floor; float ramp_rate; float d_alpha; float approach_factor; } CmdSetPosOptions;
 typedef struct { uint8_t port_id; uint8_t inverted; } CmdInvertEncoder;
+typedef struct { uint8_t port_id; uint8_t mode; }    CmdGoBildaMode;
 
 #pragma pack(pop)

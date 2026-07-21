@@ -36,6 +36,7 @@ CMD_PCA_CH_OFF      = 0x13  # payload: [ch:u8] — full-off a channel (no ACK)
 CMD_SET_POSITION    = 0x14  # payload: [port_id:u8][target:i32le][speed_limit:u16le]
 CMD_SET_POS_OPTIONS = 0x15  # payload: [port_id:u8][deadband:f32][output_floor:f32][ramp_rate:f32][d_alpha:f32][approach_factor:f32]
 CMD_INVERT_ENCODER  = 0x16  # payload: [port_id:u8][inverted:u8]
+CMD_GOBILDA_MODE    = 0x17  # payload: [port_id:u8][mode:u8] (0=positional, 1=continuous)
 
 # -------------------------------------------------------------------
 # RP2040 → Pi response types
@@ -197,6 +198,9 @@ def cmd_set_position(port_id: int, target: int, speed_limit: int, keep_integral:
 
 def cmd_invert_encoder(port_id: int, inverted: bool) -> bytes:
     return build_packet(CMD_INVERT_ENCODER, struct.pack("<BB", port_id, 1 if inverted else 0))
+
+def cmd_gobilda_mode(port_id: int, mode: int) -> bytes:
+    return build_packet(CMD_GOBILDA_MODE, struct.pack("<BB", port_id, mode & 0xFF))
 
 def cmd_set_pos_options(port_id: int, deadband: float = 0.0, output_floor: float = 0.0,
                         ramp_rate: float = 0.0, d_alpha: float = 1.0,

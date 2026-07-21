@@ -8,6 +8,7 @@
 #include "devices/encoder.h"
 #include "devices/ultrasonic.h"
 #include "devices/pca9685.h"
+#include "devices/gobilda_serial.h"
 #include <string.h>
 
 // ─── Configurable stream rate ─────────────────────────────────────────────────
@@ -322,6 +323,29 @@ static void handle_command(uint8_t type, const uint8_t *payload, uint8_t len) {
             }
             pca9685_channel_off(0x40, cmd->ch);
             break;  // fire-and-forget; no ACK
+        }
+
+        case CMD_GOBILDA_MODE: {
+            if (len < sizeof(CmdGoBildaMode)) goto bad_len;
+            const CmdGoBildaMode *cmd = (const CmdGoBildaMode *)payload;
+            if (!IS_SINGLE_PORT(cmd->port_id)) {
+                usb_comm_send_error(ERR_BAD_PORT, "not a single-pin port");
+                break;
+            }
+            if (ports[cmd->port_id].type != PORT_SERVO) {
+                usb_comm_send_error(ERR_WRONG_PORT_TYPE, "port not configured as servo");
+                break;
+            }
+            uint8_t g = SINGLE_GPIO[cmd->port_id];
+            // Half-duplex UART mode-switch sequence (~120 ms total)
+            gobilda_set_mode(g, cmd->mode);
+            // Restore PWM so servo receives a valid signal during its reboot
+            gpio_set_drive_strength(g, GPIO_DRIVE_STRENGTH_12MA);
+            gpio_set_function(g, GPIO_FUNC_PWM);
+            // Wait for servo reboot before resuming normal operation
+            busy_wait_us_32(300000);  // 300 ms
+            usb_comm_send_ack(type);
+            break;
         }
 
         default:

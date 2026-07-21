@@ -1,5 +1,7 @@
 """RC servo control."""
 
+import time
+
 
 class Servo:
     """Controls an RC servo motor.
@@ -66,3 +68,16 @@ class Servo:
     def center(self):
         """Move the servo to the center of its configured range."""
         self.set_angle((self._min_deg + self._max_deg) / 2)
+
+    def set_gobilda_mode(self, mode: str):
+        """Switch a GoBilda dual-mode servo between 'positional' and 'continuous' rotation.
+
+        Sends the mode-switch command to the firmware, which performs a half-duplex
+        UART handshake (~420 ms) before the servo reboots.  This method blocks for
+        600 ms to let the full sequence complete before returning.
+
+        Only works on S-port servos (S0–S7).  Has no effect on PCA9685 channels.
+        """
+        self._check_started()
+        self._conn.send_command(cmd="gobilda_set_mode", port=self._id, mode=mode)
+        time.sleep(0.6)
