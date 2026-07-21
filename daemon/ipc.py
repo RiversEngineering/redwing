@@ -171,6 +171,12 @@ class IPCServer:
             async with self._state.lock:
                 pd = self._state.ports.setdefault(str(port), {})
                 pd["gobilda_mode"] = "continuous" if mode == 1 else "positional"
+                if mode == 1:
+                    pd["min_angle"] = -100.0; pd["max_angle"] = 100.0
+                    pd["min_pulse_us"] = 900; pd["max_pulse_us"] = 2100
+                else:
+                    pd["min_angle"] = 0.0; pd["max_angle"] = 300.0
+                    pd["min_pulse_us"] = 500; pd["max_pulse_us"] = 2500
 
         elif c == "set_pca_servo_range":
             ch      = int(cmd["channel"])

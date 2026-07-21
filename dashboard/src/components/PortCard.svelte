@@ -60,9 +60,10 @@
         const minA = d.min_angle    ?? 0,   maxA = d.max_angle    ?? 300;
         const minP = d.min_pulse_us ?? 500, maxP = d.max_pulse_us ?? 2500;
         const pulse = d.pulse_us ?? 1500;
-        const deg = maxP === minP ? minA
+        const val = maxP === minP ? minA
           : minA + (pulse - minP) / (maxP - minP) * (maxA - minA);
-        return `${deg.toFixed(1)}°`;
+        const unit = d.gobilda_mode === 'continuous' ? '%' : '°';
+        return `${val.toFixed(1)}${unit}`;
       }
       case 'gpio_in':
       case 'gpio_out':

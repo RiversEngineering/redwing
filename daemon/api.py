@@ -159,6 +159,12 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                 async with state.lock:
                     pd = state.ports.setdefault(str(port), {})
                     pd["gobilda_mode"] = "continuous" if mode == 1 else "positional"
+                    if mode == 1:
+                        pd["min_angle"] = -100.0; pd["max_angle"] = 100.0
+                        pd["min_pulse_us"] = 900; pd["max_pulse_us"] = 2100
+                    else:
+                        pd["min_angle"] = 0.0; pd["max_angle"] = 300.0
+                        pd["min_pulse_us"] = 500; pd["max_pulse_us"] = 2500
 
             elif cmd == "set_pca_servo_range":
                 ch     = int(msg["channel"])

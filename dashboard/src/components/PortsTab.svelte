@@ -84,15 +84,16 @@
     return r.minAngle + (pulse_us - r.minPulse) / (r.maxPulse - r.minPulse) * (r.maxAngle - r.minAngle);
   }
 
-  function servoPresets(r) {
+  function servoPresets(r, unit = '°') {
     const fmt = (n) => Number.isInteger(n) ? String(n) : n.toFixed(0);
     const c = (r.minAngle + r.maxAngle) / 2;
+    const cLabel = unit === '%' ? `${fmt(c)}% (stop)` : `${fmt(c)}° (center)`;
     return [
-      [r.minAngle, `${fmt(r.minAngle)}°`],
-      [r.minAngle + (r.maxAngle - r.minAngle) * 0.25, `${fmt(r.minAngle + (r.maxAngle - r.minAngle) * 0.25)}°`],
-      [c, `${fmt(c)}° (center)`],
-      [r.minAngle + (r.maxAngle - r.minAngle) * 0.75, `${fmt(r.minAngle + (r.maxAngle - r.minAngle) * 0.75)}°`],
-      [r.maxAngle, `${fmt(r.maxAngle)}°`],
+      [r.minAngle, `${fmt(r.minAngle)}${unit}`],
+      [r.minAngle + (r.maxAngle - r.minAngle) * 0.25, `${fmt(r.minAngle + (r.maxAngle - r.minAngle) * 0.25)}${unit}`],
+      [c, cLabel],
+      [r.minAngle + (r.maxAngle - r.minAngle) * 0.75, `${fmt(r.minAngle + (r.maxAngle - r.minAngle) * 0.75)}${unit}`],
+      [r.maxAngle, `${fmt(r.maxAngle)}${unit}`],
     ];
   }
 
@@ -102,8 +103,9 @@
   let pcaRangeEditing = false;
   let pcaSrMinAngle = 0, pcaSrMaxAngle = 300, pcaSrMinPulse = 500, pcaSrMaxPulse = 2500;
 
-  $: sr    = servoRangeOf(selectedData);
-  $: pcaSr = servoRangeOf(selectedPcaData);
+  $: sr        = servoRangeOf(selectedData);
+  $: pcaSr     = servoRangeOf(selectedPcaData);
+  $: servoUnit = selectedData?.gobilda_mode === 'continuous' ? '%' : '°';
 
   function selectPort(id) {
     selectedId = id;
@@ -143,7 +145,8 @@
       case 'tfmini':    return d.valid ? `${(d.distance_cm ?? 0).toFixed(0)} cm` : 'OOB';
       case 'servo': {
         const r = servoRangeOf(d);
-        return `${pulseToAngle(d.pulse_us ?? 1500, r).toFixed(1)}°`;
+        const unit = d.gobilda_mode === 'continuous' ? '%' : '°';
+        return `${pulseToAngle(d.pulse_us ?? 1500, r).toFixed(1)}${unit}`;
       }
       case 'gpio_in':
       case 'gpio_out':   return d.state ? 'HIGH' : 'LOW';
@@ -1022,7 +1025,7 @@
             <!-- Live readout -->
             <div class="flex items-baseline gap-3">
               <span class="text-4xl font-bold tabular-nums text-amber-400">
-                {pulseToAngle(selectedData.pulse_us ?? 1500, sr).toFixed(1)}°
+                {pulseToAngle(selectedData.pulse_us ?? 1500, sr).toFixed(1)}{servoUnit}
               </span>
               <span class="text-sm text-slate-500">actual (from RP2040)</span>
             </div>
@@ -1030,9 +1033,9 @@
             <!-- Angle slider -->
             <div class="space-y-2">
               <div class="flex justify-between text-xs text-slate-500">
-                <span>{sr.minAngle}°</span>
-                <span class="font-semibold text-slate-300 tabular-nums">{servoAngle.toFixed(1)}°</span>
-                <span>{sr.maxAngle}°</span>
+                <span>{sr.minAngle}{servoUnit}</span>
+                <span class="font-semibold text-slate-300 tabular-nums">{servoAngle.toFixed(1)}{servoUnit}</span>
+                <span>{sr.maxAngle}{servoUnit}</span>
               </div>
               <input
                 type="range" min={Math.min(sr.minAngle, sr.maxAngle)} max={Math.max(sr.minAngle, sr.maxAngle)} step="0.5"
@@ -1046,7 +1049,7 @@
 
             <!-- Quick presets -->
             <div class="flex gap-2 flex-wrap">
-              {#each servoPresets(sr) as [v, label]}
+              {#each servoPresets(sr, servoUnit) as [v, label]}
                 <button
                   class="px-3 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
                          text-amber-400 hover:bg-amber-900/20 hover:border-amber-600/40 transition-colors"
@@ -1096,7 +1099,7 @@
             {:else}
               <button class="text-[10px] text-slate-600 hover:text-amber-500 transition-colors"
                 on:click={openServoRange}>
-                ⚙ Range: {sr.minAngle}° – {sr.maxAngle}° ({sr.minPulse}–{sr.maxPulse} µs)
+                ⚙ Range: {sr.minAngle}{servoUnit} – {sr.maxAngle}{servoUnit} ({sr.minPulse}–{sr.maxPulse} µs)
               </button>
             {/if}
 

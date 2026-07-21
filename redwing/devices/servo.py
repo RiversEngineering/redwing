@@ -72,12 +72,27 @@ class Servo:
     def set_gobilda_mode(self, mode: str):
         """Switch a GoBilda dual-mode servo between 'positional' and 'continuous' rotation.
 
-        Sends the mode-switch command to the firmware, which performs a half-duplex
-        UART handshake (~420 ms) before the servo reboots.  This method blocks for
-        600 ms to let the full sequence complete before returning.
+        Sends the mode-switch command to the firmware (~420 ms half-duplex UART
+        handshake + servo reboot), then automatically resets the angle/pulse range:
 
-        Only works on S-port servos (S0–S7).  Has no effect on PCA9685 channels.
+        - ``'continuous'``: range −100 to +100 (speed %), 900–2100 µs (1500 µs = stop)
+        - ``'positional'``: range 0–300°, 500–2500 µs
+
+        Blocks for 600 ms to let the full sequence complete before returning.
+        Only works on S-port servos (S0–S7).
         """
         self._check_started()
         self._conn.send_command(cmd="gobilda_set_mode", port=self._id, mode=mode)
         time.sleep(0.6)
+        if mode == 'continuous':
+            self._min_deg, self._max_deg = -100.0, 100.0
+            self._min_us,  self._max_us  =    900, 2100
+        else:
+            self._min_deg, self._max_deg =   0.0, 300.0
+            self._min_us,  self._max_us  =   500, 2500
+        self._angle = (self._min_deg + self._max_deg) / 2
+        self._conn.send_command(
+            cmd="set_servo_range", port=self._id,
+            min_angle=self._min_deg, max_angle=self._max_deg,
+            min_us=self._min_us, max_us=self._max_us,
+        )
