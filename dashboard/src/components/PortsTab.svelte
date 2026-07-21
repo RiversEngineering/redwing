@@ -1116,7 +1116,7 @@
               <div class="border border-slate-700/40 rounded-lg p-3 space-y-2 bg-[#1a1d26]">
                 <div class="flex items-center gap-2">
                   <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">GoBilda Mode</span>
-                  <span class="text-[10px] text-slate-700">· dual-mode servos only</span>
+                  <span class="text-[10px] text-slate-700">· gray dual-mode servos only</span>
                   {#if selectedData?.gobilda_mode}
                     <span class="ml-auto text-[10px] font-mono
                                  {selectedData.gobilda_mode === 'continuous' ? 'text-blue-400' : 'text-amber-400'}">
