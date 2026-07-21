@@ -30,6 +30,9 @@
       case 'ultrasonic':   return 'Ultrasonic';
       case 'vl53l0x':     return 'VL53L0X';
       case 'ir_distance':  return 'IR Sensor';
+      case 'bno085':      return 'BNO085';
+      case 'bno055':      return 'BNO055';
+      case 'mpu6050':     return 'MPU-6050';
       case 'servo':        return 'Servo';
       case 'gpio_in':    return 'Digital In';
       case 'gpio_out':   return 'Digital Out';
@@ -70,6 +73,18 @@
         if (!d.valid) return 'OOB';
         return `${(d.distance_mm / 10).toFixed(1)} cm`;
       }
+      case 'bno085':
+      case 'bno055': {
+        const q = d.quaternion;
+        if (!q) return '—';
+        const yaw = Math.atan2(2*(q.w*q.z + q.x*q.y), 1 - 2*(q.y*q.y + q.z*q.z));
+        return `${(((yaw * 180 / Math.PI) + 360) % 360).toFixed(1)}°`;
+      }
+      case 'mpu6050': {
+        const a = d.acceleration;
+        if (!a) return '—';
+        return `${(Math.sqrt(a.x*a.x + a.y*a.y + a.z*a.z) * 9.80665).toFixed(2)} m/s²`;
+      }
       case 'gpio_in':
       case 'gpio_out':
         return d.state ? 'HIGH' : 'LOW';
@@ -93,6 +108,10 @@
         return 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5';
       case 'ir_distance':
         return 'M12 19V5M5 12l7-7 7 7M3 19h18';
+      case 'bno085':
+      case 'bno055':
+      case 'mpu6050':
+        return 'M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zM12 6v6l4 2';
       case 'servo':
         return 'M12 6v6l4 2M5.636 5.636a9 9 0 1 0 12.728 12.728';
       case 'gpio_in':
@@ -112,6 +131,9 @@
       case 'ultrasonic': return 'text-cyan-400   border-cyan-500/30   bg-cyan-500/10';
       case 'vl53l0x':     return 'text-teal-400   border-teal-500/30   bg-teal-500/10';
       case 'ir_distance': return 'text-rose-400   border-rose-500/30   bg-rose-500/10';
+      case 'bno085':
+      case 'bno055':      return 'text-indigo-400 border-indigo-500/30 bg-indigo-500/10';
+      case 'mpu6050':     return 'text-purple-400 border-purple-500/30 bg-purple-500/10';
       case 'servo':       return 'text-amber-400  border-amber-500/30  bg-amber-500/10';
       case 'i2c':        return 'text-orange-400 border-orange-500/30 bg-orange-500/10';
       default:           return 'text-slate-600  border-slate-700/30  bg-slate-800/20';

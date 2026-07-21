@@ -79,6 +79,9 @@ PORT_VL53L0X        = 0x0B  # VL53L0X ToF sensor on I²C port (auto-detected)
 PORT_TFLUNA         = 0x0C  # Benewake TF-Luna (distance + strength + temperature)
 PORT_TFMINI         = 0x0D  # Benewake TF-Mini (distance + strength)
 PORT_IR_DISTANCE    = 0x0E  # Sharp GP2Y0A21YK0F IR sensor (ADC, S5/S6/S7 only)
+PORT_BNO085         = 0x0F  # Bosch BNO085 9-axis fusion IMU (auto-detected)
+PORT_BNO055         = 0x10  # Bosch BNO055 9-axis fusion IMU (auto-detected)
+PORT_MPU6050        = 0x11  # InvenSense MPU-6050 6-axis IMU (auto-detected)
 
 PORT_TYPE_NAMES = {
     PORT_UNCONFIGURED: "unconfigured",
@@ -96,6 +99,9 @@ PORT_TYPE_NAMES = {
     PORT_TFLUNA:       "tfluna",
     PORT_TFMINI:       "tfmini",
     PORT_IR_DISTANCE:  "ir_distance",
+    PORT_BNO085:       "bno085",
+    PORT_BNO055:       "bno055",
+    PORT_MPU6050:      "mpu6050",
 }
 
 PORT_TYPE_IDS = {v: k for k, v in PORT_TYPE_NAMES.items()}
@@ -116,6 +122,9 @@ PORT_STATE_SIZES = {
     PORT_TFLUNA:      0,   # daemon parses RSP_UART_RX; no RP2040 state bytes
     PORT_TFMINI:      0,   # daemon parses RSP_UART_RX; no RP2040 state bytes
     PORT_IR_DISTANCE: 3,   # u16 distance_mm + u8 valid
+    PORT_BNO085:      14,  # 7×i16 LE: qw qx qy qz ax ay az  (Q14 quat, Q8 accel)
+    PORT_BNO055:      14,  # 7×i16 LE: qw qx qy qz ax ay az  (Q14 quat, 100 LSB/m/s²)
+    PORT_MPU6050:     12,  # 6×i16 LE: ax ay az gx gy gz  (±2g/16384, ±250°/s/131)
 }
 
 
@@ -337,6 +346,19 @@ class PacketParser:
                 dist, valid = struct.unpack_from("<HB", pdata)
                 parsed["distance_mm"] = dist
                 parsed["valid"] = bool(valid)
+            elif port_type in (PORT_BNO085, PORT_BNO055):
+                qw, qx, qy, qz, ax, ay, az = struct.unpack_from("<hhhhhhh", pdata)
+                qscale = 1.0 / 16384.0
+                ascale = 1.0 / 256.0 if port_type == PORT_BNO085 else 1.0 / 100.0
+                parsed["quaternion"] = {"w": qw * qscale, "x": qx * qscale,
+                                        "y": qy * qscale, "z": qz * qscale}
+                parsed["linear_acceleration"] = {"x": ax * ascale, "y": ay * ascale,
+                                                  "z": az * ascale}
+            elif port_type == PORT_MPU6050:
+                ax, ay, az, gx, gy, gz = struct.unpack_from("<hhhhhh", pdata)
+                parsed["acceleration"] = {"x": ax / 16384.0, "y": ay / 16384.0,
+                                          "z": az / 16384.0}
+                parsed["gyro"] = {"x": gx / 131.0, "y": gy / 131.0, "z": gz / 131.0}
             elif port_type in (PORT_GPIO_IN, PORT_GPIO_OUT):
                 parsed["state"] = pdata[0]
 

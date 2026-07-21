@@ -24,6 +24,9 @@ add_executable(redwing
     src/devices/pca9685.c
     src/devices/gobilda_serial.c
     src/devices/ir_distance.c
+    src/devices/bno085.c
+    src/devices/bno055.c
+    src/devices/mpu6050.c
 )
 
 # Generate C header from PIO assembly

@@ -8,6 +8,9 @@
 #include "devices/pio_pwm.h"
 #include "devices/vl53l0x.h"
 #include "devices/ir_distance.h"
+#include "devices/bno085.h"
+#include "devices/bno055.h"
+#include "devices/mpu6050.h"
 #include "hardware/gpio.h"
 #include "hardware/pwm.h"
 #include "hardware/i2c.h"
@@ -137,6 +140,17 @@ void port_manager_init(void) {
         }
         sleep_ms(10);
     }
+
+    // Auto-detect IMU: BNO085 (0x4A) → BNO055 (0x28) → MPU-6050 (0x68).
+    // Only one IMU is active; the first that responds wins.
+    ports[PORT_ID_IMU].type = PORT_UNCONFIGURED;
+    if (bno085_init()) {
+        ports[PORT_ID_IMU].type = PORT_BNO085;
+    } else if (bno055_init()) {
+        ports[PORT_ID_IMU].type = PORT_BNO055;
+    } else if (mpu6050_init()) {
+        ports[PORT_ID_IMU].type = PORT_MPU6050;
+    }
 }
 
 // ─── Configure ───────────────────────────────────────────────────────────────
@@ -144,8 +158,8 @@ void port_manager_init(void) {
 bool port_configure(uint8_t id, uint8_t port_type) {
     if (!valid_port(id)) return false;
 
-    if (IS_I2C_PORT(id)) {
-        usb_comm_send_error(ERR_BAD_PORT, "I2C port is dedicated");
+    if (IS_I2C_PORT(id) || IS_IMU_PORT(id)) {
+        usb_comm_send_error(ERR_BAD_PORT, "dedicated port, not configurable");
         return false;
     }
 
@@ -512,7 +526,7 @@ void port_reset(void) {
     config_locked = false;
 
     for (uint8_t i = 0; i < PORT_COUNT_TOTAL; i++) {
-        if (IS_I2C_PORT(i)) continue;   // dedicated I2C always stays reserved
+        if (IS_I2C_PORT(i) || IS_IMU_PORT(i)) continue;  // dedicated ports: always reserved
         PortState *p = &ports[i];
         port_deinit(i);   // clean up encoder PIO, ultrasonic, GPIO state
         p->type           = PORT_UNCONFIGURED;
@@ -704,6 +718,45 @@ void port_send_state(void) {
                 buf[pos++] = (uint8_t)(dist);
                 buf[pos++] = (uint8_t)(dist >> 8);
                 buf[pos++] = valid ? 1u : 0u;
+                break;
+            }
+            case PORT_BNO085: {
+                bno085_poll();
+                int16_t qx, qy, qz, qw, ax, ay, az;
+                bno085_get_quat(&qx, &qy, &qz, &qw);
+                bno085_get_linear_accel(&ax, &ay, &az);
+                // 14 bytes: qw, qx, qy, qz, ax, ay, az  (all int16 LE)
+                int16_t v7[7] = {qw, qx, qy, qz, ax, ay, az};
+                for (int k = 0; k < 7; k++) {
+                    buf[pos++] = (uint8_t)(v7[k]);
+                    buf[pos++] = (uint8_t)((uint16_t)v7[k] >> 8);
+                }
+                break;
+            }
+            case PORT_BNO055: {
+                int16_t qw, qx, qy, qz, ax, ay, az;
+                if (bno055_read(&qw, &qx, &qy, &qz, &ax, &ay, &az)) {
+                    int16_t v7[7] = {qw, qx, qy, qz, ax, ay, az};
+                    for (int k = 0; k < 7; k++) {
+                        buf[pos++] = (uint8_t)(v7[k]);
+                        buf[pos++] = (uint8_t)((uint16_t)v7[k] >> 8);
+                    }
+                } else {
+                    for (int k = 0; k < 14; k++) buf[pos++] = 0;
+                }
+                break;
+            }
+            case PORT_MPU6050: {
+                int16_t ax, ay, az, gx, gy, gz;
+                if (mpu6050_read(&ax, &ay, &az, &gx, &gy, &gz)) {
+                    int16_t v6[6] = {ax, ay, az, gx, gy, gz};
+                    for (int k = 0; k < 6; k++) {
+                        buf[pos++] = (uint8_t)(v6[k]);
+                        buf[pos++] = (uint8_t)((uint16_t)v6[k] >> 8);
+                    }
+                } else {
+                    for (int k = 0; k < 12; k++) buf[pos++] = 0;
+                }
                 break;
             }
             case PORT_GPIO_IN:

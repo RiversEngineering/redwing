@@ -51,6 +51,9 @@
 #define PORT_GPIO_OUT       0x09
 #define PORT_UART           0x0A  // UART bus: D7=UART0 (GP12=TX/GP13=RX) or D6=UART1 (GP20=TX/GP21=RX)
 #define PORT_VL53L0X        0x0B  // VL53L0X ToF sensor on I²C port (auto-detected at startup)
+#define PORT_BNO085         0x0F  // Bosch BNO085 9-axis fusion IMU (auto-detected, SHTP over I²C)
+#define PORT_BNO055         0x10  // Bosch BNO055 9-axis fusion IMU (auto-detected, register I²C)
+#define PORT_MPU6050        0x11  // InvenSense MPU-6050 6-axis IMU (auto-detected, register I²C)
 #define PORT_IR_DISTANCE    0x0E  // Sharp GP2Y0A21YK0F IR sensor on ADC-capable S ports (S5/S6/S7)
 
 // ─── Error codes ─────────────────────────────────────────────────────────────
@@ -71,13 +74,15 @@
 #define PORT_COUNT_DUAL    8
 #define PORT_ID_DUAL_BASE  8
 #define PORT_ID_I2C        16
-#define PORT_COUNT_TOTAL   17   // 8 single + 8 dual + 1 dedicated I2C
+#define PORT_ID_IMU        17   // dedicated IMU slot (auto-detected BNO085/BNO055/MPU-6050)
+#define PORT_COUNT_TOTAL   18   // 8 single + 8 dual + 1 I2C + 1 IMU
 
 // ─── Port classification helpers ─────────────────────────────────────────────
 #define IS_VALID_PORT(id)  ((id) < PORT_COUNT_TOTAL)
 #define IS_DUAL_PORT(id)   ((id) >= PORT_ID_DUAL_BASE && (id) < (PORT_ID_DUAL_BASE + PORT_COUNT_DUAL))
 #define IS_SINGLE_PORT(id) ((id) < PORT_COUNT_SINGLE)
 #define IS_I2C_PORT(id)    ((id) == PORT_ID_I2C)
+#define IS_IMU_PORT(id)    ((id) == PORT_ID_IMU)
 
 // ─── GPIO pin map ─────────────────────────────────────────────────────────────
 //
@@ -136,14 +141,14 @@ static const uint8_t DUAL_GPIO[PORT_COUNT_DUAL][2] = {
 #define NO_PIN 255u   // sentinel: port has no B pin
 
 static inline uint8_t port_pin_a(uint8_t id) {
-    if (IS_I2C_PORT(id))  return I2C_SDA_GPIO;
+    if (IS_I2C_PORT(id) || IS_IMU_PORT(id)) return I2C_SDA_GPIO;
     if (IS_DUAL_PORT(id)) return DUAL_GPIO[id - PORT_ID_DUAL_BASE][0];
     return SINGLE_GPIO[id];
 }
 
 // Returns B pin GPIO, or NO_PIN for single-pin ports.
 static inline uint8_t port_pin_b(uint8_t id) {
-    if (IS_I2C_PORT(id))  return I2C_SCL_GPIO;
+    if (IS_I2C_PORT(id) || IS_IMU_PORT(id)) return I2C_SCL_GPIO;
     if (IS_DUAL_PORT(id)) return DUAL_GPIO[id - PORT_ID_DUAL_BASE][1];
     return NO_PIN;
 }

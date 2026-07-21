@@ -12,7 +12,8 @@
   const SINGLE = Array.from({ length: 8 }, (_, i) => ({ id: i,     label: `S${i}`, dual: false }));
   const DUAL   = Array.from({ length: 8 }, (_, i) => ({ id: i + 8, label: `D${i}`, dual: true  }));
   const I2C_PORT = { id: 16, label: 'I²C', dual: true };
-  const ALL_PORTS = [...SINGLE, ...DUAL, I2C_PORT];
+  const IMU_PORT = { id: 17, label: 'IMU', dual: true };
+  const ALL_PORTS = [...SINGLE, ...DUAL, I2C_PORT, IMU_PORT];
 
   let selectedId = null;
 
@@ -132,6 +133,7 @@
     if (isMotor(type)) return 'Motor';
     const m = { encoder: 'Encoder', ultrasonic: 'Ultrasonic', vl53l0x: 'VL53L0X ToF',
                  ir_distance: 'IR Sensor',
+                 bno085: 'BNO085 IMU', bno055: 'BNO055 IMU', mpu6050: 'MPU-6050 IMU',
                  servo: 'Servo', gpio_in: 'Digital In', gpio_out: 'Digital Out',
                  i2c: 'I²C', uart: 'UART', tfluna: 'TF-Luna', tfmini: 'TF-Mini' };
     return m[type] ?? 'Empty';
@@ -152,6 +154,19 @@
         const unit = d.gobilda_mode === 'continuous' ? '%' : '°';
         return `${pulseToAngle(d.pulse_us ?? 1500, r).toFixed(1)}${unit}`;
       }
+      case 'bno085':
+      case 'bno055': {
+        const q = d.quaternion;
+        if (!q) return null;
+        const yaw = Math.atan2(2*(q.w*q.z + q.x*q.y), 1 - 2*(q.y*q.y + q.z*q.z));
+        return `${((yaw * 180 / Math.PI + 360) % 360).toFixed(1)}°`;
+      }
+      case 'mpu6050': {
+        const a = d.acceleration;
+        if (!a) return null;
+        const mag = Math.sqrt(a.x*a.x + a.y*a.y + a.z*a.z) * 9.80665;
+        return `${mag.toFixed(2)} m/s²`;
+      }
       case 'gpio_in':
       case 'gpio_out':   return d.state ? 'HIGH' : 'LOW';
       default:           return null;
@@ -166,6 +181,9 @@
       ultrasonic:  'text-cyan-400 border-cyan-500/40',
       vl53l0x:    'text-teal-400 border-teal-500/40',
       ir_distance: 'text-rose-400 border-rose-500/40',
+      bno085:     'text-indigo-400 border-indigo-500/40',
+      bno055:     'text-indigo-400 border-indigo-500/40',
+      mpu6050:    'text-purple-400 border-purple-500/40',
       tfluna:     'text-sky-400 border-sky-500/40',
       tfmini:     'text-sky-400 border-sky-500/40',
       servo:      'text-amber-400 border-amber-500/40',
@@ -179,7 +197,8 @@
     if (type === 'gpio_in' || type === 'gpio_out') return 'bg-green-400';
     const m = { encoder: 'bg-violet-400', ultrasonic: 'bg-cyan-400', ir_distance: 'bg-rose-400',
                  tfluna: 'bg-sky-400', tfmini: 'bg-sky-400',
-                 vl53l0x: 'bg-teal-400', servo: 'bg-amber-400', i2c: 'bg-orange-400' };
+                 vl53l0x: 'bg-teal-400', servo: 'bg-amber-400', i2c: 'bg-orange-400',
+                 bno085: 'bg-indigo-400', bno055: 'bg-indigo-400', mpu6050: 'bg-purple-400' };
     return m[type] ?? 'bg-slate-700';
   }
 
@@ -513,6 +532,23 @@
             {#if liveValue($ports[16])}
               <span class="text-[10px] font-mono text-slate-500 ml-auto flex-shrink-0">
                 {liveValue($ports[16])}
+              </span>
+            {/if}
+          </button>
+          <button
+            class="w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors mb-px
+                   {selectedId === 17
+                     ? 'bg-[#252932] ring-1 ring-[#3e4455]'
+                     : 'hover:bg-[#1e2129]'}"
+            on:click={() => selectPort(17)}
+          >
+            <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
+                         bg-slate-700/60 text-slate-400">IMU</span>
+            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {dotColor($ports[17]?.type)}"></span>
+            <span class="text-[11px] text-slate-300 truncate">{deviceLabel($ports[17]?.type)}</span>
+            {#if liveValue($ports[17])}
+              <span class="text-[10px] font-mono text-slate-500 ml-auto flex-shrink-0">
+                {liveValue($ports[17])}
               </span>
             {/if}
           </button>
@@ -1274,6 +1310,110 @@
             </p>
           </div>
 
+        {:else if selectedData.type === 'ir_distance'}
+          <!-- ── Sharp IR distance readout ── -->
+          <div class="space-y-4 max-w-xs">
+            <div class="bg-[#1e2129] rounded-lg border border-[#2e3340] p-5">
+              <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Distance</div>
+              {#if selectedData.valid}
+                <div class="text-5xl font-bold tabular-nums text-rose-400">
+                  {(selectedData.distance_mm / 10).toFixed(1)}
+                </div>
+                <div class="text-sm text-slate-500 mt-1">centimeters</div>
+                <div class="text-xs text-slate-600 mt-2">{selectedData.distance_mm} mm</div>
+              {:else}
+                <div class="text-3xl font-bold text-red-400">Out of range</div>
+                <div class="text-xs text-slate-600 mt-1">Valid range: 10–80 cm</div>
+              {/if}
+            </div>
+            <p class="text-xs text-slate-600">
+              Sharp GP2Y0A21 IR sensor on S{selectedId}. Read-only. Connect signal directly to S-port pin.
+            </p>
+          </div>
+
+        {:else if selectedData.type === 'bno085' || selectedData.type === 'bno055'}
+          <!-- ── BNO085 / BNO055 IMU readout ── -->
+          <div class="space-y-3 max-w-sm">
+            {#if selectedData.quaternion}
+              {@const q = selectedData.quaternion}
+              {@const yawRad = Math.atan2(2*(q.w*q.z + q.x*q.y), 1 - 2*(q.y*q.y + q.z*q.z))}
+              {@const heading = ((yawRad * 180 / Math.PI) + 360) % 360}
+              <div class="bg-[#1e2129] rounded-lg border border-[#2e3340] p-5">
+                <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Heading (yaw)</div>
+                <div class="text-5xl font-bold tabular-nums text-indigo-400">{heading.toFixed(1)}°</div>
+                <div class="text-xs text-slate-600 mt-1">0° = startup orientation</div>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="bg-[#1e2129] rounded-lg border border-[#2e3340] p-3">
+                  <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Quaternion</div>
+                  {#each [['W', q.w], ['X', q.x], ['Y', q.y], ['Z', q.z]] as [label, val]}
+                    <div class="flex justify-between text-[11px]">
+                      <span class="text-slate-500">{label}</span>
+                      <span class="font-mono text-slate-300">{val.toFixed(4)}</span>
+                    </div>
+                  {/each}
+                </div>
+                {#if selectedData.linear_acceleration}
+                  {@const a = selectedData.linear_acceleration}
+                  <div class="bg-[#1e2129] rounded-lg border border-[#2e3340] p-3">
+                    <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Linear Accel (m/s²)</div>
+                    {#each [['X', a.x], ['Y', a.y], ['Z', a.z]] as [label, val]}
+                      <div class="flex justify-between text-[11px]">
+                        <span class="text-slate-500">{label}</span>
+                        <span class="font-mono text-slate-300">{val.toFixed(3)}</span>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+            {:else}
+              <div class="text-sm text-slate-500">No data yet.</div>
+            {/if}
+            <p class="text-xs text-slate-600">
+              {selectedData.type === 'bno085' ? 'BNO085' : 'BNO055'} auto-detected on I²C (GP4 SDA / GP5 SCL). Read-only.
+            </p>
+          </div>
+
+        {:else if selectedData.type === 'mpu6050'}
+          <!-- ── MPU-6050 readout ── -->
+          <div class="space-y-3 max-w-sm">
+            {#if selectedData.acceleration && selectedData.gyro}
+              {@const a = selectedData.acceleration}
+              {@const g = selectedData.gyro}
+              {@const mag = Math.sqrt(a.x*a.x + a.y*a.y + a.z*a.z) * 9.80665}
+              <div class="bg-[#1e2129] rounded-lg border border-[#2e3340] p-5">
+                <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Accel magnitude</div>
+                <div class="text-5xl font-bold tabular-nums text-purple-400">{mag.toFixed(2)}</div>
+                <div class="text-xs text-slate-600 mt-1">m/s² (includes gravity ~9.81)</div>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="bg-[#1e2129] rounded-lg border border-[#2e3340] p-3">
+                  <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Acceleration (g)</div>
+                  {#each [['X', a.x], ['Y', a.y], ['Z', a.z]] as [label, val]}
+                    <div class="flex justify-between text-[11px]">
+                      <span class="text-slate-500">{label}</span>
+                      <span class="font-mono text-slate-300">{val.toFixed(4)}</span>
+                    </div>
+                  {/each}
+                </div>
+                <div class="bg-[#1e2129] rounded-lg border border-[#2e3340] p-3">
+                  <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Gyro (°/s)</div>
+                  {#each [['X', g.x], ['Y', g.y], ['Z', g.z]] as [label, val]}
+                    <div class="flex justify-between text-[11px]">
+                      <span class="text-slate-500">{label}</span>
+                      <span class="font-mono text-slate-300">{val.toFixed(2)}</span>
+                    </div>
+                  {/each}
+                </div>
+              </div>
+            {:else}
+              <div class="text-sm text-slate-500">No data yet.</div>
+            {/if}
+            <p class="text-xs text-slate-600">
+              MPU-6050 auto-detected on I²C (GP4 SDA / GP5 SCL). Read-only.
+            </p>
+          </div>
+
         {:else if selectedData.type === 'tfluna' || selectedData.type === 'tfmini'}
           <!-- ── TF-Luna / TF-Mini readout ── -->
           <div class="space-y-3 max-w-xs">
@@ -1322,8 +1462,8 @@
           </div>
         {/if}
 
-        <!-- Change Type footer — not shown for the dedicated I²C port (auto-detected) -->
-        {#if selectedData && !configFinalized && !reconfiguring && selectedId !== 16}
+        <!-- Change Type footer — not shown for dedicated ports (I²C/IMU — auto-detected) -->
+        {#if selectedData && !configFinalized && !reconfiguring && selectedId !== 16 && selectedId !== 17}
           <div class="mt-6 pt-4 border-t border-[#2e3340]">
             <p class="text-[11px] text-slate-600 mb-2">Need a different device type for this port?</p>
             <button

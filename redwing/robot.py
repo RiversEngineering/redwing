@@ -20,6 +20,7 @@ from .devices.lidar import Lidar
 from .devices.tfmini import TFMini, TFLuna
 from .devices.vl53l0x import VL53L0X
 from .devices.ir_distance import IrDistance
+from .devices.imu import IMU
 
 # Single-pin ports S0–S7 → internal IDs 0–7
 # Dual-pin ports   D0–D7 → internal IDs 8–15
@@ -93,6 +94,7 @@ class Robot:
         self._tfmini: dict[int, TFMini] = {}
         self._tfluna: dict[int, TFLuna] = {}
         self._vl53l0x: VL53L0X | None = None
+        self._imu: IMU | None = None
         self._started = False
         atexit.register(self._shutdown)
         # Reset RP2040 state from any previous run (best-effort; no-op if not connected)
@@ -712,6 +714,33 @@ class Robot:
         if self._vl53l0x is None:
             self._vl53l0x = VL53L0X(self._conn)
         return self._vl53l0x
+
+    # ------------------------------------------------------------------
+    # IMU (auto-detected on GP4/GP5 at startup)
+    # ------------------------------------------------------------------
+
+    def imu(self) -> IMU:
+        """Return an :class:`IMU` object for the auto-detected inertial sensor.
+
+        The firmware probes the I²C bus (**GP4 SDA / GP5 SCL**) at startup
+        and selects the first sensor found: **BNO085** → **BNO055** → **MPU-6050**.
+        No configuration call is needed before ``robot.start()``.
+
+        Use :attr:`IMU.connected` to check whether a sensor was found.
+        Data properties raise :class:`RuntimeError` if no IMU is detected.
+
+        Example::
+
+            imu = robot.imu()
+            robot.start()
+
+            while True:
+                robot.log(f"Heading: {imu.heading:.1f}°")
+                robot.sleep(0.05)
+        """
+        if self._imu is None:
+            self._imu = IMU(self._conn)
+        return self._imu
 
     # ------------------------------------------------------------------
     # LIDAR (USB — connected directly to the Pi, not through the Pico)
