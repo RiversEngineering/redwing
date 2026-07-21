@@ -218,7 +218,13 @@
   function sendGobildaMode(mode) {
     gobildaSwitching = true;
     send({ cmd: 'gobilda_set_mode', port: selectedId, mode });
-    setTimeout(() => { gobildaSwitching = false; }, 700);
+    setTimeout(() => {
+      gobildaSwitching = false;
+      // Reset slider to center of the new range so it doesn't show an out-of-range value.
+      // continuous: center of -100..+100 = 0 (stopped)
+      // positional: center of 0..300 = 150
+      servoAngle = mode === 'continuous' ? 0 : 150;
+    }, 700);
   }
 
   // ── GPIO commands ─────────────────────────────────────────────────────────────
