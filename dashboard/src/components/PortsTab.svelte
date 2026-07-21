@@ -220,10 +220,12 @@
     send({ cmd: 'gobilda_set_mode', port: selectedId, mode });
     setTimeout(() => {
       gobildaSwitching = false;
-      // Reset slider to center of the new range so it doesn't show an out-of-range value.
-      // continuous: center of -100..+100 = 0 (stopped)
-      // positional: center of 0..300 = 150
       servoAngle = mode === 'continuous' ? 0 : 150;
+      if (mode === 'continuous') {
+        // Send an explicit stop so the servo doesn't run at the last positional pulse.
+        // angle_deg 0 maps to 1500 µs (center of 900–2100 µs range) = stopped.
+        send({ cmd: 'set_servo', port: selectedId, angle_deg: 0 });
+      }
     }, 700);
   }
 
