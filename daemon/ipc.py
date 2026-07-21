@@ -326,6 +326,8 @@ class IPCServer:
                 }
             if port_type in ("uart", "tfluna", "tfmini") and port_id not in (14, 15):
                 return {"ok": False, "error": "UART / TF-Luna / TF-Mini is only available on D6 (port 14) or D7 (port 15)."}
+            if port_type == "ir_distance" and port_id not in (5, 6, 7):
+                return {"ok": False, "error": "IR distance sensor is only available on S5, S6, or S7 (ADC-capable ports)."}
 
         ok = await self._rp.configure_port(port_id, port_type, baud)
         if ok:

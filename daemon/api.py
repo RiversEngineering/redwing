@@ -75,6 +75,10 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                     async with state.lock:
                         state.add_log("error", f"[Dashboard] Unknown port type: {port_type!r}")
                     return
+                if port_type == "ir_distance" and port not in (5, 6, 7):
+                    async with state.lock:
+                        state.add_log("error", "[Dashboard] IR distance sensor requires S5, S6, or S7 (ADC-capable ports only).")
+                    return
                 async with state.lock:
                     if state.config_finalized:
                         state.add_log("warning", "[Dashboard] Cannot configure: student code locked the configuration. Reset ports first.")

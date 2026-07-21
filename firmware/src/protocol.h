@@ -51,6 +51,7 @@
 #define PORT_GPIO_OUT       0x09
 #define PORT_UART           0x0A  // UART bus: D7=UART0 (GP12=TX/GP13=RX) or D6=UART1 (GP20=TX/GP21=RX)
 #define PORT_VL53L0X        0x0B  // VL53L0X ToF sensor on I²C port (auto-detected at startup)
+#define PORT_IR_DISTANCE    0x0E  // Sharp GP2Y0A21YK0F IR sensor on ADC-capable S ports (S5/S6/S7)
 
 // ─── Error codes ─────────────────────────────────────────────────────────────
 #define ERR_UNKNOWN_CMD     0x01

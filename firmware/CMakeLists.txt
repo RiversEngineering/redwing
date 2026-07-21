@@ -23,6 +23,7 @@ add_executable(redwing
     src/devices/vl53l0x.c
     src/devices/pca9685.c
     src/devices/gobilda_serial.c
+    src/devices/ir_distance.c
 )
 
 # Generate C header from PIO assembly
@@ -44,6 +45,7 @@ target_link_libraries(redwing
     hardware_i2c
     hardware_uart
     hardware_timer
+    hardware_adc
     pico_multicore
 )
 

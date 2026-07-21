@@ -43,12 +43,14 @@
     { id: 'gpio_in',            label: 'Digital In',  sub: null,                group: 'GPIO',   dualOnly: false, singleOnly: false, d7Only: false },
     { id: 'gpio_out',           label: 'Digital Out', sub: null,                group: 'GPIO',   dualOnly: false, singleOnly: false, d7Only: false },
     { id: 'uart',               label: 'UART Serial', sub: 'D6 or D7 only',     group: 'Bus',    dualOnly: true,  singleOnly: false, d7Only: true  },
-    { id: 'tfluna',             label: 'TF-Luna',     sub: 'D6 or D7 only',     group: 'Sensor', dualOnly: true,  singleOnly: false, d7Only: true  },
-    { id: 'tfmini',             label: 'TF-Mini',     sub: 'D6 or D7 only',     group: 'Sensor', dualOnly: true,  singleOnly: false, d7Only: true  },
+    { id: 'tfluna',             label: 'TF-Luna',     sub: 'D6 or D7 only',     group: 'Sensor', dualOnly: true,  singleOnly: false, d7Only: true,  adcOnly: false },
+    { id: 'tfmini',             label: 'TF-Mini',     sub: 'D6 or D7 only',     group: 'Sensor', dualOnly: true,  singleOnly: false, d7Only: true,  adcOnly: false },
+    { id: 'ir_distance',        label: 'IR Distance', sub: 'S5/S6/S7 only',     group: 'Sensor', dualOnly: false, singleOnly: true,  d7Only: false, adcOnly: true  },
   ];
 
   $: availableTypes = TYPE_DEFS.filter((t) => {
     if (t.d7Only     && selectedId !== 14 && selectedId !== 15) return false;
+    if (t.adcOnly    && ![5, 6, 7].includes(selectedId))       return false;
     if (t.dualOnly   && !(selectedPort?.dual))  return false;
     if (t.singleOnly &&   selectedPort?.dual)   return false;
     return true;
@@ -129,6 +131,7 @@
   function deviceLabel(type) {
     if (isMotor(type)) return 'Motor';
     const m = { encoder: 'Encoder', ultrasonic: 'Ultrasonic', vl53l0x: 'VL53L0X ToF',
+                 ir_distance: 'IR Sensor',
                  servo: 'Servo', gpio_in: 'Digital In', gpio_out: 'Digital Out',
                  i2c: 'I²C', uart: 'UART', tfluna: 'TF-Luna', tfmini: 'TF-Mini' };
     return m[type] ?? 'Empty';
@@ -139,8 +142,9 @@
     if (isMotor(d.type)) return `${((d.value ?? 0) / 100).toFixed(0)}% pwr`;
     switch (d.type) {
       case 'encoder':    return `${(d.count ?? 0).toLocaleString()} cnt`;
-      case 'ultrasonic': return d.valid ? `${(d.distance_mm / 10).toFixed(1)} cm` : 'OOB';
-      case 'vl53l0x':   return d.valid ? `${(d.distance_mm / 10).toFixed(1)} cm` : 'OOB';
+      case 'ultrasonic':   return d.valid ? `${(d.distance_mm / 10).toFixed(1)} cm` : 'OOB';
+      case 'vl53l0x':     return d.valid ? `${(d.distance_mm / 10).toFixed(1)} cm` : 'OOB';
+      case 'ir_distance':  return d.valid ? `${(d.distance_mm / 10).toFixed(1)} cm` : 'OOB';
       case 'tfluna':
       case 'tfmini':    return d.valid ? `${(d.distance_cm ?? 0).toFixed(0)} cm` : 'OOB';
       case 'servo': {
@@ -159,10 +163,11 @@
     if (type === 'gpio_in' || type === 'gpio_out') return 'text-green-400 border-green-500/40';
     const m = {
       encoder:    'text-violet-400 border-violet-500/40',
-      ultrasonic: 'text-cyan-400 border-cyan-500/40',
-      vl53l0x:   'text-teal-400 border-teal-500/40',
-      tfluna:    'text-sky-400 border-sky-500/40',
-      tfmini:    'text-sky-400 border-sky-500/40',
+      ultrasonic:  'text-cyan-400 border-cyan-500/40',
+      vl53l0x:    'text-teal-400 border-teal-500/40',
+      ir_distance: 'text-rose-400 border-rose-500/40',
+      tfluna:     'text-sky-400 border-sky-500/40',
+      tfmini:     'text-sky-400 border-sky-500/40',
       servo:      'text-amber-400 border-amber-500/40',
       i2c:        'text-orange-400 border-orange-500/40',
     };
@@ -172,7 +177,8 @@
   function dotColor(type) {
     if (isMotor(type))       return 'bg-blue-400';
     if (type === 'gpio_in' || type === 'gpio_out') return 'bg-green-400';
-    const m = { encoder: 'bg-violet-400', ultrasonic: 'bg-cyan-400', tfluna: 'bg-sky-400', tfmini: 'bg-sky-400',
+    const m = { encoder: 'bg-violet-400', ultrasonic: 'bg-cyan-400', ir_distance: 'bg-rose-400',
+                 tfluna: 'bg-sky-400', tfmini: 'bg-sky-400',
                  vl53l0x: 'bg-teal-400', servo: 'bg-amber-400', i2c: 'bg-orange-400' };
     return m[type] ?? 'bg-slate-700';
   }

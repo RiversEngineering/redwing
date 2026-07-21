@@ -7,6 +7,7 @@
 #include "devices/ultrasonic.h"
 #include "devices/pio_pwm.h"
 #include "devices/vl53l0x.h"
+#include "devices/ir_distance.h"
 #include "hardware/gpio.h"
 #include "hardware/pwm.h"
 #include "hardware/i2c.h"
@@ -220,6 +221,15 @@ bool port_configure(uint8_t id, uint8_t port_type) {
             gpio_set_dir(a, GPIO_OUT);
             gpio_put(a, 0);
             p->gpio_state = 0;
+            break;
+
+        case PORT_IR_DISTANCE:
+            // Only GP26/27/28 (S5/S6/S7) support ADC.
+            if (a < 26) {
+                p->type = PORT_UNCONFIGURED;
+                return false;
+            }
+            ir_distance_adc_init(a);
             break;
 
         case PORT_UNCONFIGURED:
@@ -683,6 +693,14 @@ void port_send_state(void) {
             case PORT_VL53L0X: {
                 bool valid;
                 uint16_t dist = vl53l0x_read_mm(&valid);
+                buf[pos++] = (uint8_t)(dist);
+                buf[pos++] = (uint8_t)(dist >> 8);
+                buf[pos++] = valid ? 1u : 0u;
+                break;
+            }
+            case PORT_IR_DISTANCE: {
+                bool valid;
+                uint16_t dist = ir_distance_read_mm(p->pin_a - 26u, &valid);
                 buf[pos++] = (uint8_t)(dist);
                 buf[pos++] = (uint8_t)(dist >> 8);
                 buf[pos++] = valid ? 1u : 0u;

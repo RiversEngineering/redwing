@@ -26,10 +26,11 @@
   function deviceLabel(type) {
     if (isMotor(type)) return 'Motor';
     switch (type) {
-      case 'encoder':    return 'Encoder';
-      case 'ultrasonic': return 'Ultrasonic';
-      case 'vl53l0x':   return 'VL53L0X';
-      case 'servo':      return 'Servo';
+      case 'encoder':      return 'Encoder';
+      case 'ultrasonic':   return 'Ultrasonic';
+      case 'vl53l0x':     return 'VL53L0X';
+      case 'ir_distance':  return 'IR Sensor';
+      case 'servo':        return 'Servo';
       case 'gpio_in':    return 'Digital In';
       case 'gpio_out':   return 'Digital Out';
       case 'i2c':        return 'I²C';
@@ -65,6 +66,10 @@
         const unit = d.gobilda_mode === 'continuous' ? '%' : '°';
         return `${val.toFixed(1)}${unit}`;
       }
+      case 'ir_distance': {
+        if (!d.valid) return 'OOB';
+        return `${(d.distance_mm / 10).toFixed(1)} cm`;
+      }
       case 'gpio_in':
       case 'gpio_out':
         return d.state ? 'HIGH' : 'LOW';
@@ -86,6 +91,8 @@
         return 'M8 12a4 4 0 0 0 4 4M8 12a4 4 0 0 1 4-4M8 12H4M19 12a7 7 0 0 1-7 7M19 12a7 7 0 0 0-7-7';
       case 'vl53l0x':
         return 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5';
+      case 'ir_distance':
+        return 'M12 19V5M5 12l7-7 7 7M3 19h18';
       case 'servo':
         return 'M12 6v6l4 2M5.636 5.636a9 9 0 1 0 12.728 12.728';
       case 'gpio_in':
@@ -103,8 +110,9 @@
     switch (type) {
       case 'encoder':    return 'text-violet-400 border-violet-500/30 bg-violet-500/10';
       case 'ultrasonic': return 'text-cyan-400   border-cyan-500/30   bg-cyan-500/10';
-      case 'vl53l0x':   return 'text-teal-400   border-teal-500/30   bg-teal-500/10';
-      case 'servo':      return 'text-amber-400  border-amber-500/30  bg-amber-500/10';
+      case 'vl53l0x':     return 'text-teal-400   border-teal-500/30   bg-teal-500/10';
+      case 'ir_distance': return 'text-rose-400   border-rose-500/30   bg-rose-500/10';
+      case 'servo':       return 'text-amber-400  border-amber-500/30  bg-amber-500/10';
       case 'i2c':        return 'text-orange-400 border-orange-500/30 bg-orange-500/10';
       default:           return 'text-slate-600  border-slate-700/30  bg-slate-800/20';
     }
@@ -169,7 +177,7 @@
           ⇅ inverted
         </div>
       {/if}
-      {#if data.type === 'ultrasonic' && !data.valid}
+      {#if (data.type === 'ultrasonic' || data.type === 'ir_distance') && !data.valid}
         <div class="text-[10px] text-red-400 mt-0.5">out of range</div>
       {/if}
     {:else}

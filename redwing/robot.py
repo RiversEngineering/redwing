@@ -19,6 +19,7 @@ from .devices.ultrasonic import Ultrasonic
 from .devices.lidar import Lidar
 from .devices.tfmini import TFMini, TFLuna
 from .devices.vl53l0x import VL53L0X
+from .devices.ir_distance import IrDistance
 
 # Single-pin ports S0–S7 → internal IDs 0–7
 # Dual-pin ports   D0–D7 → internal IDs 8–15
@@ -439,6 +440,37 @@ class Robot:
         self._check_not_started("configure an ultrasonic sensor")
         port._configure("ultrasonic")
         device = Ultrasonic(port._id, self._conn, robot=self)
+        port._device = device
+        return device
+
+    def ir_distance(self, port: Port) -> IrDistance:
+        """Configure *port* as a Sharp GP2Y0A21YK0F IR distance sensor.
+
+        *port* must be **S5**, **S6**, or **S7** — only those ports have ADC
+        hardware (GP26/ADC0, GP27/ADC1, GP28/ADC2).
+
+        Wire the sensor **5V** supply to the board's 5V rail and place a
+        **10 kΩ/10 kΩ voltage divider** between the sensor output and the port
+        signal pin.  The valid range is 10–80 cm; readings outside that range
+        return ``-1`` from :attr:`IrDistance.distance`.
+
+        Example::
+
+            sensor = robot.ir_distance(robot.S5)
+            robot.start()
+
+            while True:
+                if sensor.in_range:
+                    robot.log(f"Distance: {sensor.distance:.1f} cm")
+                robot.sleep(0.05)
+        """
+        self._check_not_started("configure an IR distance sensor")
+        if port._id not in (5, 6, 7):
+            raise ValueError(
+                "ir_distance() requires S5, S6, or S7 (the ADC-capable S-ports)."
+            )
+        port._configure("ir_distance")
+        device = IrDistance(port._id, self._conn, robot=self)
         port._device = device
         return device
 

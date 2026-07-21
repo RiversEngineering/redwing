@@ -78,6 +78,7 @@ PORT_VL53L0X        = 0x0B  # VL53L0X ToF sensor on I²C port (auto-detected)
 # The daemon parses the Benewake 9-byte frame stream and exposes distance/strength/temperature.
 PORT_TFLUNA         = 0x0C  # Benewake TF-Luna (distance + strength + temperature)
 PORT_TFMINI         = 0x0D  # Benewake TF-Mini (distance + strength)
+PORT_IR_DISTANCE    = 0x0E  # Sharp GP2Y0A21YK0F IR sensor (ADC, S5/S6/S7 only)
 
 PORT_TYPE_NAMES = {
     PORT_UNCONFIGURED: "unconfigured",
@@ -94,6 +95,7 @@ PORT_TYPE_NAMES = {
     PORT_VL53L0X:      "vl53l0x",
     PORT_TFLUNA:       "tfluna",
     PORT_TFMINI:       "tfmini",
+    PORT_IR_DISTANCE:  "ir_distance",
 }
 
 PORT_TYPE_IDS = {v: k for k, v in PORT_TYPE_NAMES.items()}
@@ -113,6 +115,7 @@ PORT_STATE_SIZES = {
     PORT_VL53L0X:     3,   # u16 distance_mm + u8 valid (same layout as ultrasonic)
     PORT_TFLUNA:      0,   # daemon parses RSP_UART_RX; no RP2040 state bytes
     PORT_TFMINI:      0,   # daemon parses RSP_UART_RX; no RP2040 state bytes
+    PORT_IR_DISTANCE: 3,   # u16 distance_mm + u8 valid
 }
 
 
@@ -327,6 +330,10 @@ class PacketParser:
                 parsed["distance_mm"] = dist
                 parsed["valid"] = bool(valid)
             elif port_type == PORT_VL53L0X:
+                dist, valid = struct.unpack_from("<HB", pdata)
+                parsed["distance_mm"] = dist
+                parsed["valid"] = bool(valid)
+            elif port_type == PORT_IR_DISTANCE:
                 dist, valid = struct.unpack_from("<HB", pdata)
                 parsed["distance_mm"] = dist
                 parsed["valid"] = bool(valid)
