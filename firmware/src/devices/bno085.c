@@ -20,14 +20,17 @@ static char _diag[128] = "";
 #define SHTP_REPORTS  3u   // input reports: sensor data (sensor → host)
 
 // SH-2 report IDs
-#define RPT_LINEAR_ACCEL    0x04u
-#define RPT_ROTATION_VEC    0x05u
-#define CMD_SET_FEATURE     0xFDu
+#define RPT_LINEAR_ACCEL        0x04u
+#define RPT_ROTATION_VEC        0x05u   // magnetometer-fused, needs calibration
+#define RPT_GAME_ROTATION_VEC   0x08u   // accel+gyro only, starts immediately
+#define CMD_SET_FEATURE         0xFDu
 
 // Set Feature Command: 17-byte payload on channel SHTP_CTRL
 // interval_us = 10000 → 100 Hz
+// Use Game Rotation Vector (0x08): accel+gyro fusion only, no magnetometer
+// calibration required — outputs immediately on first boot.
 static const uint8_t _FEAT_ROT_VEC[17] = {
-    CMD_SET_FEATURE, RPT_ROTATION_VEC,
+    CMD_SET_FEATURE, RPT_GAME_ROTATION_VEC,
     0x00,            // flags
     0x00, 0x00,      // change sensitivity (disabled)
     0x10, 0x27, 0x00, 0x00,  // report interval = 10000 µs (100 Hz), uint32 LE
@@ -67,7 +70,13 @@ static void shtp_write(uint8_t channel, const uint8_t *payload, uint8_t plen) {
     buf[2] = channel;
     buf[3] = _seq[channel]++;
     memcpy(buf + 4, payload, plen);
-    i2c_write_blocking(i2c0, _addr, buf, total, false);
+    int rc = i2c_write_blocking(i2c0, _addr, buf, total, false);
+    if (rc != (int)total) {
+        char tmp[64];
+        snprintf(tmp, sizeof(tmp),
+            "[IMU] shtp_write ch=%u len=%u FAILED rc=%d", channel, total, rc);
+        usb_comm_send_log(tmp);
+    }
 }
 
 // Force-reset the I2C0 peripheral via the RP2040 resets block.
@@ -125,10 +134,12 @@ static uint8_t shtp_read(uint8_t *channel_out, uint8_t *payload, uint8_t max_pay
 static void process_payload(const uint8_t *p, uint8_t len) {
     if (len < 1u) return;
     switch (p[0]) {
+        // Game Rotation Vector (0x08): accel+gyro, no mag, 12-byte payload.
+        // Rotation Vector     (0x05): mag-fused,          14-byte payload.
+        // Both have identical quaternion layout at bytes 4–11 (Q14, LE).
+        case RPT_GAME_ROTATION_VEC:
         case RPT_ROTATION_VEC:
             if (len < 12u) break;
-            // Payload: [rpt_id][seq][status][delay][qI][qJ][qK][qReal][accuracy]
-            // All multi-byte values are LE.  qI=X, qJ=Y, qK=Z, qReal=W.
             _qx = (int16_t)((p[5]  << 8) | p[4]);
             _qy = (int16_t)((p[7]  << 8) | p[6]);
             _qz = (int16_t)((p[9]  << 8) | p[8]);
@@ -220,24 +231,36 @@ bool bno085_init(void) {
         hdr[0], hdr[1], hdr[2], hdr[3], (unsigned)pkt_len, (int)cont);
     usb_comm_send_log(_diag);
 
-    // ── Phase 4: drain the initial packet ─────────────────────────────────────
-    if (pkt_len >= 5u) {
-        uint8_t payload[64];
-        uint16_t payload_len = pkt_len - 4u;
-        if (payload_len > sizeof(payload)) payload_len = sizeof(payload);
-        i2c_read_blocking_until(i2c0, _addr, payload, payload_len, false,
-                                make_timeout_time_ms(200));
+    // ── Phase 4: drain ALL buffered packets before sending features ───────────
+    // After boot, the BNO085 queues a 276-byte advertisement (channel 0) and
+    // an EXE boot-status response (channel 1).  We must drain them entirely
+    // before enabling sensors; otherwise bno085_poll() wastes its 4-read budget
+    // on advertisement chunks and never reaches sensor reports.
+    {
+        uint8_t d_payload[64];
+        uint8_t d_ch;
+        uint8_t d_count = 0;
+        for (int i = 0; i < 30; i++) {
+            uint8_t len = shtp_read(&d_ch, d_payload, sizeof(d_payload));
+            if (len == 0) break;   // BNO085 returned pkt_len=0: buffer empty
+            d_count++;
+        }
+        {
+            char tmp[64];
+            snprintf(tmp, sizeof(tmp), "[IMU] drained %u pre-feature packets", (unsigned)d_count);
+            usb_comm_send_log(tmp);
+        }
     }
 
     // ── Phase 5: enable sensors ───────────────────────────────────────────────
     shtp_write(SHTP_CTRL, _FEAT_ROT_VEC,   sizeof(_FEAT_ROT_VEC));
     sleep_ms(10);
     shtp_write(SHTP_CTRL, _FEAT_LIN_ACCEL, sizeof(_FEAT_LIN_ACCEL));
-    // Give the BNO085 time to process the commands before the first poll.
-    sleep_ms(100);
+    // Give the BNO085 a moment to process the commands and queue the first reports.
+    sleep_ms(50);
 
     snprintf(_diag, sizeof(_diag),
-        "[IMU] T=%lums: 0x%02X init OK (rot_vec + lin_accel at 100 Hz)",
+        "[IMU] T=%lums: 0x%02X init OK (game_rot_vec + lin_accel at 100 Hz)",
         (unsigned long)to_ms_since_boot(get_absolute_time()), _addr);
     usb_comm_send_log(_diag);
 
@@ -247,33 +270,38 @@ bool bno085_init(void) {
 const char *bno085_get_diag(void) { return _diag; }
 
 void bno085_poll(void) {
-    static uint16_t _poll_ctr = 0;
-    static bool _poll_logged  = false;
+    static uint16_t _poll_ctr  = 0;
+    static uint32_t _rpt_total = 0;
+    static uint8_t  _ch_seen   = 0;
 
     uint8_t payload[64];
     uint8_t ch;
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 8; i++) {
         uint8_t len = shtp_read(&ch, payload, sizeof(payload));
         if (len == 0) break;
+        if (ch < 8u) _ch_seen |= (uint8_t)(1u << ch);
         if (ch == SHTP_REPORTS) {
             process_payload(payload, len);
-            if (!_poll_logged) {
-                char tmp[72];
-                snprintf(tmp, sizeof(tmp),
-                    "[IMU] first report: ch=%u rpt=0x%02X len=%u",
-                    (unsigned)ch, (unsigned)payload[0], (unsigned)len);
-                usb_comm_send_log(tmp);
-                _poll_logged = true;
-            }
+            _rpt_total++;
         }
     }
 
-    // Log a warning after 50 polls (~1 s at 50 Hz) with no report yet.
-    if (!_poll_logged) {
-        _poll_ctr++;
-        if (_poll_ctr == 50u) {
-            usb_comm_send_log("[IMU] 50 polls: no SHTP_REPORTS received");
+    // Log a status every 200 polls (~4 s at 50 Hz) so the diagnostic panel
+    // stays fresh even after the page is reloaded.
+    _poll_ctr++;
+    if (_poll_ctr >= 200u) {
+        _poll_ctr = 0;
+        char tmp[80];
+        if (_rpt_total == 0) {
+            snprintf(tmp, sizeof(tmp),
+                "[IMU] no reports; ch_seen=0x%02X", (unsigned)_ch_seen);
+        } else {
+            snprintf(tmp, sizeof(tmp),
+                "[IMU] %lu rpts qw=%d qx=%d qy=%d qz=%d",
+                (unsigned long)_rpt_total,
+                (int)_qw, (int)_qx, (int)_qy, (int)_qz);
         }
+        usb_comm_send_log(tmp);
     }
 }
 

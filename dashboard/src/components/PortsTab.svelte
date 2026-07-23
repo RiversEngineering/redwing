@@ -1397,6 +1397,14 @@
             <p class="text-xs text-slate-600">
               {selectedData.type === 'bno085' ? 'BNO085' : 'BNO055'} auto-detected on I²C (GP4 SDA / GP5 SCL). Read-only.
             </p>
+            {#if imuLogs.length > 0}
+              <div class="bg-slate-800/60 rounded border border-slate-700/50 p-2 space-y-1">
+                <p class="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-1">Firmware diagnostic</p>
+                {#each imuLogs as entry}
+                  <p class="text-[11px] font-mono text-slate-400 break-all">{entry.message}</p>
+                {/each}
+              </div>
+            {/if}
           </div>
 
         {:else if selectedData.type === 'mpu6050'}
