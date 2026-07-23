@@ -110,7 +110,7 @@ bool bno085_init(void) {
     // retry every 50 ms for up to 600 ms.  Try both addresses.
     uint8_t dummy;
     _addr = 0;
-    for (int i = 0; i < 12 && _addr == 0; i++) {
+    for (int i = 0; i < 20 && _addr == 0; i++) {
         if (i2c_read_blocking(i2c0, 0x4Au, &dummy, 1, false) >= 0)      _addr = 0x4Au;
         else if (i2c_read_blocking(i2c0, 0x4Bu, &dummy, 1, false) >= 0) _addr = 0x4Bu;
         if (_addr == 0) sleep_ms(50);
