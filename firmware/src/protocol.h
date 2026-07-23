@@ -37,6 +37,7 @@
 #define RESP_ACK           0x83
 #define RESP_UART_RX       0x84  // bytes received on UART; payload: [port_id:u8][data...]
 #define RESP_MEASURE_PULSE 0x85  // pulse width result; payload: [pulse_us:u32 LE]
+#define RESP_LOG           0x86  // diagnostic text from firmware; payload: ASCII string (no NUL)
 
 // ─── Port type enum ──────────────────────────────────────────────────────────
 #define PORT_UNCONFIGURED   0x00

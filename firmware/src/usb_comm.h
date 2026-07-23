@@ -25,3 +25,7 @@ void usb_comm_send_ack(uint8_t cmd_type);
 
 // Send an error packet: code + null-terminated message string
 void usb_comm_send_error(uint8_t code, const char *msg);
+
+// Send a RESP_LOG packet with a plain ASCII diagnostic string.
+// Truncated to PROTO_MAX_LEN bytes if longer.
+void usb_comm_send_log(const char *msg);

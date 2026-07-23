@@ -142,6 +142,12 @@ class RP2040:
             if self._measure_pulse_future and not self._measure_pulse_future.done():
                 self._measure_pulse_future.set_result(pulse_us)
 
+        elif ptype == "log":
+            msg = pkt.get("message", "")
+            if msg:
+                async with self._state.lock:
+                    self._state.add_log("info", msg)
+
         elif ptype == "error":
             code = pkt.get("code", 0)
             msg  = pkt.get("message", "")

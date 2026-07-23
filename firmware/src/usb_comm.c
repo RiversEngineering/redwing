@@ -121,6 +121,12 @@ void usb_comm_send_ack(uint8_t cmd_type) {
     usb_comm_send(RESP_ACK, &cmd_type, 1);
 }
 
+void usb_comm_send_log(const char *msg) {
+    size_t len = strlen(msg);
+    if (len > PROTO_MAX_LEN) len = PROTO_MAX_LEN;
+    usb_comm_send(RESP_LOG, (const uint8_t *)msg, (uint8_t)len);
+}
+
 void usb_comm_send_error(uint8_t code, const char *msg) {
     uint8_t buf[PROTO_MAX_LEN];
     buf[0] = code;

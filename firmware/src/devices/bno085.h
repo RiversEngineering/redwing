@@ -9,6 +9,10 @@
 
 bool bno085_init(void);
 
+// Returns the last init diagnostic string (empty before init runs).
+// Re-broadcast periodically when the IMU is not detected.
+const char *bno085_get_diag(void);
+
 // Drain any pending SHTP input-report packets and cache the latest values.
 // Call before each state read to keep data fresh.
 void bno085_poll(void);

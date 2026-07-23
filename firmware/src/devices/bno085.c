@@ -1,10 +1,15 @@
 #include "bno085.h"
+#include "../usb_comm.h"
 #include "hardware/i2c.h"
 #include "pico/stdlib.h"
 #include <string.h>
+#include <stdio.h>
 
 // Detected I2C address (0x4A = ADDR low, 0x4B = ADDR high). Set during init.
 static uint8_t _addr = 0x4Au;
+
+// Last init diagnostic — sent periodically over USB until IMU is found.
+static char _diag[128] = "";
 
 // SHTP channel numbers
 #define SHTP_CMD      0u   // unsolicited advertisements / product ID
@@ -104,41 +109,52 @@ static void process_payload(const uint8_t *p, uint8_t len) {
 // ── Public API ────────────────────────────────────────────────────────────────
 
 bool bno085_init(void) {
-    // I2C READ probes fail during SH-2 boot because the BNO085 clock-stretches
-    // read transactions while preparing data; the RP2040 hardware times out and
-    // returns -1, making the device appear absent.
-    //
-    // WRITE probes never clock-stretch — the I2C hardware ACKs writes immediately
-    // regardless of SH-2 state.  We write a single dummy byte and check for ACK.
-    uint8_t probe_byte = 0;
-    _addr = 0;
-    for (int i = 0; i < 5 && _addr == 0; i++) {
-        if (i2c_write_blocking(i2c0, 0x4Au, &probe_byte, 1, false) >= 0)      _addr = 0x4Au;
-        else if (i2c_write_blocking(i2c0, 0x4Bu, &probe_byte, 1, false) >= 0) _addr = 0x4Bu;
-        if (_addr == 0) sleep_ms(20);
+    // Wait until well past the SH-2 boot window. Write probes sent during
+    // early boot leave the I²C bus in a bad state when they fail; use read
+    // probes only, and wait until 1500 ms from power-on.
+    {
+        uint32_t elapsed = to_ms_since_boot(get_absolute_time());
+        if (elapsed < 1500u) sleep_ms(1500u - elapsed);
     }
-    if (_addr == 0) return false;
 
-    // Device found.  Send a soft reset so the SH-2 starts from a clean SHTP
-    // state (the probe byte may be buffered in the write FIFO).  Then sleep
-    // long enough for: (a) the SH-2 power-on boot to complete and process the
-    // reset command, and (b) the software reset sequence to finish.
-    // Power-on boot: up to ~700 ms.  Software reset: < 300 ms.  Margin: 100 ms.
-    uint8_t rst = 0x01u;
-    shtp_write(SHTP_EXE, &rst, 1);
-    sleep_ms(1100);
+    uint32_t t = to_ms_since_boot(get_absolute_time());
+    _addr = 0;
 
-    // Drain the two unsolicited startup packets that follow a reset:
-    //   channel 1 (EXE):  reset-complete  (payload[0] == 0x01)
-    //   channel 0 (CMD):  advertisement
-    uint8_t payload[64];
-    uint8_t ch;
-    bool got_reset = false;
-    for (int i = 0; i < 20; i++) {
-        uint8_t len = shtp_read(&ch, payload, sizeof(payload));
-        if (len == 0) { sleep_ms(10); continue; }
-        if (ch == SHTP_EXE && len >= 1u && payload[0] == 0x01u) got_reset = true;
-        if (got_reset && ch == SHTP_CMD) break;
+    // Probe with a 4-byte read (one full SHTP header). This confirms
+    // presence and leaves the bus packet-aligned for the drain below.
+    uint8_t hdr[4] = {0, 0, 0, 0};
+    int probe_a = i2c_read_blocking(i2c0, 0x4Au, hdr, 4, false);
+    int probe_b = -1;
+    if (probe_a == 4) {
+        _addr = 0x4Au;
+    } else {
+        probe_b = i2c_read_blocking(i2c0, 0x4Bu, hdr, 4, false);
+        if (probe_b == 4) _addr = 0x4Bu;
+    }
+
+    if (_addr == 0) {
+        snprintf(_diag, sizeof(_diag),
+            "[IMU] T=%lums: 0x4A=%s 0x4B=%s — not found",
+            (unsigned long)t,
+            probe_a >= 0 ? "ACK" : "NAK",
+            probe_b >= 0 ? "ACK" : "NAK");
+        usb_comm_send_log(_diag);
+        return false;
+    }
+
+    uint16_t pkt_len = ((uint16_t)(hdr[1] & 0x7Fu) << 8u) | hdr[0];
+    snprintf(_diag, sizeof(_diag),
+        "[IMU] T=%lums: 0x%02X ACK hdr=%02X %02X %02X %02X pkt_len=%u — sending features",
+        (unsigned long)t, _addr,
+        hdr[0], hdr[1], hdr[2], hdr[3], (unsigned)pkt_len);
+    usb_comm_send_log(_diag);
+
+    // Drain the payload of the header we just consumed.
+    if (pkt_len >= 5u) {
+        uint8_t payload[64];
+        uint16_t payload_len = pkt_len - 4u;
+        if (payload_len > sizeof(payload)) payload_len = sizeof(payload);
+        i2c_read_blocking(i2c0, _addr, payload, payload_len, false);
     }
 
     // Enable rotation vector and linear acceleration reports at 100 Hz.
@@ -146,8 +162,15 @@ bool bno085_init(void) {
     sleep_ms(5);
     shtp_write(SHTP_CTRL, _FEAT_LIN_ACCEL, sizeof(_FEAT_LIN_ACCEL));
 
+    snprintf(_diag, sizeof(_diag),
+        "[IMU] T=%lums: 0x%02X init OK (rot_vec + lin_accel at 100 Hz)",
+        (unsigned long)to_ms_since_boot(get_absolute_time()), _addr);
+    usb_comm_send_log(_diag);
+
     return true;
 }
+
+const char *bno085_get_diag(void) { return _diag; }
 
 void bno085_poll(void) {
     uint8_t payload[64];

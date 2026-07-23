@@ -5,7 +5,7 @@
    * Left column: compact clickable list of all port slots.
    * Right panel: context-sensitive controls (outputs) or readings (inputs).
    */
-  import { ports, robotState, selectedPortId } from '../lib/stores.js';
+  import { ports, robotState, selectedPortId, logs } from '../lib/stores.js';
   import { send } from '../lib/ws.js';
 
   // ── Port directory ────────────────────────────────────────────────────────────
@@ -19,6 +19,7 @@
 
   $: selectedData = selectedId !== null ? $ports[selectedId] : null;
   $: selectedPort = selectedId !== null ? ALL_PORTS.find((p) => p.id === selectedId) : null;
+  $: imuLogs = $logs.filter((e) => e.message && e.message.startsWith('[IMU]')).slice(-5);
 
   // Auto-select a port when navigating here from the overview port grid.
   let _lastHandled = null;
@@ -898,6 +899,16 @@
               The firmware probes for BNO085, BNO055, and MPU-6050 at startup.<br>
               Check that the sensor is wired to <strong class="text-slate-500">GP4 (SDA)</strong> and <strong class="text-slate-500">GP5 (SCL)</strong> and power-cycle the robot.
             </p>
+            {#if imuLogs.length > 0}
+              <div class="w-full max-w-sm bg-slate-800/60 rounded border border-slate-700/50 p-2 space-y-1">
+                <p class="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-1">Firmware diagnostic</p>
+                {#each imuLogs as entry}
+                  <p class="text-[11px] font-mono text-slate-400 break-all">{entry.message}</p>
+                {/each}
+              </div>
+            {:else}
+              <p class="text-[10px] text-slate-700 italic">Waiting for firmware diagnostic… (appears within 5 s of connection)</p>
+            {/if}
           </div>
 
         {:else if !selectedData}

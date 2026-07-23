@@ -46,6 +46,7 @@ RSP_ERROR          = 0x82
 RSP_ACK            = 0x83
 RSP_UART_RX        = 0x84
 RSP_MEASURE_PULSE  = 0x85  # payload: [pulse_us:u32 LE]
+RSP_LOG            = 0x86  # payload: ASCII diagnostic string (no NUL)
 
 # -------------------------------------------------------------------
 # RP2040 error codes (must match firmware protocol.h)
@@ -299,6 +300,10 @@ class PacketParser:
         if msg_type == RSP_MEASURE_PULSE and len(payload) >= 4:
             pulse_us = struct.unpack_from("<I", payload, 0)[0]
             return {"type": "measure_pulse", "pulse_us": pulse_us}
+
+        if msg_type == RSP_LOG:
+            msg = payload.rstrip(b"\x00").decode("ascii", errors="replace")
+            return {"type": "log", "level": "info", "message": msg}
 
         return {"type": "unknown", "msg_type": msg_type, "payload": payload.hex()}
 

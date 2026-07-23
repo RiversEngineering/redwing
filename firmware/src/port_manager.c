@@ -665,6 +665,19 @@ void port_pid_update(void) {
 // ─── State packet builder ─────────────────────────────────────────────────────
 
 void port_send_state(void) {
+    // Re-broadcast the BNO085 init diagnostic every ~5 s while IMU is absent,
+    // so the dashboard shows it even if the daemon wasn't connected at boot.
+    {
+        static uint16_t _imu_diag_ctr = 0;
+        if (ports[PORT_ID_IMU].type == PORT_UNCONFIGURED) {
+            if (_imu_diag_ctr == 0) {
+                const char *d = bno085_get_diag();
+                if (d[0] != '\0') usb_comm_send_log(d);
+            }
+            if (++_imu_diag_ctr >= 250u) _imu_diag_ctr = 0;  // 250 × 20 ms = 5 s at 50 Hz
+        }
+    }
+
     uint8_t buf[PROTO_MAX_LEN];
     uint8_t pos = 0;
 
