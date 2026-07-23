@@ -114,7 +114,7 @@ PORT_STATE_SIZES = {
     PORT_SERVO:       2,   # u16 angle
     PORT_ENCODER:     8,   # i32 count + i32 velocity
     PORT_ULTRASONIC:  3,   # u16 distance_mm + u8 valid
-    PORT_I2C:         0,   # no data
+    PORT_I2C:         9,   # u8 count + 8×u8 addresses (zero-padded) — I²C bus scan
     PORT_GPIO_IN:     1,   # u8 state
     PORT_GPIO_OUT:    1,   # u8 state
     PORT_UART:        0,   # no per-frame state; data flows via RSP_UART_RX packets
@@ -338,6 +338,10 @@ class PacketParser:
                 dist, valid = struct.unpack_from("<HB", pdata)
                 parsed["distance_mm"] = dist
                 parsed["valid"] = bool(valid)
+            elif port_type == PORT_I2C:
+                count = pdata[0]
+                addrs = [pdata[1 + k] for k in range(count)]
+                parsed["scan"] = [f"0x{a:02X}" for a in addrs]
             elif port_type == PORT_VL53L0X:
                 dist, valid = struct.unpack_from("<HB", pdata)
                 parsed["distance_mm"] = dist

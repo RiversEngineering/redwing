@@ -23,6 +23,10 @@
 // S0–S7 at [0–7], D0–D7 at [8–15], dedicated I2C at [16]
 PortState ports[PORT_COUNT_TOTAL];
 
+// I²C bus scan results — populated during init, sent with every PORT_I2C state.
+static uint8_t _scan_count = 0;
+static uint8_t _scan_addrs[8] = {0};
+
 bool config_locked = false;
 
 // UART0_PORT_ID / UART1_PORT_ID defined in port_manager.h
@@ -122,8 +126,10 @@ void port_manager_init(void) {
         ports[i].pid_last_count   = 0;
         ports[i].pid_d_alpha      = 1.0f;
     }
-    // Initialise I²C0 at 400 kHz on GP4 (SDA) / GP5 (SCL) and scan for VL53L0X.
-    i2c_init(i2c0, 400 * 1000);
+    // Initialise I²C0 at 100 kHz on GP4 (SDA) / GP5 (SCL).
+    // 100 kHz is safe with the RP2040's internal ~50 kΩ pull-ups; 400 kHz needs
+    // external 4.7 kΩ pull-ups to meet the I²C rise-time spec.
+    i2c_init(i2c0, 100 * 1000);
     gpio_set_function(I2C_SDA_GPIO, GPIO_FUNC_I2C);
     gpio_set_function(I2C_SCL_GPIO, GPIO_FUNC_I2C);
     gpio_pull_up(I2C_SDA_GPIO);
@@ -150,6 +156,15 @@ void port_manager_init(void) {
         ports[PORT_ID_IMU].type = PORT_BNO055;
     } else if (mpu6050_init()) {
         ports[PORT_ID_IMU].type = PORT_MPU6050;
+    }
+
+    // Scan the full I²C address space and record responding addresses.
+    // Sent in every PORT_I2C state packet so the dashboard can display them.
+    _scan_count = 0;
+    uint8_t probe_byte;
+    for (uint8_t addr = 0x08; addr < 0x78 && _scan_count < 8; addr++) {
+        if (i2c_read_blocking(i2c0, addr, &probe_byte, 1, false) >= 0)
+            _scan_addrs[_scan_count++] = addr;
     }
 }
 
@@ -703,6 +718,10 @@ void port_send_state(void) {
                 break;
             }
             case PORT_I2C:
+                // 9 bytes: [count] + [8 addresses, zero-padded]
+                buf[pos++] = _scan_count;
+                for (int k = 0; k < 8; k++)
+                    buf[pos++] = (k < _scan_count) ? _scan_addrs[k] : 0u;
                 break;
             case PORT_VL53L0X: {
                 bool valid;

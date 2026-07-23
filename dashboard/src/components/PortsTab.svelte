@@ -1469,8 +1469,32 @@
             <p class="text-xs text-slate-600">Read-only — configure this port in student code with <span class="font-mono">robot.{selectedData.type}()</span>.</p>
           </div>
 
+        {:else if selectedData.type === 'i2c'}
+          <!-- ── I²C bus scan ── -->
+          <div class="space-y-4 max-w-xs">
+            <div class="bg-[#1e2129] rounded-lg border border-[#2e3340] p-5">
+              <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-3">I²C Bus Scan</div>
+              {#if selectedData.scan && selectedData.scan.length > 0}
+                <div class="text-xs text-slate-400 mb-2">{selectedData.scan.length} device{selectedData.scan.length !== 1 ? 's' : ''} found</div>
+                <div class="flex flex-wrap gap-2">
+                  {#each selectedData.scan as addr}
+                    <span class="font-mono text-sm px-2 py-1 rounded bg-orange-500/10 border border-orange-500/30 text-orange-400">{addr}</span>
+                  {/each}
+                </div>
+              {:else if selectedData.scan}
+                <div class="text-sm text-red-400">No devices responded</div>
+                <div class="text-xs text-slate-600 mt-1">Check wiring and that the sensor is powered.</div>
+              {:else}
+                <div class="text-sm text-slate-600 italic">Scan data not available — reflash firmware.</div>
+              {/if}
+            </div>
+            <p class="text-xs text-slate-600">
+              Scan runs once at startup. Power-cycle the robot after connecting a sensor.
+            </p>
+          </div>
+
         {:else}
-          <!-- Fallback for uart / i2c / other -->
+          <!-- Fallback for uart / other -->
           <div class="flex flex-col gap-2 text-slate-600">
             <span class="text-sm">No controls available for this port type.</span>
           </div>
