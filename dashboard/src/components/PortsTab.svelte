@@ -886,7 +886,21 @@
       <!-- Control body -->
       <div class="flex-1 overflow-y-auto p-6">
 
-        {#if !selectedData}
+        {#if !selectedData && selectedId === 17}
+          <!-- IMU port — auto-detected, never user-configurable -->
+          <div class="flex flex-col items-center justify-center h-full gap-3 text-slate-600">
+            <svg class="w-8 h-8 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+            <p class="text-sm text-center text-slate-500">No IMU detected</p>
+            <p class="text-xs text-slate-700 text-center leading-relaxed max-w-xs">
+              The firmware probes for BNO085, BNO055, and MPU-6050 at startup.<br>
+              Check that the sensor is wired to <strong class="text-slate-500">GP4 (SDA)</strong> and <strong class="text-slate-500">GP5 (SCL)</strong> and power-cycle the robot.
+            </p>
+          </div>
+
+        {:else if !selectedData}
           <!-- Unconfigured — show type picker or locked message -->
           {#if configFinalized}
             <div class="flex flex-col items-center justify-center h-full gap-3 text-slate-600">

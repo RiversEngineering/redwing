@@ -3,7 +3,8 @@
 #include "pico/stdlib.h"
 #include <string.h>
 
-#define BNO085_ADDR      0x4Au
+// Detected I2C address (0x4A = ADDR low, 0x4B = ADDR high). Set during init.
+static uint8_t _addr = 0x4Au;
 
 // SHTP channel numbers
 #define SHTP_CMD      0u   // unsolicited advertisements / product ID
@@ -54,14 +55,14 @@ static void shtp_write(uint8_t channel, const uint8_t *payload, uint8_t plen) {
     buf[2] = channel;
     buf[3] = _seq[channel]++;
     memcpy(buf + 4, payload, plen);
-    i2c_write_blocking(i2c0, BNO085_ADDR, buf, total, false);
+    i2c_write_blocking(i2c0, _addr, buf, total, false);
 }
 
 // Returns payload byte count, or 0 if no data.
 // channel_out: filled with the SHTP channel from the header.
 static uint8_t shtp_read(uint8_t *channel_out, uint8_t *payload, uint8_t max_payload) {
     uint8_t hdr[4];
-    if (i2c_read_blocking(i2c0, BNO085_ADDR, hdr, 4, false) != 4) return 0;
+    if (i2c_read_blocking(i2c0, _addr, hdr, 4, false) != 4) return 0;
 
     uint16_t pkt_len = ((uint16_t)(hdr[1] & 0x7Fu) << 8u) | hdr[0];
     if (pkt_len < 5u) return 0;  // 0 = no data; 1–4 = header-only
@@ -69,7 +70,7 @@ static uint8_t shtp_read(uint8_t *channel_out, uint8_t *payload, uint8_t max_pay
     uint16_t payload_len = pkt_len - 4u;
     if (payload_len > max_payload) payload_len = max_payload;
 
-    if (i2c_read_blocking(i2c0, BNO085_ADDR, payload, payload_len, false)
+    if (i2c_read_blocking(i2c0, _addr, payload, payload_len, false)
         != (int)payload_len) return 0;
 
     if (channel_out) *channel_out = hdr[2];
@@ -103,12 +104,21 @@ static void process_payload(const uint8_t *p, uint8_t len) {
 // ── Public API ────────────────────────────────────────────────────────────────
 
 bool bno085_init(void) {
-    // Quick-detect: a successful I2C read at 0x4A means device is present.
+    // BNO085 SH-2 firmware takes up to 300 ms from power-on before it ACKs
+    // its I2C address.  The RP2040 boots in ~100 ms, so we must retry.
+    // Try both addresses: 0x4A (ADDR pin low) and 0x4B (ADDR pin high).
     uint8_t probe[4];
-    if (i2c_read_blocking(i2c0, BNO085_ADDR, probe, 4, false) < 0) return false;
+    _addr = 0;
+    for (int i = 0; i < 8 && _addr == 0; i++) {
+        if (i2c_read_blocking(i2c0, 0x4Au, probe, 4, false) >= 0)      _addr = 0x4Au;
+        else if (i2c_read_blocking(i2c0, 0x4Bu, probe, 4, false) >= 0) _addr = 0x4Bu;
+        if (_addr == 0) sleep_ms(50);
+    }
+    if (_addr == 0) return false;
 
-    // The BNO085 SH-2 firmware takes ~300 ms to boot from power-on.
-    sleep_ms(300);
+    // Give the SH-2 firmware any remaining boot time (loop may have spent
+    // up to 400 ms already; this adds a small margin for the reset packet).
+    sleep_ms(50);
 
     // Drain the two unsolicited startup packets:
     //   channel 0 (CMD):  advertisement
