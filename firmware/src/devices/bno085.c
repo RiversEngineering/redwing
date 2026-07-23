@@ -104,24 +104,29 @@ static void process_payload(const uint8_t *p, uint8_t len) {
 // ── Public API ────────────────────────────────────────────────────────────────
 
 bool bno085_init(void) {
-    // The BNO085 I2C hardware ACKs its address as soon as VDD is stable, but
-    // the SH-2 firmware may clock-stretch on multi-byte reads during the first
-    // ~500 ms of boot.  Probe with a single byte (short stretch window) and
-    // retry every 50 ms for up to 600 ms.  Try both addresses.
-    uint8_t dummy;
+    // I2C READ probes fail during SH-2 boot because the BNO085 clock-stretches
+    // read transactions while preparing data; the RP2040 hardware times out and
+    // returns -1, making the device appear absent.
+    //
+    // WRITE probes never clock-stretch — the I2C hardware ACKs writes immediately
+    // regardless of SH-2 state.  We write a single dummy byte and check for ACK.
+    uint8_t probe_byte = 0;
     _addr = 0;
-    for (int i = 0; i < 20 && _addr == 0; i++) {
-        if (i2c_read_blocking(i2c0, 0x4Au, &dummy, 1, false) >= 0)      _addr = 0x4Au;
-        else if (i2c_read_blocking(i2c0, 0x4Bu, &dummy, 1, false) >= 0) _addr = 0x4Bu;
-        if (_addr == 0) sleep_ms(50);
+    for (int i = 0; i < 5 && _addr == 0; i++) {
+        if (i2c_write_blocking(i2c0, 0x4Au, &probe_byte, 1, false) >= 0)      _addr = 0x4Au;
+        else if (i2c_write_blocking(i2c0, 0x4Bu, &probe_byte, 1, false) >= 0) _addr = 0x4Bu;
+        if (_addr == 0) sleep_ms(20);
     }
     if (_addr == 0) return false;
 
-    // Soft-reset the SH-2 firmware so we start from a known SHTP state
-    // (the probe reads may have consumed a partial SHTP header).
+    // Device found.  Send a soft reset so the SH-2 starts from a clean SHTP
+    // state (the probe byte may be buffered in the write FIFO).  Then sleep
+    // long enough for: (a) the SH-2 power-on boot to complete and process the
+    // reset command, and (b) the software reset sequence to finish.
+    // Power-on boot: up to ~700 ms.  Software reset: < 300 ms.  Margin: 100 ms.
     uint8_t rst = 0x01u;
     shtp_write(SHTP_EXE, &rst, 1);
-    sleep_ms(300);
+    sleep_ms(1100);
 
     // Drain the two unsolicited startup packets that follow a reset:
     //   channel 1 (EXE):  reset-complete  (payload[0] == 0x01)

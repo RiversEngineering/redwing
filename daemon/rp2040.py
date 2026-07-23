@@ -56,6 +56,10 @@ class RP2040:
         self._connected = True
         async with self._state.lock:
             self._state.rp2040_connected = True
+            # Clear port data so the dashboard doesn't show stale state from
+            # the previous session while we wait for the first state packet.
+            self._state.ports.clear()
+            self._state.port_config.clear()
         log.info("RP2040 connected")
 
         await self._send_raw(proto.cmd_set_rate(STREAM_HZ))
