@@ -24,6 +24,7 @@ static char _diag[128] = "";
 #define RPT_ROTATION_VEC        0x05u   // magnetometer-fused, needs calibration
 #define RPT_GAME_ROTATION_VEC   0x08u   // accel+gyro only, starts immediately
 #define CMD_SET_FEATURE         0xFDu
+#define CMD_GET_PRODUCT_ID      0xF9u
 
 // Set Feature Command: 17-byte payload on channel SHTP_CTRL
 // interval_us = 10000 → 100 Hz
@@ -231,23 +232,69 @@ bool bno085_init(void) {
         hdr[0], hdr[1], hdr[2], hdr[3], (unsigned)pkt_len, (int)cont);
     usb_comm_send_log(_diag);
 
-    // ── Phase 4: drain ALL buffered packets before sending features ───────────
-    // After boot, the BNO085 queues a 276-byte advertisement (channel 0) and
-    // an EXE boot-status response (channel 1).  We must drain them entirely
-    // before enabling sensors; otherwise bno085_poll() wastes its 4-read budget
-    // on advertisement chunks and never reaches sensor reports.
+    // ── Phase 4: drain exactly ONE advertisement, then pause ─────────────────
+    // Without a HINT pin the BNO085 re-queues the advertisement every time the
+    // host reads — it stays in "advertisement loop mode" indefinitely as long as
+    // the host keeps issuing I²C reads.  The only way to break out is to stop
+    // reading for long enough that the BNO085 transitions to normal mode and
+    // dequeues its Product ID Response.
+    //
+    // Strategy:
+    //   a) Read until we have consumed pkt_len-4 = 272 bytes of ch-0 payload
+    //      (exactly one advertisement's worth, which the probe started).
+    //   b) STOP reading entirely for 500ms (host-side silence breaks the loop).
+    //   c) Send Set Feature without reading again — a Write never triggers
+    //      advertisement re-loop because it is a separate I²C transaction.
     {
         uint8_t d_payload[64];
         uint8_t d_ch;
-        uint8_t d_count = 0;
-        for (int i = 0; i < 30; i++) {
+        uint32_t adv_payload   = (uint32_t)(pkt_len - 4u);  // bytes after probe hdr
+        uint32_t adv_consumed  = 0;
+        uint32_t d_count_ch0   = 0;
+
+        while (adv_consumed < adv_payload) {
             uint8_t len = shtp_read(&d_ch, d_payload, sizeof(d_payload));
-            if (len == 0) break;   // BNO085 returned pkt_len=0: buffer empty
-            d_count++;
+            if (len == 0) break;    // shouldn't happen mid-advertisement
+            if (d_ch == 0u) {
+                d_count_ch0++;
+                adv_consumed += (uint32_t)len;
+                if (adv_consumed > adv_payload) adv_consumed = adv_payload;
+            }
+            // Non-ch-0 packets during advertisement drain are unexpected but harmless.
         }
+
+        {
+            char tmp[80];
+            snprintf(tmp, sizeof(tmp),
+                "[IMU] adv drained %lu/%lu bytes in %lu reads — pausing",
+                (unsigned long)adv_consumed, (unsigned long)adv_payload,
+                (unsigned long)d_count_ch0);
+            usb_comm_send_log(tmp);
+        }
+
+        // Host silence: BNO085 exits advertisement loop and queues Product ID.
+        sleep_ms(500);
+
+        // Send Get Product ID Request on channel 2.  This WRITE (not a read)
+        // is the handshake many BNO085 firmware versions require to exit
+        // advertisement mode.  After this write the BNO085 queues a Product ID
+        // Response (0xF8) on channel 2 and is ready for Set Feature commands.
+        static const uint8_t _get_pid[1] = {CMD_GET_PRODUCT_ID};
+        shtp_write(SHTP_CTRL, _get_pid, 1u);
+        sleep_ms(10);
+
+        // Read the Product ID Response and log it so we know the BNO085
+        // is out of advertisement mode.  A single read here won't re-trigger
+        // the loop because the BNO085 has already exited it.
+        uint8_t pid_ch;
+        uint8_t pid_buf[32];
+        uint8_t pid_len = shtp_read(&pid_ch, pid_buf, sizeof(pid_buf));
         {
             char tmp[64];
-            snprintf(tmp, sizeof(tmp), "[IMU] drained %u pre-feature packets", (unsigned)d_count);
+            snprintf(tmp, sizeof(tmp),
+                "[IMU] prod_id: ch=%u len=%u rpt=0x%02X",
+                (unsigned)pid_ch, (unsigned)pid_len,
+                pid_len > 0u ? (unsigned)pid_buf[0] : 0xFFu);
             usb_comm_send_log(tmp);
         }
     }
@@ -256,7 +303,6 @@ bool bno085_init(void) {
     shtp_write(SHTP_CTRL, _FEAT_ROT_VEC,   sizeof(_FEAT_ROT_VEC));
     sleep_ms(10);
     shtp_write(SHTP_CTRL, _FEAT_LIN_ACCEL, sizeof(_FEAT_LIN_ACCEL));
-    // Give the BNO085 a moment to process the commands and queue the first reports.
     sleep_ms(50);
 
     snprintf(_diag, sizeof(_diag),
@@ -272,7 +318,14 @@ const char *bno085_get_diag(void) { return _diag; }
 void bno085_poll(void) {
     static uint16_t _poll_ctr  = 0;
     static uint32_t _rpt_total = 0;
-    static uint8_t  _ch_seen   = 0;
+    static uint8_t  _ch_seen   = 0;   // resets each 200-poll window
+
+    // If no reports yet, re-send Set Feature every 100 polls (~2 s) in case
+    // the BNO085 wasn't ready when init fired the first commands.
+    if (_rpt_total == 0 && _poll_ctr > 0 && (_poll_ctr % 100u) == 0u) {
+        shtp_write(SHTP_CTRL, _FEAT_ROT_VEC,   sizeof(_FEAT_ROT_VEC));
+        shtp_write(SHTP_CTRL, _FEAT_LIN_ACCEL, sizeof(_FEAT_LIN_ACCEL));
+    }
 
     uint8_t payload[64];
     uint8_t ch;
@@ -286,9 +339,9 @@ void bno085_poll(void) {
         }
     }
 
-    // Log a status every 200 polls (~4 s at 50 Hz) so the diagnostic panel
-    // stays fresh even after the page is reloaded.
     _poll_ctr++;
+    // Log a status every 200 polls (~4 s at 50 Hz); reset ch_seen so each
+    // window shows only what happened in that period.
     if (_poll_ctr >= 200u) {
         _poll_ctr = 0;
         char tmp[80];
@@ -301,6 +354,7 @@ void bno085_poll(void) {
                 (unsigned long)_rpt_total,
                 (int)_qw, (int)_qx, (int)_qy, (int)_qz);
         }
+        _ch_seen = 0;
         usb_comm_send_log(tmp);
     }
 }

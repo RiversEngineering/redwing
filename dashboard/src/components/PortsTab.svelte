@@ -19,7 +19,7 @@
 
   $: selectedData = selectedId !== null ? $ports[selectedId] : null;
   $: selectedPort = selectedId !== null ? ALL_PORTS.find((p) => p.id === selectedId) : null;
-  $: imuLogs = $logs.filter((e) => e.message && e.message.startsWith('[IMU]')).slice(-5);
+  $: imuLogs = $logs.filter((e) => e.message && e.message.startsWith('[IMU]')).slice(-12);
 
   // Auto-select a port when navigating here from the overview port grid.
   let _lastHandled = null;
