@@ -1,6 +1,8 @@
 #include "bno085.h"
 #include "../usb_comm.h"
+#include "../protocol.h"
 #include "hardware/i2c.h"
+#include "hardware/resets.h"
 #include "pico/stdlib.h"
 #include <string.h>
 #include <stdio.h>
@@ -44,6 +46,11 @@ static const uint8_t _FEAT_LIN_ACCEL[17] = {
 
 static uint8_t _seq[6] = {0};
 
+// Set when shtp_read() times out; the next call will do a full I2C bus reset
+// before trying again, bypassing the enable=0 hang that occurs when the
+// BNO085 is still holding SCL low after a software-aborted transaction.
+static bool _need_bus_recover = false;
+
 // Cached sensor values (Q14 for quat, Q8 for linear accel).
 // Default: identity quaternion.
 static int16_t _qx = 0, _qy = 0, _qz = 0, _qw = 16384;
@@ -63,11 +70,39 @@ static void shtp_write(uint8_t channel, const uint8_t *payload, uint8_t plen) {
     i2c_write_blocking(i2c0, _addr, buf, total, false);
 }
 
-// Returns payload byte count, or 0 if no data.
-// channel_out: filled with the SHTP channel from the header.
+// Force-reset the I2C0 peripheral via the RP2040 resets block.
+// Unlike i2c->hw->enable = 0 (which stalls when the slave holds SCL low),
+// reset_block() is an unconditional register write that never waits for the
+// bus — safe to call while the BNO085 is mid-clock-stretch.
+// After the reset, sleep 30 ms so the BNO085's internal SCL-idle watchdog
+// (~25 ms) has time to fire and release the bus.
+static void _i2c0_recover(void) {
+    reset_block(RESETS_RESET_I2C0_BITS);
+    unreset_block_wait(RESETS_RESET_I2C0_BITS);
+    i2c_init(i2c0, 100u * 1000u);
+    gpio_set_function(I2C_SDA_GPIO, GPIO_FUNC_I2C);
+    gpio_set_function(I2C_SCL_GPIO, GPIO_FUNC_I2C);
+    gpio_pull_up(I2C_SDA_GPIO);
+    gpio_pull_up(I2C_SCL_GPIO);
+    sleep_ms(30);
+}
+
+// Returns payload byte count, or 0 if no data or timeout.
+// Uses a 100 ms deadline on each read.  If the previous call timed out, a
+// full I2C bus reset is performed first — this prevents the i2c->hw->enable=0
+// write inside the SDK from stalling when the BNO085 is still holding SCL.
 static uint8_t shtp_read(uint8_t *channel_out, uint8_t *payload, uint8_t max_payload) {
+    if (_need_bus_recover) {
+        _need_bus_recover = false;
+        _i2c0_recover();
+    }
+
     uint8_t hdr[4];
-    if (i2c_read_blocking(i2c0, _addr, hdr, 4, false) != 4) return 0;
+    if (i2c_read_blocking_until(i2c0, _addr, hdr, 4, false,
+                                make_timeout_time_ms(100)) != 4) {
+        _need_bus_recover = true;
+        return 0;
+    }
 
     uint16_t pkt_len = ((uint16_t)(hdr[1] & 0x7Fu) << 8u) | hdr[0];
     if (pkt_len < 5u) return 0;  // 0 = no data; 1–4 = header-only
@@ -75,8 +110,11 @@ static uint8_t shtp_read(uint8_t *channel_out, uint8_t *payload, uint8_t max_pay
     uint16_t payload_len = pkt_len - 4u;
     if (payload_len > max_payload) payload_len = max_payload;
 
-    if (i2c_read_blocking(i2c0, _addr, payload, payload_len, false)
-        != (int)payload_len) return 0;
+    if (i2c_read_blocking_until(i2c0, _addr, payload, payload_len, false,
+                                make_timeout_time_ms(100)) != (int)payload_len) {
+        _need_bus_recover = true;
+        return 0;
+    }
 
     if (channel_out) *channel_out = hdr[2];
     return (uint8_t)payload_len;
@@ -109,58 +147,94 @@ static void process_payload(const uint8_t *p, uint8_t len) {
 // ── Public API ────────────────────────────────────────────────────────────────
 
 bool bno085_init(void) {
-    // Wait until well past the SH-2 boot window. Write probes sent during
-    // early boot leave the I²C bus in a bad state when they fail; use read
-    // probes only, and wait until 1500 ms from power-on.
+    // ── Phase 1: soft-reset the BNO085 ───────────────────────────────────────
+    // The BNO085 may be externally powered and have stale SHTP state from a
+    // previous session (continuation bit set, high sequence number).  A write
+    // on SHTP_EXE channel resets it regardless of the read-buffer state.
+    // The SH-2 firmware finishes loading ~982 ms after power-on, so wait until
+    // 1100 ms before attempting the write.
     {
-        uint32_t elapsed = to_ms_since_boot(get_absolute_time());
-        if (elapsed < 1500u) sleep_ms(1500u - elapsed);
+        uint32_t t = to_ms_since_boot(get_absolute_time());
+        if (t < 1100u) sleep_ms(1100u - t);
     }
 
-    uint32_t t = to_ms_since_boot(get_absolute_time());
-    _addr = 0;
+    // SHTP soft-reset packet: [len_lsb=5, len_msb=0, ch=EXE, seq=0, cmd=0x01]
+    static const uint8_t rst_pkt[5] = {0x05u, 0x00u, SHTP_EXE, 0x00u, 0x01u};
+    uint8_t rst_addr = 0u;
+    if (i2c_write_blocking(i2c0, 0x4Au, rst_pkt, 5, false) == 5) {
+        rst_addr = 0x4Au;
+    } else if (i2c_write_blocking(i2c0, 0x4Bu, rst_pkt, 5, false) == 5) {
+        rst_addr = 0x4Bu;
+    }
 
-    // Probe with a 4-byte read (one full SHTP header). This confirms
-    // presence and leaves the bus packet-aligned for the drain below.
+    {
+        char tmp[72];
+        snprintf(tmp, sizeof(tmp),
+            "[IMU] T=%lums: soft-reset → 0x%02X %s",
+            (unsigned long)to_ms_since_boot(get_absolute_time()),
+            rst_addr, rst_addr ? "OK" : "NAK (not ready yet)");
+        usb_comm_send_log(tmp);
+    }
+
+    // ── Phase 2: wait for boot ────────────────────────────────────────────────
+    // After a successful soft-reset the BNO085 needs ~1100 ms to re-boot.
+    // If the reset was NAK'd (device not ready or not present), just wait until
+    // 1700 ms — the natural boot window — before probing.
+    {
+        uint32_t deadline = rst_addr ? 2300u : 1700u;
+        uint32_t t = to_ms_since_boot(get_absolute_time());
+        if (t < deadline) sleep_ms(deadline - t);
+    }
+
+    // ── Phase 3: probe ────────────────────────────────────────────────────────
+    uint32_t t = to_ms_since_boot(get_absolute_time());
+    _addr = 0u;
+
     uint8_t hdr[4] = {0, 0, 0, 0};
-    int probe_a = i2c_read_blocking(i2c0, 0x4Au, hdr, 4, false);
+    int probe_a = i2c_read_blocking_until(i2c0, 0x4Au, hdr, 4, false,
+                                           make_timeout_time_ms(100));
     int probe_b = -1;
     if (probe_a == 4) {
         _addr = 0x4Au;
     } else {
-        probe_b = i2c_read_blocking(i2c0, 0x4Bu, hdr, 4, false);
+        probe_b = i2c_read_blocking_until(i2c0, 0x4Bu, hdr, 4, false,
+                                           make_timeout_time_ms(100));
         if (probe_b == 4) _addr = 0x4Bu;
     }
 
-    if (_addr == 0) {
+    if (_addr == 0u) {
         snprintf(_diag, sizeof(_diag),
-            "[IMU] T=%lums: 0x4A=%s 0x4B=%s — not found",
-            (unsigned long)t,
-            probe_a >= 0 ? "ACK" : "NAK",
-            probe_b >= 0 ? "ACK" : "NAK");
+            "[IMU] T=%lums: 0x4A=%d 0x4B=%d — not found",
+            (unsigned long)t, probe_a, probe_b);
         usb_comm_send_log(_diag);
+        // Recover the bus so subsequent init calls (bno055, mpu6050) are unaffected.
+        _i2c0_recover();
         return false;
     }
 
     uint16_t pkt_len = ((uint16_t)(hdr[1] & 0x7Fu) << 8u) | hdr[0];
+    bool cont = (hdr[1] & 0x80u) != 0u;
     snprintf(_diag, sizeof(_diag),
-        "[IMU] T=%lums: 0x%02X ACK hdr=%02X %02X %02X %02X pkt_len=%u — sending features",
+        "[IMU] T=%lums: 0x%02X ACK hdr=%02X %02X %02X %02X pkt_len=%u cont=%d",
         (unsigned long)t, _addr,
-        hdr[0], hdr[1], hdr[2], hdr[3], (unsigned)pkt_len);
+        hdr[0], hdr[1], hdr[2], hdr[3], (unsigned)pkt_len, (int)cont);
     usb_comm_send_log(_diag);
 
-    // Drain the payload of the header we just consumed.
+    // ── Phase 4: drain the initial packet ─────────────────────────────────────
     if (pkt_len >= 5u) {
         uint8_t payload[64];
         uint16_t payload_len = pkt_len - 4u;
         if (payload_len > sizeof(payload)) payload_len = sizeof(payload);
-        i2c_read_blocking(i2c0, _addr, payload, payload_len, false);
+        i2c_read_blocking_until(i2c0, _addr, payload, payload_len, false,
+                                make_timeout_time_ms(200));
     }
 
-    // Enable rotation vector and linear acceleration reports at 100 Hz.
-    shtp_write(SHTP_CTRL, _FEAT_ROT_VEC,    sizeof(_FEAT_ROT_VEC));
-    sleep_ms(5);
+    // ── Phase 5: enable sensors ───────────────────────────────────────────────
+    shtp_write(SHTP_CTRL, _FEAT_ROT_VEC,   sizeof(_FEAT_ROT_VEC));
+    sleep_ms(10);
     shtp_write(SHTP_CTRL, _FEAT_LIN_ACCEL, sizeof(_FEAT_LIN_ACCEL));
+    // Give the BNO085 time to process the commands before the first poll.
+    sleep_ms(100);
 
     snprintf(_diag, sizeof(_diag),
         "[IMU] T=%lums: 0x%02X init OK (rot_vec + lin_accel at 100 Hz)",
@@ -173,12 +247,33 @@ bool bno085_init(void) {
 const char *bno085_get_diag(void) { return _diag; }
 
 void bno085_poll(void) {
+    static uint16_t _poll_ctr = 0;
+    static bool _poll_logged  = false;
+
     uint8_t payload[64];
     uint8_t ch;
     for (int i = 0; i < 4; i++) {
         uint8_t len = shtp_read(&ch, payload, sizeof(payload));
         if (len == 0) break;
-        if (ch == SHTP_REPORTS) process_payload(payload, len);
+        if (ch == SHTP_REPORTS) {
+            process_payload(payload, len);
+            if (!_poll_logged) {
+                char tmp[72];
+                snprintf(tmp, sizeof(tmp),
+                    "[IMU] first report: ch=%u rpt=0x%02X len=%u",
+                    (unsigned)ch, (unsigned)payload[0], (unsigned)len);
+                usb_comm_send_log(tmp);
+                _poll_logged = true;
+            }
+        }
+    }
+
+    // Log a warning after 50 polls (~1 s at 50 Hz) with no report yet.
+    if (!_poll_logged) {
+        _poll_ctr++;
+        if (_poll_ctr == 50u) {
+            usb_comm_send_log("[IMU] 50 polls: no SHTP_REPORTS received");
+        }
     }
 }
 

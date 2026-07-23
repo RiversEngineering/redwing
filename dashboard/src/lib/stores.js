@@ -63,13 +63,13 @@ export const robotState = writable(null);
  */
 export const ports = derived(robotState, ($state) => {
   const result = {};
-  for (let i = 0; i < 17; i++) {
+  for (let i = 0; i < 18; i++) {
     result[i] = null;
   }
   if ($state?.ports) {
     for (const [id, data] of Object.entries($state.ports)) {
       const numId = Number(id);
-      if (numId >= 0 && numId < 17) {
+      if (numId >= 0 && numId < 18) {
         result[numId] = { ...data, id: numId };
       }
     }
