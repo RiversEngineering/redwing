@@ -104,25 +104,28 @@ static void process_payload(const uint8_t *p, uint8_t len) {
 // ── Public API ────────────────────────────────────────────────────────────────
 
 bool bno085_init(void) {
-    // BNO085 SH-2 firmware takes up to 300 ms from power-on before it ACKs
-    // its I2C address.  The RP2040 boots in ~100 ms, so we must retry.
-    // Try both addresses: 0x4A (ADDR pin low) and 0x4B (ADDR pin high).
-    uint8_t probe[4];
+    // The BNO085 I2C hardware ACKs its address as soon as VDD is stable, but
+    // the SH-2 firmware may clock-stretch on multi-byte reads during the first
+    // ~500 ms of boot.  Probe with a single byte (short stretch window) and
+    // retry every 50 ms for up to 600 ms.  Try both addresses.
+    uint8_t dummy;
     _addr = 0;
-    for (int i = 0; i < 8 && _addr == 0; i++) {
-        if (i2c_read_blocking(i2c0, 0x4Au, probe, 4, false) >= 0)      _addr = 0x4Au;
-        else if (i2c_read_blocking(i2c0, 0x4Bu, probe, 4, false) >= 0) _addr = 0x4Bu;
+    for (int i = 0; i < 12 && _addr == 0; i++) {
+        if (i2c_read_blocking(i2c0, 0x4Au, &dummy, 1, false) >= 0)      _addr = 0x4Au;
+        else if (i2c_read_blocking(i2c0, 0x4Bu, &dummy, 1, false) >= 0) _addr = 0x4Bu;
         if (_addr == 0) sleep_ms(50);
     }
     if (_addr == 0) return false;
 
-    // Give the SH-2 firmware any remaining boot time (loop may have spent
-    // up to 400 ms already; this adds a small margin for the reset packet).
-    sleep_ms(50);
+    // Soft-reset the SH-2 firmware so we start from a known SHTP state
+    // (the probe reads may have consumed a partial SHTP header).
+    uint8_t rst = 0x01u;
+    shtp_write(SHTP_EXE, &rst, 1);
+    sleep_ms(300);
 
-    // Drain the two unsolicited startup packets:
+    // Drain the two unsolicited startup packets that follow a reset:
+    //   channel 1 (EXE):  reset-complete  (payload[0] == 0x01)
     //   channel 0 (CMD):  advertisement
-    //   channel 1 (EXE):  reset-complete notification (payload byte = 0x01)
     uint8_t payload[64];
     uint8_t ch;
     bool got_reset = false;
