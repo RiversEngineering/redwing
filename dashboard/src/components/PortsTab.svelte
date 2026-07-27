@@ -19,8 +19,6 @@
 
   $: selectedData = selectedId !== null ? $ports[selectedId] : null;
   $: selectedPort = selectedId !== null ? ALL_PORTS.find((p) => p.id === selectedId) : null;
-  $: imuLogs = $logs.filter((e) => e.message && e.message.startsWith('[IMU]')).slice(-12);
-  let imuDiagOpen = false;
 
   // Auto-select a port when navigating here from the overview port grid.
   let _lastHandled = null;
@@ -69,6 +67,23 @@
 
   // reset confirmation state
   let confirmReset = false;
+
+  // ── IMU mount rotation ────────────────────────────────────────────────────────
+  $: imuMount       = $robotState?.imu_mount ?? { yaw: 0, pitch: 0, roll: 0, code_set: false };
+  $: imuMountLocked = imuMount.code_set;
+
+  function sendMountAngle(field, val) {
+    const v = parseFloat(val);
+    if (!isNaN(v)) send({ cmd: 'set_imu_mount', [field]: v });
+  }
+
+  // ── Per-port invert overrides ─────────────────────────────────────────────────
+  $: portInvert       = $robotState?.port_invert       ?? {};
+  $: portInvertLocked = new Set($robotState?.port_invert_locked ?? []);
+
+  function sendPortInvert(portId, inv) {
+    send({ cmd: 'set_port_invert', port: portId, inverted: inv });
+  }
 
   // ── Control state (local; does not track live RP2040 state) ──────────────────
   let motorSpeed = 0;   // -100..+100 (%)
@@ -900,23 +915,6 @@
               The firmware probes for BNO085, BNO055, and MPU-6050 at startup.<br>
               Check that the sensor is wired to <strong class="text-slate-500">GP4 (SDA)</strong> and <strong class="text-slate-500">GP5 (SCL)</strong> and power-cycle the robot.
             </p>
-            <button
-              class="text-[10px] text-slate-600 hover:text-slate-400 flex items-center gap-1 transition-colors"
-              on:click={() => imuDiagOpen = !imuDiagOpen}>
-              <svg class="w-3 h-3 transition-transform {imuDiagOpen ? 'rotate-90' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-              Firmware diagnostic
-            </button>
-            {#if imuDiagOpen}
-              <div class="w-full max-w-sm bg-slate-800/60 rounded border border-slate-700/50 p-2 space-y-1">
-                {#if imuLogs.length > 0}
-                  {#each imuLogs as entry}
-                    <p class="text-[11px] font-mono text-slate-400 break-all">{entry.message}</p>
-                  {/each}
-                {:else}
-                  <p class="text-[10px] text-slate-600 italic">Waiting for firmware diagnostic…</p>
-                {/if}
-              </div>
-            {/if}
           </div>
 
         {:else if !selectedData}
@@ -1099,6 +1097,23 @@
             <p class="text-[11px] text-slate-600">
               Manual commands are temporary — running student code will override them.
             </p>
+
+            <!-- Invert toggle -->
+            {@const portKey = String(selectedId)}
+            {@const motorInvLocked = portInvertLocked.has(portKey)}
+            <label class="flex items-center gap-2 cursor-pointer {motorInvLocked ? 'opacity-60' : ''}">
+              <input
+                type="checkbox"
+                checked={portInvert[portKey] ?? false}
+                disabled={motorInvLocked}
+                on:change={(e) => sendPortInvert(portKey, e.target.checked)}
+                class="w-4 h-4 accent-blue-500"
+              />
+              <span class="text-xs text-slate-400">Invert motor direction</span>
+              {#if motorInvLocked}
+                <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-400 border border-amber-700/40">Set by code</span>
+              {/if}
+            </label>
           </div>
 
         {:else if selectedData.type === 'servo'}
@@ -1302,6 +1317,23 @@
             >
               Reset Count to Zero
             </button>
+
+            <!-- Invert toggle -->
+            {@const encKey = String(selectedId)}
+            {@const encInvLocked = portInvertLocked.has(encKey)}
+            <label class="flex items-center gap-2 cursor-pointer {encInvLocked ? 'opacity-60' : ''}">
+              <input
+                type="checkbox"
+                checked={portInvert[encKey] ?? false}
+                disabled={encInvLocked}
+                on:change={(e) => sendPortInvert(encKey, e.target.checked)}
+                class="w-4 h-4 accent-violet-500"
+              />
+              <span class="text-xs text-slate-400">Invert count direction</span>
+              {#if encInvLocked}
+                <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-400 border border-amber-700/40">Set by code</span>
+              {/if}
+            </label>
           </div>
 
         {:else if selectedData.type === 'ultrasonic'}
@@ -1402,22 +1434,36 @@
             {:else}
               <div class="text-sm text-slate-500">No data yet.</div>
             {/if}
+            <!-- Mount rotation -->
+            <div class="bg-[#1e2129] rounded-lg border border-[#2e3340] p-3 space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="text-[10px] uppercase tracking-widest text-slate-500">Mount Rotation</div>
+                {#if imuMountLocked}
+                  <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-400 border border-amber-700/40">Set by code</span>
+                {/if}
+              </div>
+              <div class="grid grid-cols-3 gap-2">
+                {#each [['Yaw (Z)', 'yaw'], ['Pitch (Y)', 'pitch'], ['Roll (X)', 'roll']] as [label, field]}
+                  <div class="space-y-1">
+                    <div class="text-[9px] text-slate-600">{label}</div>
+                    <input
+                      type="number" min="-180" max="180" step="1"
+                      value={imuMount[field] ?? 0}
+                      disabled={imuMountLocked}
+                      on:change={(e) => sendMountAngle(field, e.target.value)}
+                      class="w-full bg-[#151820] border rounded px-2 py-1 text-xs font-mono text-slate-300
+                             {imuMountLocked
+                               ? 'border-slate-700/40 text-slate-500 cursor-not-allowed'
+                               : 'border-[#2e3340] focus:border-indigo-500 focus:outline-none'}"
+                    />
+                  </div>
+                {/each}
+              </div>
+              <p class="text-[9px] text-slate-600">Degrees. +X forward, +Y left, +Z up. Locked once student code calls <span class="font-mono">set_mount_rotation()</span>.</p>
+            </div>
             <p class="text-xs text-slate-600">
               {selectedData.type === 'bno085' ? 'BNO085' : 'BNO055'} auto-detected on I²C (GP4 SDA / GP5 SCL). Read-only.
             </p>
-            <button
-              class="text-[10px] text-slate-600 hover:text-slate-400 flex items-center gap-1 transition-colors"
-              on:click={() => imuDiagOpen = !imuDiagOpen}>
-              <svg class="w-3 h-3 transition-transform {imuDiagOpen ? 'rotate-90' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-              Firmware diagnostic
-            </button>
-            {#if imuDiagOpen && imuLogs.length > 0}
-              <div class="bg-slate-800/60 rounded border border-slate-700/50 p-2 space-y-1">
-                {#each imuLogs as entry}
-                  <p class="text-[11px] font-mono text-slate-400 break-all">{entry.message}</p>
-                {/each}
-              </div>
-            {/if}
           </div>
 
         {:else if selectedData.type === 'mpu6050'}
@@ -1455,6 +1501,33 @@
             {:else}
               <div class="text-sm text-slate-500">No data yet.</div>
             {/if}
+            <!-- Mount rotation -->
+            <div class="bg-[#1e2129] rounded-lg border border-[#2e3340] p-3 space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="text-[10px] uppercase tracking-widest text-slate-500">Mount Rotation</div>
+                {#if imuMountLocked}
+                  <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-400 border border-amber-700/40">Set by code</span>
+                {/if}
+              </div>
+              <div class="grid grid-cols-3 gap-2">
+                {#each [['Yaw (Z)', 'yaw'], ['Pitch (Y)', 'pitch'], ['Roll (X)', 'roll']] as [label, field]}
+                  <div class="space-y-1">
+                    <div class="text-[9px] text-slate-600">{label}</div>
+                    <input
+                      type="number" min="-180" max="180" step="1"
+                      value={imuMount[field] ?? 0}
+                      disabled={imuMountLocked}
+                      on:change={(e) => sendMountAngle(field, e.target.value)}
+                      class="w-full bg-[#151820] border rounded px-2 py-1 text-xs font-mono text-slate-300
+                             {imuMountLocked
+                               ? 'border-slate-700/40 text-slate-500 cursor-not-allowed'
+                               : 'border-[#2e3340] focus:border-indigo-500 focus:outline-none'}"
+                    />
+                  </div>
+                {/each}
+              </div>
+              <p class="text-[9px] text-slate-600">Degrees. +X forward, +Y left, +Z up. Locked once student code calls <span class="font-mono">set_mount_rotation()</span>.</p>
+            </div>
             <p class="text-xs text-slate-600">
               MPU-6050 auto-detected on I²C (GP4 SDA / GP5 SCL). Read-only.
             </p>

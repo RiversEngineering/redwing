@@ -229,6 +229,23 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                         if "y_offset" in msg:
                             state.lidar_y_offset_cm = max(-200.0, min(200.0, float(msg["y_offset"])))
 
+            elif cmd == "set_imu_mount":
+                async with state.lock:
+                    if not state.imu_mount_code_set:
+                        if "yaw"   in msg: state.imu_mount_yaw   = float(msg["yaw"])
+                        if "pitch" in msg: state.imu_mount_pitch = float(msg["pitch"])
+                        if "roll"  in msg: state.imu_mount_roll  = float(msg["roll"])
+
+            elif cmd == "set_port_invert":
+                port = str(msg.get("port", ""))
+                async with state.lock:
+                    if port and port not in state.port_invert_code_set:
+                        inv = bool(msg.get("inverted", False))
+                        state.port_invert[port] = inv
+                        # Encoders: propagate direction change to firmware
+                        if state.ports.get(port, {}).get("type") == "encoder":
+                            rp.enqueue(proto.cmd_invert_encoder(int(port), inv))
+
             elif cmd == "gamepad":
                 async with state.lock:
                     gp = state.gamepad

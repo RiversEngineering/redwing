@@ -121,6 +121,8 @@ class IPCServer:
             self._rp.enqueue(proto.cmd_invert_encoder(port, inverted))
             async with self._state.lock:
                 self._state.ports.setdefault(str(port), {})["inverted"] = inverted
+                self._state.port_invert[str(port)] = inverted
+                self._state.port_invert_code_set.add(str(port))
 
         elif c == "set_pos_options":
             self._rp.enqueue(proto.cmd_set_pos_options(
@@ -208,6 +210,19 @@ class IPCServer:
                 if "max_cm" in cmd:
                     self._state.lidar_max_cm      = max(50.0, min(2000.0, float(cmd["max_cm"])))
                 self._state.lidar_code_configured = True
+
+        elif c == "set_imu_mount":
+            async with self._state.lock:
+                self._state.imu_mount_yaw      = float(cmd.get("yaw",   0.0))
+                self._state.imu_mount_pitch    = float(cmd.get("pitch", 0.0))
+                self._state.imu_mount_roll     = float(cmd.get("roll",  0.0))
+                self._state.imu_mount_code_set = True
+
+        elif c == "set_motor_invert":
+            port = str(cmd.get("port", ""))
+            async with self._state.lock:
+                self._state.port_invert[port] = bool(cmd.get("inverted", False))
+                self._state.port_invert_code_set.add(port)
 
         elif c == "map_point":
             async with self._state.lock:
@@ -392,6 +407,8 @@ class IPCServer:
             self._state.ports.clear()
             self._state.logs.clear()
             self._state.lidar_code_configured = False   # dashboard regains control on new run
+            self._state.imu_mount_code_set    = False
+            self._state.port_invert_code_set.clear()
         if not ok:
             log.warning("CMD_RESET timed out — RP2040 may not be connected yet")
         return {"ok": True}   # best-effort: always let the student program continue

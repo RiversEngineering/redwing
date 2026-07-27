@@ -103,7 +103,8 @@ class Motor:
         self._type = motor_type
         self._power = 0.0
         self._encoder = None
-        self._inverted = False
+        self._inverted       = False
+        self._code_invert_set = False  # True once student code sets motor.inverted
         self._robot = robot
 
     def _check_started(self):
@@ -129,6 +130,12 @@ class Motor:
             return state["value"] / 100.0
         return self._power
 
+    def _effective_inverted(self) -> bool:
+        """Return the active invert flag.  Code takes precedence over dashboard."""
+        if self._code_invert_set:
+            return self._inverted
+        return self._conn.get_all_state().get("port_invert", {}).get(str(self._id), False)
+
     def set_power(self, value: float):
         """Set motor power as a percentage from -100 (full reverse) to +100 (full forward).
 
@@ -142,7 +149,7 @@ class Motor:
         """
         self._check_started()
         value = max(-100.0, min(100.0, float(value)))
-        if self._inverted:
+        if self._effective_inverted():
             value = -value
         self._power = value
         self._conn.send_command(cmd="set_motor", port=self._id, value=int(value * 100))
@@ -159,7 +166,9 @@ class Motor:
     @inverted.setter
     def inverted(self, value: bool):
         """Set to True to flip the motor direction without rewiring."""
-        self._inverted = bool(value)
+        self._inverted        = bool(value)
+        self._code_invert_set = True
+        self._conn.send_command(cmd="set_motor_invert", port=self._id, inverted=self._inverted)
 
     def stop(self):
         """Stop this motor immediately (set power to 0)."""

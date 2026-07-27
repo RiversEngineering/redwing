@@ -100,6 +100,16 @@ class SharedState:
         self.lidar_max_cm: float      = 400.0  # radar display radius (cm) — never code-locked
         self.lidar_code_configured: bool = False  # True once student code sets offset/xy
 
+        # IMU mounting orientation (yaw/pitch/roll in degrees)
+        self.imu_mount_yaw:      float = 0.0
+        self.imu_mount_pitch:    float = 0.0
+        self.imu_mount_roll:     float = 0.0
+        self.imu_mount_code_set: bool  = False  # True once student code calls set_mount_rotation()
+
+        # Per-port invert overrides (motor direction / encoder count direction)
+        self.port_invert:          dict = {}    # str(port_id) → bool
+        self.port_invert_code_set: set  = set() # port IDs where student code set inverted
+
         # Latest camera frame as JPEG bytes (seeded with placeholder by CameraCapture)
         self.camera_frame: bytes | None = None
         self.camera_frame_b64: str = ""   # base64-encoded version for student library
@@ -203,6 +213,14 @@ class SharedState:
             "max_cm":           self.lidar_max_cm,
             "code_configured":  self.lidar_code_configured,
         }
+        msg["imu_mount"] = {
+            "yaw":      self.imu_mount_yaw,
+            "pitch":    self.imu_mount_pitch,
+            "roll":     self.imu_mount_roll,
+            "code_set": self.imu_mount_code_set,
+        }
+        msg["port_invert"]        = dict(self.port_invert)
+        msg["port_invert_locked"] = list(self.port_invert_code_set)
         msg["gamepad"] = self.gamepad.to_dict()
         if self.battery_present:
             msg["battery"] = {

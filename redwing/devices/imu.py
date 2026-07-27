@@ -87,7 +87,8 @@ class IMU:
         self._drift_warned: bool        = False
         # Mount rotation: q_mount describes how the sensor frame relates to the robot frame.
         # All outputs are corrected by q_mount_inv so they are expressed in robot frame.
-        self._mount_q: tuple = (1.0, 0.0, 0.0, 0.0)  # identity
+        self._mount_q:       tuple = (1.0, 0.0, 0.0, 0.0)  # identity
+        self._code_mount_set: bool = False  # True once set_mount_rotation() is called
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -103,6 +104,23 @@ class IMU:
             )
         return data
 
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _effective_mount_q(self) -> tuple:
+        """Return the active mount quaternion.
+
+        Student code calling :meth:`set_mount_rotation` takes precedence.
+        Otherwise, use the value set from the dashboard (stored in daemon state).
+        """
+        if self._code_mount_set:
+            return self._mount_q
+        cfg = self._conn.get_all_state().get("imu_mount", {})
+        if not cfg or (cfg.get("yaw", 0) == 0 and cfg.get("pitch", 0) == 0 and cfg.get("roll", 0) == 0):
+            return (1.0, 0.0, 0.0, 0.0)
+        return _euler_to_quat(cfg["yaw"], cfg["pitch"], cfg["roll"])
 
     # ------------------------------------------------------------------
     # Mount rotation
@@ -151,7 +169,9 @@ class IMU:
             # IMU mounted with USB port facing left, board flat
             imu.set_mount_rotation(yaw=90)
         """
-        self._mount_q = _euler_to_quat(yaw, pitch, roll)
+        self._mount_q       = _euler_to_quat(yaw, pitch, roll)
+        self._code_mount_set = True
+        self._conn.send_command(cmd="set_imu_mount", yaw=yaw, pitch=pitch, roll=roll)
 
     # ------------------------------------------------------------------
     # Status
@@ -189,7 +209,7 @@ class IMU:
             raise RuntimeError("quaternion is only available on BNO085/BNO055")
         q = data["quaternion"]
         q_sensor = (q["w"], q["x"], q["y"], q["z"])
-        w, x, y, z = _qmul(_qconj(self._mount_q), q_sensor)
+        w, x, y, z = _qmul(_qconj(self._effective_mount_q()), q_sensor)
         return (round(w, 6), round(x, 6), round(y, 6), round(z, 6))
 
     @property
@@ -215,7 +235,7 @@ class IMU:
         if data.get("type") in _FUSION_TYPES:
             q = data["quaternion"]
             q_sensor = (q["w"], q["x"], q["y"], q["z"])
-            qw, qx, qy, qz = _qmul(_qconj(self._mount_q), q_sensor)
+            qw, qx, qy, qz = _qmul(_qconj(self._effective_mount_q()), q_sensor)
             yaw = math.atan2(
                 2.0 * (qw * qz + qx * qy),
                 1.0 - 2.0 * (qy * qy + qz * qz),
@@ -236,7 +256,8 @@ class IMU:
         gx, gy, gz = g["x"], g["y"], g["z"]
         # Rotate the full gyro vector into the robot frame so that heading
         # integrates robot-yaw correctly for any IMU mounting orientation.
-        _, _, gz_robot = _rotate_vec(_qconj(self._mount_q), gx, gy, gz)
+        mq = self._effective_mount_q()
+        _, _, gz_robot = _rotate_vec(_qconj(mq), gx, gy, gz)
         now = time.monotonic()
         with self._gyro_lock:
             if self._gyro_t is not None:
@@ -282,8 +303,9 @@ class IMU:
             raw = data["acceleration"]
             a = {k: v * 9.80665 for k, v in raw.items()}
         ax, ay, az = a["x"], a["y"], a["z"]
-        if self._mount_q != (1.0, 0.0, 0.0, 0.0):
-            ax, ay, az = _rotate_vec(_qconj(self._mount_q), ax, ay, az)
+        mq = self._effective_mount_q()
+        if mq != (1.0, 0.0, 0.0, 0.0):
+            ax, ay, az = _rotate_vec(_qconj(mq), ax, ay, az)
         return (round(ax, 4), round(ay, 4), round(az, 4))
 
     # ------------------------------------------------------------------

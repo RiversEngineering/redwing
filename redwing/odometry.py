@@ -431,12 +431,12 @@ class MecanumDrive:
         FL (/45°)    FR (\\45°)
         BL (\\45°)   BR (/45°)
 
-    Motor mixing (vx = forward, vy = left/right, ω = rotation — all as %)::
+    Motor mixing (vx = forward, vy = right, ω = CCW rotation — all as %)::
 
-        FL = vx − vy − ω
-        FR = vx + vy + ω
-        BL = vx + vy − ω
-        BR = vx − vy + ω
+        FL = vx + vy − ω
+        FR = vx − vy + ω
+        BL = vx − vy − ω
+        BR = vx + vy + ω
 
     where ``vy > 0`` strafes **right** and ``ω > 0`` turns **counter-clockwise**.
 
@@ -543,8 +543,8 @@ class MecanumDrive:
 
         fl, fr, bl, br = ds
         # Robot-frame displacement (forward = x, right = y in robot frame)
-        dx_r =  (fl + fr + bl + br) * 0.25
-        dy_r =  (-fl + fr + bl - br) * 0.25   # right positive
+        dx_r = (fl + fr + bl + br) * 0.25
+        dy_r = (fl - fr - bl + br) * 0.25   # right positive
 
         if self._imu and self._imu.connected and self._last_hdg is not None:
             if self._imu_is_mpu:
@@ -625,10 +625,10 @@ class MecanumDrive:
         omega:
             Rotation power.  Positive = **counter-clockwise** (left), negative = CW.
         """
-        fl = vx - vy - omega
-        fr = vx + vy + omega
-        bl = vx + vy - omega
-        br = vx - vy + omega
+        fl = vx + vy - omega
+        fr = vx - vy + omega
+        bl = vx - vy - omega
+        br = vx + vy + omega
         mx = max(abs(fl), abs(fr), abs(bl), abs(br), 100.0)
         s  = 100.0 / mx
         self._motors[0].set_power(fl * s)
