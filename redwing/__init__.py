@@ -20,6 +20,7 @@ For node-based (advanced) programming::
 """
 
 from .robot import Robot
+from .odometry import DifferentialDrive, MecanumDrive
 
-__all__ = ["Robot"]
+__all__ = ["Robot", "DifferentialDrive", "MecanumDrive"]
 __version__ = "0.1.0"

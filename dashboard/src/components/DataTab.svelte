@@ -230,6 +230,24 @@
           key: 'imu_lin_z', label: 'IMU accel Z', unit: 'm/s²',
           getValue: () => portData.linear_acceleration ? +portData.linear_acceleration.z.toFixed(3) : null,
         },
+        {
+          key: 'imu_roll', label: 'IMU roll', unit: '°',
+          getValue: () => {
+            const q = portData.quaternion;
+            if (!q) return null;
+            return +(Math.atan2(2*(q.w*q.x + q.y*q.z), 1 - 2*(q.x*q.x + q.y*q.y)) * 180/Math.PI).toFixed(1);
+          },
+        },
+        {
+          key: 'imu_pitch', label: 'IMU pitch', unit: '°',
+          getValue: () => {
+            const q = portData.quaternion;
+            if (!q) return null;
+            const sinp = 2*(q.w*q.y - q.z*q.x);
+            const pitch = Math.abs(sinp) >= 1 ? Math.sign(sinp) * 90 : Math.asin(sinp) * 180/Math.PI;
+            return +pitch.toFixed(1);
+          },
+        },
       ];
     }
 

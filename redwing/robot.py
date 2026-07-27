@@ -21,6 +21,7 @@ from .devices.tfmini import TFMini, TFLuna
 from .devices.vl53l0x import VL53L0X
 from .devices.ir_distance import IrDistance
 from .devices.imu import IMU
+from .odometry import DifferentialDrive, MecanumDrive
 
 # Single-pin ports S0–S7 → internal IDs 0–7
 # Dual-pin ports   D0–D7 → internal IDs 8–15
@@ -95,6 +96,7 @@ class Robot:
         self._tfluna: dict[int, TFLuna] = {}
         self._vl53l0x: VL53L0X | None = None
         self._imu: IMU | None = None
+        self._drives: list = []   # DifferentialDrive / MecanumDrive instances
         self._started = False
         atexit.register(self._shutdown)
         # Reset RP2040 state from any previous run (best-effort; no-op if not connected)
@@ -558,6 +560,8 @@ class Robot:
                 "the same PWM slice (see dashboard log for which ports conflict)."
             )
         self._started = True
+        for drive in self._drives:
+            drive._start()
 
     # ------------------------------------------------------------------
     # UART bus (D7: GP12 = TX, GP13 = RX)
@@ -741,6 +745,170 @@ class Robot:
         if self._imu is None:
             self._imu = IMU(self._conn)
         return self._imu
+
+    # ------------------------------------------------------------------
+    # Drive systems (odometry + dead-reckoning movement)
+    # ------------------------------------------------------------------
+
+    def differential_drive(
+        self,
+        *,
+        left_motor,
+        right_motor,
+        left_encoder,
+        right_encoder,
+        imu=None,
+        wheel_diameter_mm: float,
+        track_width_mm: float,
+        ticks_per_rev: int,
+        invert_left: bool = False,
+        invert_right: bool = False,
+    ) -> DifferentialDrive:
+        """Create a :class:`~redwing.odometry.DifferentialDrive` and register it.
+
+        The odometry loop starts automatically when ``robot.start()`` is called.
+
+        Parameters
+        ----------
+        left_motor / right_motor:
+            :class:`~redwing.devices.motor.Motor` objects for each drive side.
+            If a motor runs backward, set ``motor.inverted = True`` before
+            calling this method.
+        left_encoder / right_encoder:
+            :class:`~redwing.devices.encoder.Encoder` objects matching each motor.
+        imu:
+            Optional BNO085/BNO055 :class:`~redwing.devices.imu.IMU` for heading
+            fusion.  Strongly recommended — reduces angular drift significantly.
+        wheel_diameter_mm:
+            Drive wheel diameter in millimetres.
+        track_width_mm:
+            Centre-to-centre distance between left and right wheels (mm).
+        ticks_per_rev:
+            Encoder pulses per full wheel revolution (after any gearing).
+        invert_left / invert_right:
+            Flip encoder sign for one side without rewiring.
+
+        Example::
+
+            lm  = robot.motor(robot.D0)
+            rm  = robot.motor(robot.D1)
+            rm.inverted = True
+            le  = robot.encoder(robot.D2)
+            re  = robot.encoder(robot.D3)
+            imu = robot.imu()
+
+            drive = robot.differential_drive(
+                left_motor=lm,   right_motor=rm,
+                left_encoder=le, right_encoder=re,
+                imu=imu,
+                wheel_diameter_mm=60,
+                track_width_mm=150,
+                ticks_per_rev=1440,
+            )
+            robot.start()
+
+            drive.forward(0.5)
+            drive.turn_right(90)
+            drive.backward(0.3)
+            print(drive.pose)        # (x_m, y_m, heading_deg)
+        """
+        self._check_not_started("create a drive system")
+        drive = DifferentialDrive(
+            left_motor=left_motor,
+            right_motor=right_motor,
+            left_encoder=left_encoder,
+            right_encoder=right_encoder,
+            imu=imu,
+            wheel_diameter_mm=wheel_diameter_mm,
+            track_width_mm=track_width_mm,
+            ticks_per_rev=ticks_per_rev,
+            invert_left=invert_left,
+            invert_right=invert_right,
+            robot=self,
+        )
+        self._drives.append(drive)
+        return drive
+
+    def mecanum_drive(
+        self,
+        *,
+        fl,
+        fr,
+        bl,
+        br,
+        imu=None,
+        wheel_diameter_mm: float,
+        track_width_mm: float,
+        wheelbase_mm: float,
+        ticks_per_rev: int,
+        invert_fl: bool = False,
+        invert_fr: bool = False,
+        invert_bl: bool = False,
+        invert_br: bool = False,
+    ) -> MecanumDrive:
+        """Create a :class:`~redwing.odometry.MecanumDrive` and register it.
+
+        The odometry loop starts automatically when ``robot.start()`` is called.
+
+        Parameters
+        ----------
+        fl, fr, bl, br:
+            ``(Motor, Encoder)`` tuples for each corner — front-left, front-right,
+            back-left, back-right.  Designate positions based on your robot's
+            physical layout, not wiring order.
+        imu:
+            Optional BNO085/BNO055 :class:`~redwing.devices.imu.IMU`.
+        wheel_diameter_mm:
+            Mecanum wheel diameter in mm.
+        track_width_mm:
+            Left-to-right distance between wheel contact patches (mm).
+        wheelbase_mm:
+            Front-to-back distance between wheel contact patches (mm).
+        ticks_per_rev:
+            Encoder pulses per wheel revolution.
+        invert_fl / invert_fr / invert_bl / invert_br:
+            Flip individual encoder signs without rewiring.
+
+        Example::
+
+            # Configure motors and encoders (set inverted=True as needed)
+            fl_m = robot.motor(robot.D0);  fl_e = robot.encoder(robot.S0)
+            fr_m = robot.motor(robot.D1);  fr_e = robot.encoder(robot.S1)
+            bl_m = robot.motor(robot.D2);  bl_e = robot.encoder(robot.S2)
+            br_m = robot.motor(robot.D3);  br_e = robot.encoder(robot.S3)
+
+            drive = robot.mecanum_drive(
+                fl=(fl_m, fl_e),  fr=(fr_m, fr_e),
+                bl=(bl_m, bl_e),  br=(br_m, br_e),
+                imu=robot.imu(),
+                wheel_diameter_mm=100,
+                track_width_mm=300,
+                wheelbase_mm=280,
+                ticks_per_rev=1440,
+            )
+            robot.start()
+
+            drive.forward(0.5)
+            drive.strafe_right(0.3)
+            drive.strafe(0.4, 45)   # diagonal: forward-right
+            drive.turn_left(90)
+        """
+        self._check_not_started("create a drive system")
+        drive = MecanumDrive(
+            fl=fl, fr=fr, bl=bl, br=br,
+            imu=imu,
+            wheel_diameter_mm=wheel_diameter_mm,
+            track_width_mm=track_width_mm,
+            wheelbase_mm=wheelbase_mm,
+            ticks_per_rev=ticks_per_rev,
+            invert_fl=invert_fl,
+            invert_fr=invert_fr,
+            invert_bl=invert_bl,
+            invert_br=invert_br,
+            robot=self,
+        )
+        self._drives.append(drive)
+        return drive
 
     # ------------------------------------------------------------------
     # LIDAR (USB — connected directly to the Pi, not through the Pico)
