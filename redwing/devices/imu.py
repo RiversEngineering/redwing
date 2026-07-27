@@ -103,10 +103,6 @@ class IMU:
             )
         return data
 
-    def _mount_yaw_deg(self) -> float:
-        """Yaw component of the mount quaternion (degrees)."""
-        w, x, y, z = self._mount_q
-        return math.degrees(math.atan2(2*(w*z + x*y), 1 - 2*(y*y + z*z)))
 
     # ------------------------------------------------------------------
     # Mount rotation
@@ -125,18 +121,23 @@ class IMU:
         corrected so they are expressed in the robot's reference frame
         regardless of how the sensor is physically oriented.
 
+        The robot frame axes are:
+
+        - **+X** forward (the direction the robot faces)
+        - **+Y** left
+        - **+Z** up
+
         Parameters
         ----------
         yaw:
-            Rotation around the robot's vertical (Z) axis in degrees,
-            positive = counter-clockwise when viewed from above.
-            **Most common** — use this when the IMU PCB is rotated flat
-            on the robot deck.
+            Rotation around +Z (vertical) in degrees, positive = CCW from
+            above.  **Most common** — use this when the IMU PCB is rotated
+            flat on the robot deck.
         pitch:
-            Rotation around the robot's left-right (Y) axis.
+            Rotation around +Y (lateral) in degrees.
             Use when the IMU is tilted forward or backward.
         roll:
-            Rotation around the robot's forward (X) axis.
+            Rotation around +X (forward) in degrees.
             Use when the IMU is mounted on its side or upside-down.
 
         Examples::
@@ -231,14 +232,18 @@ class IMU:
                 "after the robot has been repositioned.",
                 stacklevel=2,
             )
-        gz = data["gyro"]["z"]  # °/s, CCW positive
+        g = data["gyro"]
+        gx, gy, gz = g["x"], g["y"], g["z"]
+        # Rotate the full gyro vector into the robot frame so that heading
+        # integrates robot-yaw correctly for any IMU mounting orientation.
+        _, _, gz_robot = _rotate_vec(_qconj(self._mount_q), gx, gy, gz)
         now = time.monotonic()
         with self._gyro_lock:
             if self._gyro_t is not None:
                 dt = now - self._gyro_t
-                self._gyro_hdg = (self._gyro_hdg + gz * dt) % 360.0
+                self._gyro_hdg = (self._gyro_hdg + gz_robot * dt) % 360.0
             self._gyro_t = now
-            return round((self._gyro_hdg - self._mount_yaw_deg()) % 360.0, 2)
+            return round(self._gyro_hdg, 2)
 
     def reset_heading(self, heading_deg: float = 0.0) -> None:
         """Reset the gyro-integrated heading to *heading_deg* (MPU-6050 only).
@@ -252,9 +257,7 @@ class IMU:
             imu.reset_heading(90.0)    # declare current orientation as 90°
         """
         with self._gyro_lock:
-            # Store the raw sensor heading that corresponds to the desired robot heading,
-            # so subsequent heading reads apply the mount offset correctly.
-            self._gyro_hdg = (float(heading_deg) + self._mount_yaw_deg()) % 360.0
+            self._gyro_hdg = float(heading_deg) % 360.0
             self._gyro_t   = None  # discard accumulated interval
 
     # ------------------------------------------------------------------

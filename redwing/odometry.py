@@ -51,11 +51,19 @@ Quick start — mecanum drive::
 
 Coordinate frame
 ----------------
-- ``x``: forward from starting position (metres)
-- ``y``: left from starting position (metres)
-- ``heading``: degrees, 0 at startup.  **Positive = counter-clockwise** (left
-  turn) consistent with the ``imu.heading`` property.  Use :meth:`turn_left`
-  and :meth:`turn_right` to avoid thinking about sign conventions.
+The robot uses a right-hand coordinate system:
+
+- ``+X``: forward (the direction the robot faces at startup)
+- ``+Y``: left
+- ``+Z``: up
+- ``heading``: rotation around +Z, degrees, 0 at startup.
+  **Positive = counter-clockwise** (left turn), consistent with
+  ``imu.heading``.  Use :meth:`turn_left` / :meth:`turn_right` to avoid
+  thinking about sign conventions.
+
+The ``imu.acceleration`` vector and ``imu.quaternion`` are expressed in the
+same robot frame once :meth:`~redwing.devices.imu.IMU.set_mount_rotation`
+has been called.
 
 Heading note
 ~~~~~~~~~~~~
