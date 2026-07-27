@@ -14,6 +14,8 @@
   export let windowSec = 30;
   export let nowSec = 0;
   export let graphLabel = 'Graph';
+  /** When set, only these keys appear in the sidebar (already-selected keys always show). */
+  export let availableKeys = null;
 
   import { onMount, onDestroy } from 'svelte';
   import uPlot from 'uplot';
@@ -25,6 +27,14 @@
   let lastValues = {};  // key → most recent non-null value, updated each data tick
 
   $: seriesKeys = Object.keys(allSeries).sort();
+
+  // Keys shown in the sidebar: the browsable set (filtered by group) UNION the
+  // already-selected keys (so users can uncheck series even if their group is hidden).
+  $: displayKeys = (() => {
+    const base = availableKeys !== null ? availableKeys : seriesKeys;
+    const merged = new Set([...base, ...selectedKeys]);
+    return [...merged].filter((k) => allSeries[k]).sort();
+  })();
 
   // ── Series selection ─────────────────────────────────────────────────────────
 
@@ -235,10 +245,10 @@
     </div>
 
     <div class="flex-1 overflow-y-auto min-h-0 p-1.5 space-y-px">
-      {#if seriesKeys.length === 0}
+      {#if displayKeys.length === 0}
         <p class="text-[11px] text-slate-700 italic px-2 py-2">No data yet</p>
       {:else}
-        {#each seriesKeys as key (key)}
+        {#each displayKeys as key (key)}
           {@const s = allSeries[key]}
           {@const checked = selectedKeys.has(key)}
           <label

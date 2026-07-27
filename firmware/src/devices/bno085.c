@@ -48,6 +48,15 @@ static const uint8_t _FEAT_LIN_ACCEL[17] = {
     0x00, 0x00, 0x00, 0x00,
 };
 
+static const uint8_t _FEAT_ACCEL[17] = {
+    CMD_SET_FEATURE, 0x01u,  // Accelerometer — fallback; confirms ch=3 reports flow
+    0x00,
+    0x00, 0x00,
+    0x10, 0x27, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+};
+
 static uint8_t _seq[6] = {0};
 
 // Set when shtp_read() times out; the next call will do a full I2C bus reset
@@ -89,7 +98,7 @@ static void shtp_write(uint8_t channel, const uint8_t *payload, uint8_t plen) {
 static void _i2c0_recover(void) {
     reset_block(RESETS_RESET_I2C0_BITS);
     unreset_block_wait(RESETS_RESET_I2C0_BITS);
-    i2c_init(i2c0, 100u * 1000u);
+    i2c_init(i2c0, 400u * 1000u);
     gpio_set_function(I2C_SDA_GPIO, GPIO_FUNC_I2C);
     gpio_set_function(I2C_SCL_GPIO, GPIO_FUNC_I2C);
     gpio_pull_up(I2C_SDA_GPIO);
@@ -97,216 +106,193 @@ static void _i2c0_recover(void) {
     sleep_ms(30);
 }
 
-// Returns payload byte count, or 0 if no data or timeout.
-// Uses a 100 ms deadline on each read.  If the previous call timed out, a
-// full I2C bus reset is performed first — this prevents the i2c->hw->enable=0
-// write inside the SDK from stalling when the BNO085 is still holding SCL.
-static uint8_t shtp_read(uint8_t *channel_out, uint8_t *payload, uint8_t max_payload) {
+// Returns payload byte count (0 = no data / timeout).
+// On success, payload[0] is the SHTP report ID (real payload byte 0).
+//
+// The BNO085's I²C slave RESTARTS FROM BYTE 0 of the current packet on every
+// new I²C read transaction.  Two-transaction reads therefore work as follows:
+//
+//   Txn 1 (4 bytes) → receives SHTP header bytes [0..3]  → gives pkt_len / ch
+//   Txn 2 (pkt_len bytes) → BNO085 restarts; delivers full packet [0..pkt_len-1]
+//                             buf[0..3] = header again, buf[4..] = real payload
+//
+// After txn 2, pkt_len bytes have been delivered from byte 0 → packet is done.
+// We memmove(payload, payload+4, pkt_len-4) so callers see payload[0] = report ID.
+//
+// max_buf must be >= pkt_len for a full delivery; 280 bytes covers all SHTP packets.
+static uint16_t shtp_read(uint8_t *channel_out, uint8_t *payload, uint16_t max_buf) {
     if (_need_bus_recover) {
         _need_bus_recover = false;
         _i2c0_recover();
     }
 
+    // Transaction 1: 4-byte header only
     uint8_t hdr[4];
     if (i2c_read_blocking_until(i2c0, _addr, hdr, 4, false,
-                                make_timeout_time_ms(100)) != 4) {
+                                make_timeout_time_ms(200)) != 4) {
         _need_bus_recover = true;
         return 0;
     }
 
     uint16_t pkt_len = ((uint16_t)(hdr[1] & 0x7Fu) << 8u) | hdr[0];
-    if (pkt_len < 5u) return 0;  // 0 = no data; 1–4 = header-only
+    if (pkt_len < 5u) return 0;
 
-    uint16_t payload_len = pkt_len - 4u;
-    if (payload_len > max_payload) payload_len = max_payload;
-
-    if (i2c_read_blocking_until(i2c0, _addr, payload, payload_len, false,
-                                make_timeout_time_ms(100)) != (int)payload_len) {
+    // Transaction 2: full pkt_len bytes (BNO085 restarts from byte 0)
+    uint16_t to_read = (pkt_len <= max_buf) ? pkt_len : max_buf;
+    if (i2c_read_blocking_until(i2c0, _addr, payload, to_read, false,
+                                make_timeout_time_ms(200)) != (int)to_read) {
         _need_bus_recover = true;
         return 0;
     }
 
+    // payload[0..3] = header again; real payload starts at payload[4].
+    // Move it to the front so callers see payload[0] = report ID.
+    uint16_t payload_bytes;
+    if (to_read >= pkt_len) {
+        payload_bytes = pkt_len - 4u;
+        memmove(payload, payload + 4u, payload_bytes);
+    } else if (to_read > 4u) {
+        payload_bytes = to_read - 4u;
+        memmove(payload, payload + 4u, payload_bytes);
+    } else {
+        payload_bytes = 0u;
+    }
+
     if (channel_out) *channel_out = hdr[2];
-    return (uint8_t)payload_len;
+    return payload_bytes;
 }
 
 // ── Report parsing ────────────────────────────────────────────────────────────
 
-static void process_payload(const uint8_t *p, uint8_t len) {
-    if (len < 1u) return;
-    switch (p[0]) {
-        // Game Rotation Vector (0x08): accel+gyro, no mag, 12-byte payload.
-        // Rotation Vector     (0x05): mag-fused,          14-byte payload.
-        // Both have identical quaternion layout at bytes 4–11 (Q14, LE).
-        case RPT_GAME_ROTATION_VEC:
-        case RPT_ROTATION_VEC:
-            if (len < 12u) break;
-            _qx = (int16_t)((p[5]  << 8) | p[4]);
-            _qy = (int16_t)((p[7]  << 8) | p[6]);
-            _qz = (int16_t)((p[9]  << 8) | p[8]);
-            _qw = (int16_t)((p[11] << 8) | p[10]);
-            break;
-        case RPT_LINEAR_ACCEL:
-            if (len < 10u) break;
-            _ax = (int16_t)((p[5] << 8) | p[4]);
-            _ay = (int16_t)((p[7] << 8) | p[6]);
-            _az = (int16_t)((p[9] << 8) | p[8]);
-            break;
-        default: break;
+// SH-2 packs multiple sub-records into one SHTP ch=3 payload.
+// A 5-byte Timestamp Rebase (0xFB) or Base Timestamp Reference (0xFA) record
+// precedes each sensor report.  Walk the full payload to find them all.
+static void process_payload(const uint8_t *p, uint16_t len) {
+    uint16_t off = 0;
+    while (off < len) {
+        uint8_t id = p[off];
+        switch (id) {
+            case 0xFBu:  // Timestamp Rebase (5 bytes)
+            case 0xFAu:  // Base Timestamp Reference (5 bytes)
+                off += 5u;
+                break;
+            case RPT_GAME_ROTATION_VEC:
+            case RPT_ROTATION_VEC:
+                if (off + 12u > len) return;
+                _qx = (int16_t)((p[off+5] << 8) | p[off+4]);
+                _qy = (int16_t)((p[off+7] << 8) | p[off+6]);
+                _qz = (int16_t)((p[off+9] << 8) | p[off+8]);
+                _qw = (int16_t)((p[off+11] << 8) | p[off+10]);
+                off += 12u;
+                break;
+            case RPT_LINEAR_ACCEL:
+                if (off + 10u > len) return;
+                _ax = (int16_t)((p[off+5] << 8) | p[off+4]);
+                _ay = (int16_t)((p[off+7] << 8) | p[off+6]);
+                _az = (int16_t)((p[off+9] << 8) | p[off+8]);
+                off += 10u;
+                break;
+            default:
+                return;  // unknown record type — stop safely
+        }
     }
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
 bool bno085_init(void) {
-    // ── Phase 1: soft-reset the BNO085 ───────────────────────────────────────
-    // The BNO085 may be externally powered and have stale SHTP state from a
-    // previous session (continuation bit set, high sequence number).  A write
-    // on SHTP_EXE channel resets it regardless of the read-buffer state.
-    // The SH-2 firmware finishes loading ~982 ms after power-on, so wait until
-    // 1100 ms before attempting the write.
+    // ── Phase 1: soft reset ───────────────────────────────────────────────────
     {
         uint32_t t = to_ms_since_boot(get_absolute_time());
         if (t < 1100u) sleep_ms(1100u - t);
     }
-
-    // SHTP soft-reset packet: [len_lsb=5, len_msb=0, ch=EXE, seq=0, cmd=0x01]
     static const uint8_t rst_pkt[5] = {0x05u, 0x00u, SHTP_EXE, 0x00u, 0x01u};
     uint8_t rst_addr = 0u;
-    if (i2c_write_blocking(i2c0, 0x4Au, rst_pkt, 5, false) == 5) {
-        rst_addr = 0x4Au;
-    } else if (i2c_write_blocking(i2c0, 0x4Bu, rst_pkt, 5, false) == 5) {
-        rst_addr = 0x4Bu;
-    }
-
+    if (i2c_write_blocking(i2c0, 0x4Au, rst_pkt, 5, false) == 5) rst_addr = 0x4Au;
+    else if (i2c_write_blocking(i2c0, 0x4Bu, rst_pkt, 5, false) == 5) rst_addr = 0x4Bu;
     {
-        char tmp[72];
-        snprintf(tmp, sizeof(tmp),
-            "[IMU] T=%lums: soft-reset → 0x%02X %s",
+        char tmp[64];
+        snprintf(tmp, sizeof(tmp), "[IMU] T=%lums: soft-reset → 0x%02X %s",
             (unsigned long)to_ms_since_boot(get_absolute_time()),
-            rst_addr, rst_addr ? "OK" : "NAK (not ready yet)");
+            rst_addr, rst_addr ? "OK" : "NAK");
         usb_comm_send_log(tmp);
     }
 
     // ── Phase 2: wait for boot ────────────────────────────────────────────────
-    // After a successful soft-reset the BNO085 needs ~1100 ms to re-boot.
-    // If the reset was NAK'd (device not ready or not present), just wait until
-    // 1700 ms — the natural boot window — before probing.
     {
         uint32_t deadline = rst_addr ? 2300u : 1700u;
         uint32_t t = to_ms_since_boot(get_absolute_time());
         if (t < deadline) sleep_ms(deadline - t);
     }
 
-    // ── Phase 3: probe ────────────────────────────────────────────────────────
+    // ── Phase 3+4: single-transaction probe + drain ───────────────────────────
+    // The BNO085 only transitions from advertisement mode to normal mode when the
+    // host reads the ENTIRE advertisement in a SINGLE I²C transaction (no STOP
+    // mid-packet).  Two transactions (probe 4 bytes → STOP, drain 272 bytes →
+    // STOP) leave the BNO085 in advertisement mode no matter how they are ordered.
+    //
+    // Per the BNO085 datasheet: if the host requests more bytes than the packet
+    // length, the remaining bytes are padded with 0x00.  Reading 280 bytes for a
+    // 276-byte advertisement therefore delivers [header(4)][payload(272)][zeros(4)]
+    // in one shot, cleanly closing the packet.
     uint32_t t = to_ms_since_boot(get_absolute_time());
     _addr = 0u;
-
-    uint8_t hdr[4] = {0, 0, 0, 0};
-    int probe_a = i2c_read_blocking_until(i2c0, 0x4Au, hdr, 4, false,
-                                           make_timeout_time_ms(100));
-    int probe_b = -1;
-    if (probe_a == 4) {
+    static uint8_t big_buf[280];
+    memset(big_buf, 0, sizeof(big_buf));
+    if (i2c_read_blocking_until(i2c0, 0x4Au, big_buf, sizeof(big_buf), false,
+                                 make_timeout_time_ms(500)) == (int)sizeof(big_buf)) {
         _addr = 0x4Au;
     } else {
-        probe_b = i2c_read_blocking_until(i2c0, 0x4Bu, hdr, 4, false,
-                                           make_timeout_time_ms(100));
-        if (probe_b == 4) _addr = 0x4Bu;
+        memset(big_buf, 0, sizeof(big_buf));
+        if (i2c_read_blocking_until(i2c0, 0x4Bu, big_buf, sizeof(big_buf), false,
+                                     make_timeout_time_ms(500)) == (int)sizeof(big_buf)) {
+            _addr = 0x4Bu;
+        }
     }
-
     if (_addr == 0u) {
-        snprintf(_diag, sizeof(_diag),
-            "[IMU] T=%lums: 0x4A=%d 0x4B=%d — not found",
-            (unsigned long)t, probe_a, probe_b);
+        snprintf(_diag, sizeof(_diag), "[IMU] T=%lums: not found", (unsigned long)t);
         usb_comm_send_log(_diag);
-        // Recover the bus so subsequent init calls (bno055, mpu6050) are unaffected.
         _i2c0_recover();
         return false;
     }
-
-    uint16_t pkt_len = ((uint16_t)(hdr[1] & 0x7Fu) << 8u) | hdr[0];
-    bool cont = (hdr[1] & 0x80u) != 0u;
-    snprintf(_diag, sizeof(_diag),
-        "[IMU] T=%lums: 0x%02X ACK hdr=%02X %02X %02X %02X pkt_len=%u cont=%d",
-        (unsigned long)t, _addr,
-        hdr[0], hdr[1], hdr[2], hdr[3], (unsigned)pkt_len, (int)cont);
-    usb_comm_send_log(_diag);
-
-    // ── Phase 4: drain exactly ONE advertisement, then pause ─────────────────
-    // Without a HINT pin the BNO085 re-queues the advertisement every time the
-    // host reads — it stays in "advertisement loop mode" indefinitely as long as
-    // the host keeps issuing I²C reads.  The only way to break out is to stop
-    // reading for long enough that the BNO085 transitions to normal mode and
-    // dequeues its Product ID Response.
-    //
-    // Strategy:
-    //   a) Read until we have consumed pkt_len-4 = 272 bytes of ch-0 payload
-    //      (exactly one advertisement's worth, which the probe started).
-    //   b) STOP reading entirely for 500ms (host-side silence breaks the loop).
-    //   c) Send Set Feature without reading again — a Write never triggers
-    //      advertisement re-loop because it is a separate I²C transaction.
     {
-        uint8_t d_payload[64];
-        uint8_t d_ch;
-        uint32_t adv_payload   = (uint32_t)(pkt_len - 4u);  // bytes after probe hdr
-        uint32_t adv_consumed  = 0;
-        uint32_t d_count_ch0   = 0;
+        uint16_t pkt_len = ((uint16_t)(big_buf[1] & 0x7Fu) << 8u) | big_buf[0];
+        uint8_t  ch      = big_buf[2];
+        snprintf(_diag, sizeof(_diag),
+            "[IMU] T=%lums: 0x%02X pkt_len=%u ch=%u p0=0x%02X (single-txn drain)",
+            (unsigned long)t, _addr, (unsigned)pkt_len, (unsigned)ch,
+            (unsigned)big_buf[4]);
+        usb_comm_send_log(_diag);
+    }
 
-        while (adv_consumed < adv_payload) {
-            uint8_t len = shtp_read(&d_ch, d_payload, sizeof(d_payload));
-            if (len == 0) break;    // shouldn't happen mid-advertisement
-            if (d_ch == 0u) {
-                d_count_ch0++;
-                adv_consumed += (uint32_t)len;
-                if (adv_consumed > adv_payload) adv_consumed = adv_payload;
-            }
-            // Non-ch-0 packets during advertisement drain are unexpected but harmless.
-        }
-
-        {
-            char tmp[80];
-            snprintf(tmp, sizeof(tmp),
-                "[IMU] adv drained %lu/%lu bytes in %lu reads — pausing",
-                (unsigned long)adv_consumed, (unsigned long)adv_payload,
-                (unsigned long)d_count_ch0);
-            usb_comm_send_log(tmp);
-        }
-
-        // Host silence: BNO085 exits advertisement loop and queues Product ID.
-        sleep_ms(500);
-
-        // Send Get Product ID Request on channel 2.  This WRITE (not a read)
-        // is the handshake many BNO085 firmware versions require to exit
-        // advertisement mode.  After this write the BNO085 queues a Product ID
-        // Response (0xF8) on channel 2 and is ready for Set Feature commands.
-        static const uint8_t _get_pid[1] = {CMD_GET_PRODUCT_ID};
-        shtp_write(SHTP_CTRL, _get_pid, 1u);
-        sleep_ms(10);
-
-        // Read the Product ID Response and log it so we know the BNO085
-        // is out of advertisement mode.  A single read here won't re-trigger
-        // the loop because the BNO085 has already exited it.
-        uint8_t pid_ch;
-        uint8_t pid_buf[32];
-        uint8_t pid_len = shtp_read(&pid_ch, pid_buf, sizeof(pid_buf));
-        {
-            char tmp[64];
-            snprintf(tmp, sizeof(tmp),
-                "[IMU] prod_id: ch=%u len=%u rpt=0x%02X",
-                (unsigned)pid_ch, (unsigned)pid_len,
-                pid_len > 0u ? (unsigned)pid_buf[0] : 0xFFu);
-            usb_comm_send_log(tmp);
-        }
+    // ── Phase 4.5: read EXE boot-status before sending any feature commands ──
+    // After a reset the BNO085 queues a boot-status notification on channel 1
+    // (report 0x05).  It discards CTRL writes that arrive while this packet is
+    // still pending — the SH-2 library always reads it before commanding anything.
+    sleep_ms(50);
+    {
+        static uint8_t exe_buf[32];
+        uint8_t  exe_ch  = 0xFF;
+        uint16_t exe_len = shtp_read(&exe_ch, exe_buf, sizeof(exe_buf));
+        char tmp[80];
+        snprintf(tmp, sizeof(tmp),
+            "[IMU] boot-pkt: ch=%u len=%u rpt=0x%02X",
+            (unsigned)exe_ch, (unsigned)exe_len,
+            exe_len > 0u ? (unsigned)exe_buf[0] : 0xFFu);
+        usb_comm_send_log(tmp);
     }
 
     // ── Phase 5: enable sensors ───────────────────────────────────────────────
-    shtp_write(SHTP_CTRL, _FEAT_ROT_VEC,   sizeof(_FEAT_ROT_VEC));
     sleep_ms(10);
+    shtp_write(SHTP_CTRL, _FEAT_ROT_VEC,   sizeof(_FEAT_ROT_VEC));
+    sleep_ms(5);
     shtp_write(SHTP_CTRL, _FEAT_LIN_ACCEL, sizeof(_FEAT_LIN_ACCEL));
+    sleep_ms(5);
+    shtp_write(SHTP_CTRL, _FEAT_ACCEL,     sizeof(_FEAT_ACCEL));
     sleep_ms(50);
 
     snprintf(_diag, sizeof(_diag),
-        "[IMU] T=%lums: 0x%02X init OK (game_rot_vec + lin_accel at 100 Hz)",
+        "[IMU] T=%lums: 0x%02X init OK",
         (unsigned long)to_ms_since_boot(get_absolute_time()), _addr);
     usb_comm_send_log(_diag);
 
@@ -316,23 +302,37 @@ bool bno085_init(void) {
 const char *bno085_get_diag(void) { return _diag; }
 
 void bno085_poll(void) {
-    static uint16_t _poll_ctr  = 0;
-    static uint32_t _rpt_total = 0;
-    static uint8_t  _ch_seen   = 0;   // resets each 200-poll window
+    static uint16_t _poll_ctr     = 0;
+    static uint32_t _rpt_total    = 0;
+    static uint8_t  _ch_seen      = 0;
+    static bool     _logged_nonch0 = false;
 
-    // If no reports yet, re-send Set Feature every 100 polls (~2 s) in case
-    // the BNO085 wasn't ready when init fired the first commands.
-    if (_rpt_total == 0 && _poll_ctr > 0 && (_poll_ctr % 100u) == 0u) {
+    // Re-send all three Set Feature writes every 50 polls (~1 s) until reports arrive.
+    if (_rpt_total == 0 && _poll_ctr > 0 && (_poll_ctr % 50u) == 0u) {
         shtp_write(SHTP_CTRL, _FEAT_ROT_VEC,   sizeof(_FEAT_ROT_VEC));
         shtp_write(SHTP_CTRL, _FEAT_LIN_ACCEL, sizeof(_FEAT_LIN_ACCEL));
+        shtp_write(SHTP_CTRL, _FEAT_ACCEL,     sizeof(_FEAT_ACCEL));
     }
 
-    uint8_t payload[64];
+    // 280-byte buffer: large enough to read a 272-byte advertisement payload in
+    // ONE I²C transaction (the same way the Adafruit/SH-2 library does it).
+    // Chunked 64-byte reads keep the BNO085 stuck in advertisement mode.
+    static uint8_t payload[280];
     uint8_t ch;
     for (int i = 0; i < 8; i++) {
-        uint8_t len = shtp_read(&ch, payload, sizeof(payload));
+        uint16_t len = shtp_read(&ch, payload, sizeof(payload));
         if (len == 0) break;
         if (ch < 8u) _ch_seen |= (uint8_t)(1u << ch);
+        if (!_logged_nonch0 && ch != SHTP_CMD) {
+            _logged_nonch0 = true;
+            char tmp[64];
+            snprintf(tmp, sizeof(tmp),
+                "[IMU] first non-ch0: ch=%u rpt=0x%02X after %u polls",
+                (unsigned)ch,
+                len > 0u ? (unsigned)payload[0] : 0xFFu,
+                (unsigned)_poll_ctr);
+            usb_comm_send_log(tmp);
+        }
         if (ch == SHTP_REPORTS) {
             process_payload(payload, len);
             _rpt_total++;
@@ -340,8 +340,6 @@ void bno085_poll(void) {
     }
 
     _poll_ctr++;
-    // Log a status every 200 polls (~4 s at 50 Hz); reset ch_seen so each
-    // window shows only what happened in that period.
     if (_poll_ctr >= 200u) {
         _poll_ctr = 0;
         char tmp[80];

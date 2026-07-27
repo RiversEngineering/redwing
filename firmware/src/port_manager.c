@@ -126,10 +126,9 @@ void port_manager_init(void) {
         ports[i].pid_last_count   = 0;
         ports[i].pid_d_alpha      = 1.0f;
     }
-    // Initialise I²C0 at 100 kHz on GP4 (SDA) / GP5 (SCL).
-    // 100 kHz is safe with the RP2040's internal ~50 kΩ pull-ups; 400 kHz needs
-    // external 4.7 kΩ pull-ups to meet the I²C rise-time spec.
-    i2c_init(i2c0, 100 * 1000);
+    // Initialise I²C0 at 400 kHz on GP4 (SDA) / GP5 (SCL).
+    // BNO085 breakout boards include onboard 4.7 kΩ pull-ups suitable for 400 kHz.
+    i2c_init(i2c0, 400 * 1000);
     gpio_set_function(I2C_SDA_GPIO, GPIO_FUNC_I2C);
     gpio_set_function(I2C_SCL_GPIO, GPIO_FUNC_I2C);
     gpio_pull_up(I2C_SDA_GPIO);

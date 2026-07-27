@@ -58,8 +58,8 @@
     { id: 'overview',    label: 'Overview' },
     { id: 'ports',       label: 'Ports' },
     { id: 'data',        label: 'Data' },
-    { id: 'map',         label: 'Map' },
     { id: 'controller',  label: 'Controller' },
+    { id: 'map',         label: 'Map' },
     { id: 'system',      label: 'System' },
   ];
 </script>

@@ -20,6 +20,7 @@
   $: selectedData = selectedId !== null ? $ports[selectedId] : null;
   $: selectedPort = selectedId !== null ? ALL_PORTS.find((p) => p.id === selectedId) : null;
   $: imuLogs = $logs.filter((e) => e.message && e.message.startsWith('[IMU]')).slice(-12);
+  let imuDiagOpen = false;
 
   // Auto-select a port when navigating here from the overview port grid.
   let _lastHandled = null;
@@ -899,15 +900,22 @@
               The firmware probes for BNO085, BNO055, and MPU-6050 at startup.<br>
               Check that the sensor is wired to <strong class="text-slate-500">GP4 (SDA)</strong> and <strong class="text-slate-500">GP5 (SCL)</strong> and power-cycle the robot.
             </p>
-            {#if imuLogs.length > 0}
+            <button
+              class="text-[10px] text-slate-600 hover:text-slate-400 flex items-center gap-1 transition-colors"
+              on:click={() => imuDiagOpen = !imuDiagOpen}>
+              <svg class="w-3 h-3 transition-transform {imuDiagOpen ? 'rotate-90' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+              Firmware diagnostic
+            </button>
+            {#if imuDiagOpen}
               <div class="w-full max-w-sm bg-slate-800/60 rounded border border-slate-700/50 p-2 space-y-1">
-                <p class="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-1">Firmware diagnostic</p>
-                {#each imuLogs as entry}
-                  <p class="text-[11px] font-mono text-slate-400 break-all">{entry.message}</p>
-                {/each}
+                {#if imuLogs.length > 0}
+                  {#each imuLogs as entry}
+                    <p class="text-[11px] font-mono text-slate-400 break-all">{entry.message}</p>
+                  {/each}
+                {:else}
+                  <p class="text-[10px] text-slate-600 italic">Waiting for firmware diagnostic…</p>
+                {/if}
               </div>
-            {:else}
-              <p class="text-[10px] text-slate-700 italic">Waiting for firmware diagnostic… (appears within 5 s of connection)</p>
             {/if}
           </div>
 
@@ -1397,9 +1405,14 @@
             <p class="text-xs text-slate-600">
               {selectedData.type === 'bno085' ? 'BNO085' : 'BNO055'} auto-detected on I²C (GP4 SDA / GP5 SCL). Read-only.
             </p>
-            {#if imuLogs.length > 0}
+            <button
+              class="text-[10px] text-slate-600 hover:text-slate-400 flex items-center gap-1 transition-colors"
+              on:click={() => imuDiagOpen = !imuDiagOpen}>
+              <svg class="w-3 h-3 transition-transform {imuDiagOpen ? 'rotate-90' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+              Firmware diagnostic
+            </button>
+            {#if imuDiagOpen && imuLogs.length > 0}
               <div class="bg-slate-800/60 rounded border border-slate-700/50 p-2 space-y-1">
-                <p class="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-1">Firmware diagnostic</p>
                 {#each imuLogs as entry}
                   <p class="text-[11px] font-mono text-slate-400 break-all">{entry.message}</p>
                 {/each}

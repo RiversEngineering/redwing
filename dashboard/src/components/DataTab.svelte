@@ -10,6 +10,36 @@
   import { robotState, plotValues } from '../lib/stores.js';
   import DataGraph from './DataGraph.svelte';
 
+  // ── Group filters ─────────────────────────────────────────────────────────────
+
+  const GROUPS = [
+    { id: 'motors',   label: 'Motors'   },
+    { id: 'servos',   label: 'Servos'   },
+    { id: 'encoders', label: 'Encoders' },
+    { id: 'sensors',  label: 'Sensors'  },
+    { id: 'i2c',      label: 'I²C'      },
+    { id: 'user',     label: 'User'     },
+  ];
+
+  let visibleGroups = new Set(GROUPS.map((g) => g.id));
+
+  function getGroup(key) {
+    if (key.startsWith('motor_'))                              return 'motors';
+    if (key.startsWith('servo_'))                              return 'servos';
+    if (key.startsWith('enc_'))                                return 'encoders';
+    if (key.startsWith('vl53l0x_') || key.startsWith('imu_')) return 'i2c';
+    if (key.startsWith('plot_'))                               return 'user';
+    return 'sensors'; // ultrasonic, gpio, sharp, lidar
+  }
+
+  function toggleGroup(id) {
+    if (visibleGroups.has(id)) visibleGroups.delete(id);
+    else visibleGroups.add(id);
+    visibleGroups = new Set(visibleGroups);
+  }
+
+  $: availableKeys = Object.keys(allSeries).filter((k) => visibleGroups.has(getGroup(k))).sort();
+
   // ── Config ───────────────────────────────────────────────────────────────────
 
   const WINDOW_OPTIONS = [
@@ -141,6 +171,97 @@
       }];
     }
 
+    if (type === 'sharp_ir') {
+      return [{
+        key:      `sharp_${portId}`,
+        label:    `${pl} IR dist`,
+        unit:     'cm',
+        getValue: () => portData.valid ? +((portData.distance_mm ?? 0) / 10).toFixed(1) : null,
+      }];
+    }
+
+    if (type === 'tfluna' || type === 'tfmini') {
+      return [{
+        key:      `lidar_${portId}`,
+        label:    `${pl} LiDAR`,
+        unit:     'cm',
+        getValue: () => portData.valid ? +(portData.distance_cm ?? 0) : null,
+      }];
+    }
+
+    if (type === 'bno085' || type === 'bno055') {
+      return [
+        {
+          key:      'imu_heading',
+          label:    'IMU heading',
+          unit:     '°',
+          getValue: () => {
+            const q = portData.quaternion;
+            if (!q) return null;
+            const yr = Math.atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z));
+            return +(((yr * 180 / Math.PI) + 360) % 360).toFixed(1);
+          },
+        },
+        {
+          key: 'imu_qw', label: 'IMU Q.w', unit: '',
+          getValue: () => portData.quaternion ? +portData.quaternion.w.toFixed(4) : null,
+        },
+        {
+          key: 'imu_qx', label: 'IMU Q.x', unit: '',
+          getValue: () => portData.quaternion ? +portData.quaternion.x.toFixed(4) : null,
+        },
+        {
+          key: 'imu_qy', label: 'IMU Q.y', unit: '',
+          getValue: () => portData.quaternion ? +portData.quaternion.y.toFixed(4) : null,
+        },
+        {
+          key: 'imu_qz', label: 'IMU Q.z', unit: '',
+          getValue: () => portData.quaternion ? +portData.quaternion.z.toFixed(4) : null,
+        },
+        {
+          key: 'imu_lin_x', label: 'IMU accel X', unit: 'm/s²',
+          getValue: () => portData.linear_acceleration ? +portData.linear_acceleration.x.toFixed(3) : null,
+        },
+        {
+          key: 'imu_lin_y', label: 'IMU accel Y', unit: 'm/s²',
+          getValue: () => portData.linear_acceleration ? +portData.linear_acceleration.y.toFixed(3) : null,
+        },
+        {
+          key: 'imu_lin_z', label: 'IMU accel Z', unit: 'm/s²',
+          getValue: () => portData.linear_acceleration ? +portData.linear_acceleration.z.toFixed(3) : null,
+        },
+      ];
+    }
+
+    if (type === 'mpu6050') {
+      return [
+        {
+          key: 'imu_ax', label: 'IMU accel X', unit: 'm/s²',
+          getValue: () => portData.acceleration ? +portData.acceleration.x.toFixed(3) : null,
+        },
+        {
+          key: 'imu_ay', label: 'IMU accel Y', unit: 'm/s²',
+          getValue: () => portData.acceleration ? +portData.acceleration.y.toFixed(3) : null,
+        },
+        {
+          key: 'imu_az', label: 'IMU accel Z', unit: 'm/s²',
+          getValue: () => portData.acceleration ? +portData.acceleration.z.toFixed(3) : null,
+        },
+        {
+          key: 'imu_gx', label: 'IMU gyro X', unit: '°/s',
+          getValue: () => portData.gyro ? +portData.gyro.x.toFixed(2) : null,
+        },
+        {
+          key: 'imu_gy', label: 'IMU gyro Y', unit: '°/s',
+          getValue: () => portData.gyro ? +portData.gyro.y.toFixed(2) : null,
+        },
+        {
+          key: 'imu_gz', label: 'IMU gyro Z', unit: '°/s',
+          getValue: () => portData.gyro ? +portData.gyro.z.toFixed(2) : null,
+        },
+      ];
+    }
+
     return [];
   }
 
@@ -253,13 +374,30 @@
     </span>
   </div>
 
+  <!-- ── Group filter bar ── -->
+  <div class="flex items-center gap-2 px-3 py-1.5 bg-[#1e2129] rounded-lg border border-[#2e3340] flex-shrink-0">
+    <span class="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mr-1">Show</span>
+    {#each GROUPS as g}
+      <button
+        class="px-2.5 py-0.5 rounded text-xs font-medium transition-colors
+               {visibleGroups.has(g.id)
+                 ? 'bg-slate-600 text-slate-200 hover:bg-slate-500'
+                 : 'bg-[#161920] text-slate-600 border border-[#2e3340] hover:text-slate-400'}"
+        on:click={() => toggleGroup(g.id)}
+        title="{visibleGroups.has(g.id) ? 'Click to hide' : 'Click to show'} {g.label.toLowerCase()}"
+      >
+        {g.label}
+      </button>
+    {/each}
+  </div>
+
   <!-- ── Graph 1 ── -->
   <div class="flex-1 min-h-0">
-    <DataGraph {allSeries} {timeline} {windowSec} {nowSec} graphLabel="Graph 1" />
+    <DataGraph {allSeries} {timeline} {windowSec} {nowSec} {availableKeys} graphLabel="Graph 1" />
   </div>
 
   <!-- ── Graph 2 ── -->
   <div class="flex-1 min-h-0">
-    <DataGraph {allSeries} {timeline} {windowSec} {nowSec} graphLabel="Graph 2" />
+    <DataGraph {allSeries} {timeline} {windowSec} {nowSec} {availableKeys} graphLabel="Graph 2" />
   </div>
 </div>
