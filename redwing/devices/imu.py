@@ -15,12 +15,14 @@ Example::
 
 from __future__ import annotations
 import math
+import threading
+import time
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..connection import Connection
 
-_IMU_PORT_ID = "17"
+_IMU_PORT_ID  = "17"
 _FUSION_TYPES = {"bno085", "bno055"}
 _ALL_TYPES    = {"bno085", "bno055", "mpu6050"}
 
@@ -37,6 +39,11 @@ class IMU:
 
     def __init__(self, conn: "Connection") -> None:
         self._conn = conn
+        # Gyro-integrated heading for MPU-6050 (stateful; lock protects concurrent access)
+        self._gyro_hdg:   float        = 0.0
+        self._gyro_t:     float | None = None
+        self._gyro_lock:  threading.Lock = threading.Lock()
+        self._drift_warned: bool       = False
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -87,18 +94,62 @@ class IMU:
 
     @property
     def heading(self) -> float:
-        """Yaw angle in degrees, 0–360, where 0 is the startup heading.
+        """Yaw angle in degrees (0–360), where 0 is the heading at startup.
 
-        Derived from the quaternion using the standard formula::
+        **BNO085 / BNO055**: derived from the fused quaternion — stable and
+        drift-free over long runs::
 
             yaw = atan2(2*(w*z + x*y), 1 - 2*(y² + z²))
 
-        Raises :class:`RuntimeError` for MPU-6050 (no fusion).
+        **MPU-6050**: integrated from the gyroscope Z axis.  Accurate for
+        short durations (seconds to a few minutes); drifts slowly over time
+        because there is no magnetometer to correct it.  Call
+        :meth:`reset_heading` to re-zero after repositioning the robot.
+
+        Positive heading = counter-clockwise rotation (standard math convention).
         """
-        w, x, y, z = self.quaternion
-        yaw = math.atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z))
-        deg = math.degrees(yaw) % 360.0
-        return round(deg, 2)
+        data = self._port()
+        if data.get("type") in _FUSION_TYPES:
+            q = data["quaternion"]
+            yaw = math.atan2(
+                2.0 * (q["w"] * q["z"] + q["x"] * q["y"]),
+                1.0 - 2.0 * (q["y"] * q["y"] + q["z"] * q["z"]),
+            )
+            return round(math.degrees(yaw) % 360.0, 2)
+        # MPU-6050: integrate gyro Z at call rate
+        if not self._drift_warned:
+            self._drift_warned = True
+            import warnings
+            warnings.warn(
+                "MPU-6050 heading uses gyro integration and drifts over time "
+                "(typically 0.5–2° per minute). For reliable long-term heading "
+                "use a BNO085 or BNO055. Call imu.reset_heading() to re-zero "
+                "after the robot has been repositioned.",
+                stacklevel=2,
+            )
+        gz = data["gyro"]["z"]  # °/s, CCW positive
+        now = time.monotonic()
+        with self._gyro_lock:
+            if self._gyro_t is not None:
+                dt = now - self._gyro_t
+                self._gyro_hdg = (self._gyro_hdg + gz * dt) % 360.0
+            self._gyro_t = now
+            return round(self._gyro_hdg, 2)
+
+    def reset_heading(self, heading_deg: float = 0.0) -> None:
+        """Reset the gyro-integrated heading to *heading_deg* (MPU-6050 only).
+
+        Has no effect on BNO085/BNO055 — their heading is always relative to
+        the orientation at firmware boot.
+
+        Example::
+
+            imu.reset_heading()        # re-zero at current position
+            imu.reset_heading(90.0)    # declare current orientation as 90°
+        """
+        with self._gyro_lock:
+            self._gyro_hdg = float(heading_deg) % 360.0
+            self._gyro_t   = None  # discard accumulated interval
 
     # ------------------------------------------------------------------
     # Linear acceleration

@@ -155,9 +155,10 @@ class DifferentialDrive:
         self._y       = 0.0
         self._heading = 0.0   # degrees, CCW positive
 
-        self._last_l:   int   = 0
-        self._last_r:   int   = 0
-        self._last_hdg: float | None = None
+        self._last_l:    int   = 0
+        self._last_r:    int   = 0
+        self._last_hdg:  float | None = None
+        self._imu_is_mpu = False
 
         self._lock    = threading.Lock()
         self._thread: threading.Thread | None = None
@@ -170,7 +171,18 @@ class DifferentialDrive:
         self._last_l = self._le.count
         self._last_r = self._re.count
         if self._imu and self._imu.connected:
-            self._last_hdg = self._imu.heading
+            self._imu_is_mpu = (self._imu.type == "mpu6050")
+            self._last_hdg   = self._imu.heading
+            if self._imu_is_mpu and self._robot is not None:
+                self._robot.log(
+                    "⚠ MPU-6050 heading uses gyro integration and drifts over time "
+                    "(typically 0.5–2° per minute). For reliable odometry use a "
+                    "BNO085 or BNO055. Call drive.reset_pose() to re-zero after "
+                    "repositioning.",
+                    level="warning",
+                )
+        else:
+            self._imu_is_mpu = False
         self._running = True
         self._thread  = threading.Thread(target=self._loop, daemon=True,
                                          name="diff-odom")
@@ -195,12 +207,21 @@ class DifferentialDrive:
         d = (dl + dr) * 0.5  # net forward displacement this tick
 
         if self._imu and self._imu.connected and self._last_hdg is not None:
-            new_hdg    = self._imu.heading
-            dhdg       = _hdiff(new_hdg, self._last_hdg)
-            self._last_hdg = new_hdg
+            if self._imu_is_mpu:
+                # MPU-6050: integrate gyro Z directly at the known loop rate.
+                # Bypasses imu.heading to avoid call-timing jitter in the
+                # stateful integrator and gives cleaner 50 Hz integration.
+                gz   = self._imu.gyro[2]          # °/s, CCW positive
+                dhdg = gz * _ODOM_DT
+                self._last_hdg = (self._last_hdg + dhdg) % 360.0
+            else:
+                # BNO085/BNO055: use absolute fused heading — no drift.
+                new_hdg        = self._imu.heading
+                dhdg           = _hdiff(new_hdg, self._last_hdg)
+                self._last_hdg = new_hdg
         else:
-            # Derive heading change from wheel speed difference
-            # dr - dl > 0 when right wheel moves more → CCW turn → positive dhdg
+            # No IMU: derive heading from wheel speed difference.
+            # dl - dr > 0 when left wheel moves more → CCW → positive dhdg.
             dhdg = math.degrees((dl - dr) / self._track)  # CCW positive
 
         with self._lock:
@@ -465,8 +486,9 @@ class MecanumDrive:
         self._y       = 0.0
         self._heading = 0.0
 
-        self._last_counts: list[int]  = [0, 0, 0, 0]
+        self._last_counts: list[int]   = [0, 0, 0, 0]
         self._last_hdg:    float | None = None
+        self._imu_is_mpu = False
 
         self._lock    = threading.Lock()
         self._thread: threading.Thread | None = None
@@ -478,7 +500,18 @@ class MecanumDrive:
         """Begin background odometry.  Called automatically by robot.start()."""
         self._last_counts = [enc.count for enc in self._encs]
         if self._imu and self._imu.connected:
-            self._last_hdg = self._imu.heading
+            self._imu_is_mpu = (self._imu.type == "mpu6050")
+            self._last_hdg   = self._imu.heading
+            if self._imu_is_mpu and self._robot is not None:
+                self._robot.log(
+                    "⚠ MPU-6050 heading uses gyro integration and drifts over time "
+                    "(typically 0.5–2° per minute). For reliable odometry use a "
+                    "BNO085 or BNO055. Call drive.reset_pose() to re-zero after "
+                    "repositioning.",
+                    level="warning",
+                )
+        else:
+            self._imu_is_mpu = False
         self._running = True
         self._thread  = threading.Thread(target=self._loop, daemon=True,
                                          name="mecanum-odom")
@@ -506,9 +539,14 @@ class MecanumDrive:
         dy_r =  (-fl + fr + bl - br) * 0.25   # right positive
 
         if self._imu and self._imu.connected and self._last_hdg is not None:
-            new_hdg    = self._imu.heading
-            dhdg       = _hdiff(new_hdg, self._last_hdg)
-            self._last_hdg = new_hdg
+            if self._imu_is_mpu:
+                gz             = self._imu.gyro[2]
+                dhdg           = gz * _ODOM_DT
+                self._last_hdg = (self._last_hdg + dhdg) % 360.0
+            else:
+                new_hdg        = self._imu.heading
+                dhdg           = _hdiff(new_hdg, self._last_hdg)
+                self._last_hdg = new_hdg
         else:
             dhdg = math.degrees((-fl + fr - bl + br) / (4.0 * self._rk))  # CCW positive
 
