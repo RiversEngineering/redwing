@@ -1,5 +1,86 @@
 """DC motor control."""
 
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .encoder import Encoder
+
+
+class MotorGroup:
+    """A set of motors that move together as a single drive side.
+
+    All motors receive the same ``set_power()`` command simultaneously.
+    Individual motors can still be :attr:`~Motor.inverted` to correct for
+    back-to-back or mirrored mounting without rewiring.
+
+    An optional *encoder* designates which physical encoder represents this
+    group's position.  When a ``MotorGroup`` is passed to
+    :meth:`~redwing.robot.Robot.differential_drive` or
+    :meth:`~redwing.robot.Robot.mecanum_drive`, the drive system uses this
+    encoder automatically — no need to specify it separately.
+
+    Create via :meth:`~redwing.robot.Robot.motor_group`, not directly::
+
+        lm1 = robot.motor(robot.D0)
+        lm2 = robot.motor(robot.D2)
+        lm2.inverted = True        # back motor faces the opposite direction
+
+        le   = robot.encoder(robot.S0)
+        left = robot.motor_group(lm1, lm2, encoder=le)
+
+        drive = robot.differential_drive(
+            left=left, right=right,
+            wheel_diameter_mm=60,
+            track_width_mm=150,
+            ticks_per_rev=1440,
+        )
+    """
+
+    def __init__(self, motors: list["Motor"],
+                 encoder: "Encoder | None" = None) -> None:
+        if not motors:
+            raise ValueError("MotorGroup requires at least one motor.")
+        self._motors  = motors
+        self._encoder = encoder
+
+    @property
+    def encoder(self) -> "Encoder | None":
+        """The designated encoder for this motor group, or ``None``."""
+        return self._encoder
+
+    @encoder.setter
+    def encoder(self, enc: "Encoder | None") -> None:
+        """Assign or re-assign the encoder after the group is created."""
+        self._encoder = enc
+
+    @property
+    def motors(self) -> list["Motor"]:
+        """The individual :class:`Motor` objects in this group (read-only list)."""
+        return list(self._motors)
+
+    # ── Motor-compatible interface ─────────────────────────────────────────────
+
+    def set_power(self, value: float) -> None:
+        """Set all motors to *value* percent (−100 to +100)."""
+        for m in self._motors:
+            m.set_power(value)
+
+    def stop(self) -> None:
+        """Stop all motors in the group."""
+        for m in self._motors:
+            m.stop()
+
+    @property
+    def power(self) -> float:
+        """Power of the first motor in the group (proxy for the group's power)."""
+        return self._motors[0].power
+
+    def __repr__(self) -> str:
+        ids = [m._id for m in self._motors]
+        enc = self._encoder._id if self._encoder else None
+        return f"MotorGroup(motors={ids}, encoder={enc})"
+
 
 class Motor:
     """Controls a brushed DC motor.

@@ -12,7 +12,7 @@ from .devices.camera import Camera
 from .devices.encoder import Encoder
 from .devices.gamepad import Gamepad
 from .devices.gpio import DigitalInput, DigitalOutput
-from .devices.motor import Motor
+from .devices.motor import Motor, MotorGroup
 from .devices.servo import Servo
 from .devices.uart import UartBus
 from .devices.ultrasonic import Ultrasonic
@@ -363,6 +363,51 @@ class Robot:
         device = Motor(port._id, self._conn, port_type, robot=self)
         port._device = device
         return device
+
+    def motor_group(self, *motors: Motor, encoder=None) -> MotorGroup:
+        """Group two or more motors that should always run together.
+
+        All motors in the group receive the same ``set_power()`` command.
+        Use ``motor.inverted = True`` on individual motors beforehand to
+        correct for back-to-back or mirrored mounting.
+
+        Parameters
+        ----------
+        *motors:
+            Two or more :class:`~redwing.devices.motor.Motor` objects,
+            already configured with ``robot.motor()``.
+        encoder:
+            The :class:`~redwing.devices.encoder.Encoder` that represents
+            this group's position.  When the group is passed to
+            :meth:`differential_drive` or :meth:`mecanum_drive`, this encoder
+            is used automatically — no need to specify it separately.
+
+        Example — 4-motor differential drive::
+
+            lm1 = robot.motor(robot.D0)
+            lm2 = robot.motor(robot.D2)
+            lm2.inverted = True          # rear-left faces backwards
+
+            rm1 = robot.motor(robot.D1)
+            rm2 = robot.motor(robot.D3)
+            rm1.inverted = True          # front-right faces backwards
+
+            le  = robot.encoder(robot.S0)
+            re  = robot.encoder(robot.S1)
+
+            left  = robot.motor_group(lm1, lm2, encoder=le)
+            right = robot.motor_group(rm1, rm2, encoder=re)
+
+            drive = robot.differential_drive(
+                left=left, right=right,
+                wheel_diameter_mm=60,
+                track_width_mm=150,
+                ticks_per_rev=1440,
+            )
+        """
+        if len(motors) < 2:
+            raise ValueError("motor_group() requires at least two Motor objects.")
+        return MotorGroup(list(motors), encoder=encoder)
 
     def servo(
         self,
@@ -753,10 +798,12 @@ class Robot:
     def differential_drive(
         self,
         *,
-        left_motor,
-        right_motor,
-        left_encoder,
-        right_encoder,
+        left=None,
+        right=None,
+        left_motor=None,
+        right_motor=None,
+        left_encoder=None,
+        right_encoder=None,
         imu=None,
         wheel_diameter_mm: float,
         track_width_mm: float,
@@ -768,14 +815,39 @@ class Robot:
 
         The odometry loop starts automatically when ``robot.start()`` is called.
 
+        Accepts two call styles:
+
+        **Group style** (recommended for 4-motor drives) — pass
+        :class:`~redwing.devices.motor.MotorGroup` objects created with
+        :meth:`motor_group`.  The encoder is read from the group automatically::
+
+            left  = robot.motor_group(lm1, lm2, encoder=le)
+            right = robot.motor_group(rm1, rm2, encoder=re)
+
+            drive = robot.differential_drive(
+                left=left, right=right,
+                wheel_diameter_mm=60, track_width_mm=150, ticks_per_rev=1440,
+            )
+
+        **Explicit style** (single motor per side) — pass motor and encoder
+        separately::
+
+            drive = robot.differential_drive(
+                left_motor=lm,   right_motor=rm,
+                left_encoder=le, right_encoder=re,
+                imu=imu,
+                wheel_diameter_mm=60, track_width_mm=150, ticks_per_rev=1440,
+            )
+
         Parameters
         ----------
+        left / right:
+            :class:`~redwing.devices.motor.MotorGroup` for each side.
+            The group's encoder is used automatically.
         left_motor / right_motor:
-            :class:`~redwing.devices.motor.Motor` objects for each drive side.
-            If a motor runs backward, set ``motor.inverted = True`` before
-            calling this method.
+            Single :class:`~redwing.devices.motor.Motor` per side (explicit style).
         left_encoder / right_encoder:
-            :class:`~redwing.devices.encoder.Encoder` objects matching each motor.
+            :class:`~redwing.devices.encoder.Encoder` per side (explicit style).
         imu:
             Optional BNO085/BNO055 :class:`~redwing.devices.imu.IMU` for heading
             fusion.  Strongly recommended — reduces angular drift significantly.
@@ -787,32 +859,32 @@ class Robot:
             Encoder pulses per full wheel revolution (after any gearing).
         invert_left / invert_right:
             Flip encoder sign for one side without rewiring.
-
-        Example::
-
-            lm  = robot.motor(robot.D0)
-            rm  = robot.motor(robot.D1)
-            rm.inverted = True
-            le  = robot.encoder(robot.D2)
-            re  = robot.encoder(robot.D3)
-            imu = robot.imu()
-
-            drive = robot.differential_drive(
-                left_motor=lm,   right_motor=rm,
-                left_encoder=le, right_encoder=re,
-                imu=imu,
-                wheel_diameter_mm=60,
-                track_width_mm=150,
-                ticks_per_rev=1440,
-            )
-            robot.start()
-
-            drive.forward(0.5)
-            drive.turn_right(90)
-            drive.backward(0.3)
-            print(drive.pose)        # (x_m, y_m, heading_deg)
         """
         self._check_not_started("create a drive system")
+
+        # Resolve group style → explicit style
+        if left is not None:
+            if not isinstance(left, MotorGroup):
+                raise TypeError("'left' must be a MotorGroup (from robot.motor_group()).")
+            left_motor   = left
+            left_encoder = left_encoder or left.encoder
+        if right is not None:
+            if not isinstance(right, MotorGroup):
+                raise TypeError("'right' must be a MotorGroup (from robot.motor_group()).")
+            right_motor   = right
+            right_encoder = right_encoder or right.encoder
+
+        if left_motor is None or right_motor is None:
+            raise ValueError(
+                "Provide either left=/right= (MotorGroup) or "
+                "left_motor=/right_motor= (Motor)."
+            )
+        if left_encoder is None or right_encoder is None:
+            raise ValueError(
+                "No encoder found. Either pass encoder= to motor_group(), or "
+                "pass left_encoder=/right_encoder= explicitly."
+            )
+
         drive = DifferentialDrive(
             left_motor=left_motor,
             right_motor=right_motor,
@@ -894,6 +966,26 @@ class Robot:
             drive.turn_left(90)
         """
         self._check_not_started("create a drive system")
+
+        def _resolve(corner, name):
+            if isinstance(corner, MotorGroup):
+                if corner.encoder is None:
+                    raise ValueError(
+                        f"MotorGroup for '{name}' has no encoder. "
+                        f"Pass encoder= to motor_group() or use a (Motor, Encoder) tuple."
+                    )
+                return (corner, corner.encoder)
+            if not (isinstance(corner, tuple) and len(corner) == 2):
+                raise TypeError(
+                    f"'{name}' must be a MotorGroup or a (Motor, Encoder) tuple."
+                )
+            return corner
+
+        fl = _resolve(fl, "fl")
+        fr = _resolve(fr, "fr")
+        bl = _resolve(bl, "bl")
+        br = _resolve(br, "br")
+
         drive = MecanumDrive(
             fl=fl, fr=fr, bl=bl, br=br,
             imu=imu,

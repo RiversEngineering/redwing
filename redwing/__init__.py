@@ -21,6 +21,7 @@ For node-based (advanced) programming::
 
 from .robot import Robot
 from .odometry import DifferentialDrive, MecanumDrive
+from .devices.motor import MotorGroup
 
-__all__ = ["Robot", "DifferentialDrive", "MecanumDrive"]
+__all__ = ["Robot", "DifferentialDrive", "MecanumDrive", "MotorGroup"]
 __version__ = "0.1.0"
