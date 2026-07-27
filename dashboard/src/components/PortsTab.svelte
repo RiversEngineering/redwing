@@ -1099,18 +1099,16 @@
             </p>
 
             <!-- Invert toggle -->
-            {@const portKey = String(selectedId)}
-            {@const motorInvLocked = portInvertLocked.has(portKey)}
-            <label class="flex items-center gap-2 cursor-pointer {motorInvLocked ? 'opacity-60' : ''}">
+            <label class="flex items-center gap-2 cursor-pointer {portInvertLocked.has(String(selectedId)) ? 'opacity-60' : ''}">
               <input
                 type="checkbox"
-                checked={portInvert[portKey] ?? false}
-                disabled={motorInvLocked}
-                on:change={(e) => sendPortInvert(portKey, e.target.checked)}
+                checked={portInvert[String(selectedId)] ?? false}
+                disabled={portInvertLocked.has(String(selectedId))}
+                on:change={(e) => sendPortInvert(String(selectedId), e.target.checked)}
                 class="w-4 h-4 accent-blue-500"
               />
               <span class="text-xs text-slate-400">Invert motor direction</span>
-              {#if motorInvLocked}
+              {#if portInvertLocked.has(String(selectedId))}
                 <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-400 border border-amber-700/40">Set by code</span>
               {/if}
             </label>
@@ -1319,18 +1317,16 @@
             </button>
 
             <!-- Invert toggle -->
-            {@const encKey = String(selectedId)}
-            {@const encInvLocked = portInvertLocked.has(encKey)}
-            <label class="flex items-center gap-2 cursor-pointer {encInvLocked ? 'opacity-60' : ''}">
+            <label class="flex items-center gap-2 cursor-pointer {portInvertLocked.has(String(selectedId)) ? 'opacity-60' : ''}">
               <input
                 type="checkbox"
-                checked={portInvert[encKey] ?? false}
-                disabled={encInvLocked}
-                on:change={(e) => sendPortInvert(encKey, e.target.checked)}
+                checked={portInvert[String(selectedId)] ?? false}
+                disabled={portInvertLocked.has(String(selectedId))}
+                on:change={(e) => sendPortInvert(String(selectedId), e.target.checked)}
                 class="w-4 h-4 accent-violet-500"
               />
               <span class="text-xs text-slate-400">Invert count direction</span>
-              {#if encInvLocked}
+              {#if portInvertLocked.has(String(selectedId))}
                 <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-400 border border-amber-700/40">Set by code</span>
               {/if}
             </label>
