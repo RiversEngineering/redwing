@@ -9,11 +9,21 @@ is facing.
 
 Hardware
 --------
-  Front-left  motor + encoder → D0, S0
-  Front-right motor + encoder → D1, S1
-  Back-left   motor + encoder → D2, S2
-  Back-right  motor + encoder → D3, S3
-  IMU (BNO085) → I²C port (GP4/GP5) — optional but strongly recommended
+Both motors and encoders require dual-pin D ports (two signal wires each).
+S ports are single-pin only and cannot drive sign-magnitude motors or decode
+quadrature encoders.
+
+A 4-motor mecanum with 4 encoders uses all 8 D ports:
+
+  Front-left  motor → D0      Front-right motor → D1
+  Back-left   motor → D2      Back-right  motor → D3
+  Front-left  enc   → D4      Front-right enc   → D5
+  Back-left   enc   → D6      Back-right  enc   → D7
+  IMU (BNO085)      → I²C port (GP4/GP5) — optional but strongly recommended
+
+Note: D6 = UART1 and D7 = UART0.  If you are also using a UART device
+(Bluetooth, GPS, etc.) swap those encoders to a different peripheral bus
+or drop to a 2-encoder configuration.
 
   Label your motors by physical position on the robot (front/back,
   left/right) — not by wiring order.  Use motor.inverted = True on any
@@ -35,10 +45,10 @@ robot = redwing.Robot()
 
 # Configure each corner: motor + its encoder.
 # Flip .inverted on any motor that runs backwards.
-fl_m = robot.motor(robot.D0);  fl_e = robot.encoder(robot.S0)
-fr_m = robot.motor(robot.D1);  fr_e = robot.encoder(robot.S1)
-bl_m = robot.motor(robot.D2);  bl_e = robot.encoder(robot.S2)
-br_m = robot.motor(robot.D3);  br_e = robot.encoder(robot.S3)
+fl_m = robot.motor(robot.D0);  fl_e = robot.encoder(robot.D4)
+fr_m = robot.motor(robot.D1);  fr_e = robot.encoder(robot.D5)
+bl_m = robot.motor(robot.D2);  bl_e = robot.encoder(robot.D6)
+br_m = robot.motor(robot.D3);  br_e = robot.encoder(robot.D7)
 
 # fr_m.inverted = True   # uncomment if front-right runs backwards
 # br_m.inverted = True   # uncomment if back-right runs backwards

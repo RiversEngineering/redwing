@@ -145,8 +145,12 @@ class RP2040:
         elif ptype == "log":
             msg = pkt.get("message", "")
             if msg:
+                # Firmware IMU diagnostics are routed as "diagnostic" level so
+                # they stay out of the main debug console (still visible in the
+                # Ports tab collapsible).
+                level = "diagnostic" if msg.startswith("[IMU]") else "info"
                 async with self._state.lock:
-                    self._state.add_log("info", msg)
+                    self._state.add_log(level, msg)
 
         elif ptype == "error":
             code = pkt.get("code", 0)

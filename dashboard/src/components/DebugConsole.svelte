@@ -6,10 +6,13 @@
   let autoScroll = true;
   let prevLogCount = 0;
 
+  // "diagnostic" entries are firmware internals shown only in the Ports tab.
+  $: displayLogs = $logs.filter((e) => e.level !== 'diagnostic');
+
   // After each update, scroll to bottom if autoScroll is enabled
   afterUpdate(() => {
     if (!scrollEl) return;
-    const newCount = $logs.length;
+    const newCount = displayLogs.length;
     if (autoScroll && newCount !== prevLogCount) {
       scrollEl.scrollTop = scrollEl.scrollHeight;
     }
@@ -80,7 +83,7 @@
     </button>
 
     <!-- Log count -->
-    <span class="text-[10px] text-slate-600 font-mono">{$logs.length}/200</span>
+    <span class="text-[10px] text-slate-600 font-mono">{displayLogs.length}/200</span>
 
     <!-- Clear button -->
     <button
@@ -98,14 +101,14 @@
     on:scroll={handleScroll}
     class="flex-1 overflow-y-auto min-h-0 font-mono text-xs"
   >
-    {#if $logs.length === 0}
+    {#if displayLogs.length === 0}
       <div class="flex items-center justify-center h-full text-slate-700 text-sm italic">
         No log messages yet
       </div>
     {:else}
       <table class="w-full border-collapse">
         <tbody>
-          {#each $logs as entry (entry.id)}
+          {#each displayLogs as entry (entry.id)}
             <tr class="hover:bg-white/[0.02] border-b border-[#1e2130]/50">
               <!-- Timestamp -->
               <td class="text-slate-600 px-3 py-0.5 whitespace-nowrap align-top w-28">

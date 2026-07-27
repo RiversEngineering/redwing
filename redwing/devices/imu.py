@@ -26,6 +26,47 @@ _IMU_PORT_ID  = "17"
 _FUSION_TYPES = {"bno085", "bno055"}
 _ALL_TYPES    = {"bno085", "bno055", "mpu6050"}
 
+# ---------------------------------------------------------------------------
+# Quaternion helpers (module-level for use in odometry too)
+# ---------------------------------------------------------------------------
+
+def _euler_to_quat(yaw_deg: float, pitch_deg: float, roll_deg: float) -> tuple:
+    """ZYX Euler angles → unit quaternion (w, x, y, z)."""
+    y = math.radians(yaw_deg)   / 2
+    p = math.radians(pitch_deg) / 2
+    r = math.radians(roll_deg)  / 2
+    cy, sy = math.cos(y), math.sin(y)
+    cp, sp = math.cos(p), math.sin(p)
+    cr, sr = math.cos(r), math.sin(r)
+    return (
+        cr * cp * cy + sr * sp * sy,
+        sr * cp * cy - cr * sp * sy,
+        cr * sp * cy + sr * cp * sy,
+        cr * cp * sy - sr * sp * cy,
+    )
+
+
+def _qmul(q1: tuple, q2: tuple) -> tuple:
+    w1, x1, y1, z1 = q1
+    w2, x2, y2, z2 = q2
+    return (
+        w1*w2 - x1*x2 - y1*y2 - z1*z2,
+        w1*x2 + x1*w2 + y1*z2 - z1*y2,
+        w1*y2 - x1*z2 + y1*w2 + z1*x2,
+        w1*z2 + x1*y2 - y1*x2 + z1*w2,
+    )
+
+
+def _qconj(q: tuple) -> tuple:
+    w, x, y, z = q
+    return (w, -x, -y, -z)
+
+
+def _rotate_vec(q: tuple, vx: float, vy: float, vz: float) -> tuple:
+    """Rotate vector by quaternion: q ⊗ (0,v) ⊗ q*."""
+    _, rx, ry, rz = _qmul(_qmul(q, (0.0, vx, vy, vz)), _qconj(q))
+    return (rx, ry, rz)
+
 
 class IMU:
     """Read-only access to an auto-detected IMU on the I²C port.
@@ -40,10 +81,13 @@ class IMU:
     def __init__(self, conn: "Connection") -> None:
         self._conn = conn
         # Gyro-integrated heading for MPU-6050 (stateful; lock protects concurrent access)
-        self._gyro_hdg:   float        = 0.0
-        self._gyro_t:     float | None = None
-        self._gyro_lock:  threading.Lock = threading.Lock()
-        self._drift_warned: bool       = False
+        self._gyro_hdg:    float        = 0.0
+        self._gyro_t:      float | None = None
+        self._gyro_lock:   threading.Lock = threading.Lock()
+        self._drift_warned: bool        = False
+        # Mount rotation: q_mount describes how the sensor frame relates to the robot frame.
+        # All outputs are corrected by q_mount_inv so they are expressed in robot frame.
+        self._mount_q: tuple = (1.0, 0.0, 0.0, 0.0)  # identity
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -58,6 +102,55 @@ class IMU:
                 "Check that the sensor is wired to the I²C port (GP4 SDA / GP5 SCL)."
             )
         return data
+
+    def _mount_yaw_deg(self) -> float:
+        """Yaw component of the mount quaternion (degrees)."""
+        w, x, y, z = self._mount_q
+        return math.degrees(math.atan2(2*(w*z + x*y), 1 - 2*(y*y + z*z)))
+
+    # ------------------------------------------------------------------
+    # Mount rotation
+    # ------------------------------------------------------------------
+
+    def set_mount_rotation(
+        self,
+        *,
+        yaw: float   = 0.0,
+        pitch: float = 0.0,
+        roll: float  = 0.0,
+    ) -> None:
+        """Specify the IMU's physical mounting orientation on the robot.
+
+        All heading, quaternion, and acceleration values are automatically
+        corrected so they are expressed in the robot's reference frame
+        regardless of how the sensor is physically oriented.
+
+        Parameters
+        ----------
+        yaw:
+            Rotation around the robot's vertical (Z) axis in degrees,
+            positive = counter-clockwise when viewed from above.
+            **Most common** — use this when the IMU PCB is rotated flat
+            on the robot deck.
+        pitch:
+            Rotation around the robot's left-right (Y) axis.
+            Use when the IMU is tilted forward or backward.
+        roll:
+            Rotation around the robot's forward (X) axis.
+            Use when the IMU is mounted on its side or upside-down.
+
+        Examples::
+
+            # IMU rotated 90° clockwise on the robot deck
+            imu.set_mount_rotation(yaw=-90)
+
+            # IMU mounted upside-down (flipped over)
+            imu.set_mount_rotation(roll=180)
+
+            # IMU mounted with USB port facing left, board flat
+            imu.set_mount_rotation(yaw=90)
+        """
+        self._mount_q = _euler_to_quat(yaw, pitch, roll)
 
     # ------------------------------------------------------------------
     # Status
@@ -81,7 +174,11 @@ class IMU:
 
     @property
     def quaternion(self) -> tuple[float, float, float, float]:
-        """Orientation as a unit quaternion ``(w, x, y, z)``.
+        """Orientation as a unit quaternion ``(w, x, y, z)`` in robot frame.
+
+        Mount rotation is applied automatically — the result always reflects
+        the robot's orientation regardless of how the IMU is physically
+        positioned.
 
         Raises :class:`RuntimeError` if the sensor is not a fusion type
         (BNO085/BNO055) or is not connected.
@@ -90,11 +187,16 @@ class IMU:
         if data.get("type") not in _FUSION_TYPES:
             raise RuntimeError("quaternion is only available on BNO085/BNO055")
         q = data["quaternion"]
-        return (q["w"], q["x"], q["y"], q["z"])
+        q_sensor = (q["w"], q["x"], q["y"], q["z"])
+        w, x, y, z = _qmul(_qconj(self._mount_q), q_sensor)
+        return (round(w, 6), round(x, 6), round(y, 6), round(z, 6))
 
     @property
     def heading(self) -> float:
-        """Yaw angle in degrees (0–360), where 0 is the heading at startup.
+        """Yaw angle in degrees (0–360) in robot frame.
+
+        0° is the robot's heading at startup.  Mount rotation is applied
+        automatically.
 
         **BNO085 / BNO055**: derived from the fused quaternion — stable and
         drift-free over long runs::
@@ -111,9 +213,11 @@ class IMU:
         data = self._port()
         if data.get("type") in _FUSION_TYPES:
             q = data["quaternion"]
+            q_sensor = (q["w"], q["x"], q["y"], q["z"])
+            qw, qx, qy, qz = _qmul(_qconj(self._mount_q), q_sensor)
             yaw = math.atan2(
-                2.0 * (q["w"] * q["z"] + q["x"] * q["y"]),
-                1.0 - 2.0 * (q["y"] * q["y"] + q["z"] * q["z"]),
+                2.0 * (qw * qz + qx * qy),
+                1.0 - 2.0 * (qy * qy + qz * qz),
             )
             return round(math.degrees(yaw) % 360.0, 2)
         # MPU-6050: integrate gyro Z at call rate
@@ -134,7 +238,7 @@ class IMU:
                 dt = now - self._gyro_t
                 self._gyro_hdg = (self._gyro_hdg + gz * dt) % 360.0
             self._gyro_t = now
-            return round(self._gyro_hdg, 2)
+            return round((self._gyro_hdg - self._mount_yaw_deg()) % 360.0, 2)
 
     def reset_heading(self, heading_deg: float = 0.0) -> None:
         """Reset the gyro-integrated heading to *heading_deg* (MPU-6050 only).
@@ -148,7 +252,9 @@ class IMU:
             imu.reset_heading(90.0)    # declare current orientation as 90°
         """
         with self._gyro_lock:
-            self._gyro_hdg = float(heading_deg) % 360.0
+            # Store the raw sensor heading that corresponds to the desired robot heading,
+            # so subsequent heading reads apply the mount offset correctly.
+            self._gyro_hdg = (float(heading_deg) + self._mount_yaw_deg()) % 360.0
             self._gyro_t   = None  # discard accumulated interval
 
     # ------------------------------------------------------------------
@@ -157,7 +263,9 @@ class IMU:
 
     @property
     def acceleration(self) -> tuple[float, float, float]:
-        """Linear acceleration in m/s² as ``(x, y, z)``.
+        """Linear acceleration in m/s² as ``(x, y, z)`` in robot frame.
+
+        Mount rotation is applied automatically.
 
         For BNO085/BNO055 this is gravity-compensated linear acceleration.
         For MPU-6050 this is raw acceleration in g converted to m/s²
@@ -168,10 +276,12 @@ class IMU:
         if t in _FUSION_TYPES:
             a = data["linear_acceleration"]
         else:
-            # MPU-6050: raw accel in g → m/s²
             raw = data["acceleration"]
             a = {k: v * 9.80665 for k, v in raw.items()}
-        return (round(a["x"], 4), round(a["y"], 4), round(a["z"], 4))
+        ax, ay, az = a["x"], a["y"], a["z"]
+        if self._mount_q != (1.0, 0.0, 0.0, 0.0):
+            ax, ay, az = _rotate_vec(_qconj(self._mount_q), ax, ay, az)
+        return (round(ax, 4), round(ay, 4), round(az, 4))
 
     # ------------------------------------------------------------------
     # Gyroscope (MPU-6050 only)
