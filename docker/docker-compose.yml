@@ -32,6 +32,11 @@ services:
       REDWING_HZ:     "50"
       REDWING_LIDAR: /dev/ttyUSB0
       # REDWING_BATTERY_CELLS: "4"  # set per-robot if battery module has internal voltage divider
+      # Cap numpy/BLAS/OpenMP thread pools (OpenCV's own pool is capped via
+      # REDWING_CV_THREADS). Keeps the vision daemon from oversubscribing the
+      # 4 cores it shares with code-server + student code on a Pi 4.
+      OMP_NUM_THREADS:      "2"
+      OPENBLAS_NUM_THREADS: "2"
     network_mode: host   # ports: is redundant with host networking
 
   nginx:
@@ -56,6 +61,12 @@ services:
       - ..:/opt/redwing:ro
     environment:
       PASSWORD: "redwing"     # change per-robot in ansible vars
+      # Cap numpy/BLAS/OpenMP thread pools for student code. Combined with the
+      # OpenCV thread cap in the redwing library, this keeps a student's vision
+      # work (e.g. AprilTag detection) to ~2 cores so it can't starve the
+      # daemon's camera-feed loop and make the feed stutter on a 4-core Pi 4.
+      OMP_NUM_THREADS:      "2"
+      OPENBLAS_NUM_THREADS: "2"
     network_mode: host   # listens on port 8080 (code-server default)
 
 volumes:
