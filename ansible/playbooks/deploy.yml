@@ -45,6 +45,39 @@
         groups: docker
         append: true
 
+    # ── zram swap ──────────────────────────────────────────────────────────
+    # The full stack (code-server + Pylance, the vision daemon, and a student's
+    # own OpenCV/AprilTag script) can transiently exceed the 2 GB of RAM on a
+    # Pi 4. Without swap, a spike is fatal — the OOM killer takes a process.
+    # zram provides a compressed in-RAM swap device (zstd ~3-4x), giving a large
+    # safety margin for a few % CPU and zero SD-card wear. Harmless on 4 GB
+    # boards, which simply never touch it.
+    - name: Install zram-tools
+      apt:
+        name: zram-tools
+        state: present
+        update_cache: true
+
+    - name: Configure zram swap device
+      copy:
+        dest: /etc/default/zramswap
+        mode: "0644"
+        content: |
+          # Managed by Redwing ansible — compressed in-RAM swap.
+          ALGO=zstd
+          # zram device size as a percentage of physical RAM. On a 2 GB Pi this
+          # allocates a ~2 GB swap device that costs far less actual RAM once
+          # compressed; on a 4 GB Pi it is available but rarely used.
+          PERCENT=100
+          PRIORITY=100
+      notify: restart zramswap
+
+    - name: Enable zramswap service
+      systemd:
+        name: zramswap
+        enabled: true
+        state: started
+
     - name: Install udev rule for RP2040 stable symlink
       copy:
         src: ../../docker/99-rp2040.rules
@@ -86,6 +119,11 @@
   handlers:
     - name: reload udev
       command: udevadm control --reload-rules && udevadm trigger
+
+    - name: restart zramswap
+      systemd:
+        name: zramswap
+        state: restarted
 
 
 - name: Restore a student's workspace (reset a single robot)

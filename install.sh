@@ -113,6 +113,27 @@ sudo modprobe i2c-dev 2>/dev/null || true
 grep -q "^i2c-dev" /etc/modules 2>/dev/null || \
     echo "i2c-dev" | sudo tee -a /etc/modules > /dev/null
 
+# ── 5a. zram swap (memory headroom for 2 GB Pi 4 boards) ──────────────────────
+# The full stack — code-server + Pylance, the vision daemon, and a student's own
+# OpenCV/AprilTag script — can transiently exceed 2 GB of RAM. Without swap a
+# spike is fatal (the OOM killer takes a process). zram gives a compressed
+# in-RAM swap device (zstd ~3-4x) for a few % CPU and no SD-card wear. Harmless
+# on 4 GB boards, which simply never touch it.
+step "Configuring zram swap..."
+sudo apt-get install -y --no-install-recommends zram-tools
+sudo tee /etc/default/zramswap > /dev/null <<'EOF'
+# Managed by Redwing install.sh — compressed in-RAM swap.
+ALGO=zstd
+# zram device size as a percentage of physical RAM. On a 2 GB Pi this allocates
+# a ~2 GB swap device that costs far less actual RAM once compressed; on a 4 GB
+# Pi it is available but rarely used.
+PERCENT=100
+PRIORITY=100
+EOF
+sudo systemctl enable --now zramswap 2>/dev/null || sudo systemctl restart zramswap || \
+    warn "zramswap service not available — check 'zramctl' after reboot"
+ok "zram swap configured"
+
 # ── 5b. Nintendo Switch controller support (hid-nintendo) ─────────────────────
 # Required for the GameSir Nova Lite (and any Switch-mode controller) to be
 # recognised as a gamepad by evdev. Without it, hid-generic handles the device
