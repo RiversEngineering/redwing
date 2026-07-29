@@ -104,17 +104,29 @@
           - "--exclude=dashboard/node_modules"
           - "--exclude=dashboard/dist"
 
+    # Give the robot daemon a soft memory-protection floor on low-RAM boards so
+    # the camera feed / control loop survive memory pressure (see mem_reservation
+    # in docker-compose.yml). Only <=2 GB boards (Pi 4) get it; 4 GB boards (Pi 5)
+    # have ample headroom and get 0 (no reservation).
+    - name: Determine daemon memory reservation from board RAM
+      set_fact:
+        daemon_mem_reservation: "{{ '384m' if (ansible_memtotal_mb | int) <= 2560 else '0' }}"
+
     - name: Build Docker images from synced source
       community.docker.docker_compose_v2:
         project_src: /opt/redwing/docker
         pull: missing
         build: true
         state: present
+      environment:
+        REDWING_DAEMON_MEM_RESERVATION: "{{ daemon_mem_reservation }}"
 
     - name: Ensure redwing daemon is running
       community.docker.docker_compose_v2:
         project_src: /opt/redwing/docker
         state: present
+      environment:
+        REDWING_DAEMON_MEM_RESERVATION: "{{ daemon_mem_reservation }}"
 
   handlers:
     - name: reload udev

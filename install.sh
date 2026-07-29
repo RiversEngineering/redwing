@@ -165,6 +165,19 @@ ok "Images built"
 step "Installing redwing systemd service..."
 DOCKER_BIN="$(command -v docker)"
 
+# Give the robot daemon a soft memory-protection floor on low-RAM boards so the
+# camera feed / control loop survive memory pressure (see mem_reservation in
+# docker-compose.yml). Only applied on <=2 GB boards (Pi 4); 4 GB boards (Pi 5)
+# have plenty of headroom and get 0 (no reservation).
+MEM_TOTAL_KB="$(awk '/^MemTotal:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)"
+if [[ "$MEM_TOTAL_KB" -gt 0 && "$MEM_TOTAL_KB" -le 2621440 ]]; then   # <= 2.5 GiB
+    DAEMON_MEM_RESERVATION="384m"
+    ok "Low-RAM board detected (${MEM_TOTAL_KB} kB) — daemon mem_reservation=${DAEMON_MEM_RESERVATION}"
+else
+    DAEMON_MEM_RESERVATION="0"
+    ok "Board has ample RAM (${MEM_TOTAL_KB} kB) — no daemon mem_reservation"
+fi
+
 sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null <<EOF
 [Unit]
 Description=Redwing Robotics Platform
@@ -174,6 +187,7 @@ Requires=docker.service
 [Service]
 Type=simple
 WorkingDirectory=${INSTALL_DIR}
+Environment=REDWING_DAEMON_MEM_RESERVATION=${DAEMON_MEM_RESERVATION}
 ExecStart=${DOCKER_BIN} compose -f ${COMPOSE_FILE} up
 ExecStop=${DOCKER_BIN} compose -f ${COMPOSE_FILE} down
 Restart=on-failure
