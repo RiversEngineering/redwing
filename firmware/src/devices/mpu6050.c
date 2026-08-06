@@ -3,9 +3,15 @@
 #include "pico/stdlib.h"
 
 #define MPU6050_ADDR   0x68u
-#define REG_WHO_AM_I   0x75u   // expected value: 0x68
+#define REG_WHO_AM_I   0x75u
 #define REG_PWR_MGMT1  0x6Bu
 #define REG_ACCEL_BASE 0x3Bu   // ACCEL_X_H; burst-read 14 bytes for accel+temp+gyro
+
+// WHO_AM_I values for MPU-6xxx family (all share the same register map).
+// MPU-6050: 0x68, MPU-6500: 0x70, MPU-9250: 0x71
+static inline bool who_am_i_ok(uint8_t who) {
+    return who == 0x68u || who == 0x70u || who == 0x71u;
+}
 
 static bool _present = false;
 
@@ -21,7 +27,7 @@ static bool reg_read(uint8_t reg, uint8_t *data, uint8_t len) {
 
 bool mpu6050_init(void) {
     uint8_t who = 0;
-    if (!reg_read(REG_WHO_AM_I, &who, 1) || who != 0x68u) return false;
+    if (!reg_read(REG_WHO_AM_I, &who, 1) || !who_am_i_ok(who)) return false;
 
     reg_write(REG_PWR_MGMT1, 0x80u);  // device reset
     sleep_ms(100);
