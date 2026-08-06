@@ -4,12 +4,19 @@
 # Run directly or pipe from GitHub:
 #   bash <(curl -fsSL https://raw.githubusercontent.com/RiversEngineering/redwing/main/install.sh)
 #
+# To install a specific branch instead of main (e.g. to test changes before
+# merging), set REDWING_BRANCH. Note the "refs/heads/" in the raw URL — it is
+# required for branch names that contain slashes:
+#   REDWING_BRANCH=my/branch \
+#     bash <(curl -fsSL https://raw.githubusercontent.com/RiversEngineering/redwing/refs/heads/my/branch/install.sh)
+#
 # Safe to re-run — all steps are idempotent.
 
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 REPO_URL="https://github.com/RiversEngineering/redwing"
+REPO_BRANCH="${REDWING_BRANCH:-main}"
 INSTALL_DIR="/opt/redwing"
 SERVICE_NAME="redwing"
 
@@ -35,6 +42,7 @@ echo -e "\n${BOLD}Redwing installer${NC}"
 echo "  User:    $INSTALL_USER"
 echo "  Install: $INSTALL_DIR"
 echo "  Repo:    $REPO_URL"
+echo "  Branch:  $REPO_BRANCH"
 
 # ── 1. System update ──────────────────────────────────────────────────────────
 step "Updating system packages..."
@@ -55,13 +63,14 @@ ok "Prerequisites installed"
 # ── 3. Clone / update repo ────────────────────────────────────────────────────
 step "Setting up Redwing repo at $INSTALL_DIR..."
 if [[ -d "$INSTALL_DIR/.git" ]]; then
-    echo "  Repo already present — pulling latest..."
-    sudo git -C "$INSTALL_DIR" fetch --quiet
-    sudo git -C "$INSTALL_DIR" reset --hard origin/main --quiet
-    ok "Repo updated"
+    echo "  Repo already present — updating to '$REPO_BRANCH'..."
+    sudo git -C "$INSTALL_DIR" fetch --quiet origin "$REPO_BRANCH"
+    sudo git -C "$INSTALL_DIR" checkout --quiet -B "$REPO_BRANCH" "origin/$REPO_BRANCH"
+    sudo git -C "$INSTALL_DIR" reset --hard --quiet "origin/$REPO_BRANCH"
+    ok "Repo updated to '$REPO_BRANCH'"
 else
-    sudo git clone --quiet "$REPO_URL" "$INSTALL_DIR"
-    ok "Repo cloned"
+    sudo git clone --quiet --branch "$REPO_BRANCH" "$REPO_URL" "$INSTALL_DIR"
+    ok "Repo cloned ('$REPO_BRANCH')"
 fi
 sudo chown -R "${INSTALL_USER}:${INSTALL_USER}" "$INSTALL_DIR"
 
