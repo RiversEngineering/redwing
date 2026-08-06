@@ -127,24 +127,36 @@ grep -q "^i2c-dev" /etc/modules 2>/dev/null || \
 
 # ── 5a. zram swap (memory headroom for 2 GB Pi 4 boards) ──────────────────────
 # The full stack — code-server + Pylance, the vision daemon, and a student's own
-# OpenCV/AprilTag script — can transiently exceed 2 GB of RAM. Without swap a
-# spike is fatal (the OOM killer takes a process). zram gives a compressed
-# in-RAM swap device (zstd ~3-4x) for a few % CPU and no SD-card wear. Harmless
-# on 4 GB boards, which simply never touch it.
-step "Configuring zram swap..."
-sudo apt-get install -y --no-install-recommends zram-tools
-sudo tee /etc/default/zramswap > /dev/null <<'EOF'
-# Managed by Redwing install.sh — compressed in-RAM swap.
-ALGO=zstd
-# zram device size as a percentage of physical RAM. On a 2 GB Pi this allocates
-# a ~2 GB swap device that costs far less actual RAM once compressed; on a 4 GB
-# Pi it is available but rarely used.
-PERCENT=100
-PRIORITY=100
+# OpenCV/AprilTag script — can transiently exceed 2 GB of RAM, and without swap
+# a spike lets the OOM killer take a process. A compressed in-RAM swap device
+# (zram) gives a large safety margin for a few % CPU and no SD-card wear.
+#
+# Raspberry Pi OS already provides zram swap out of the box via
+# systemd-zram-generator (the "rpi-swap" units). We rely on that rather than
+# installing zram-tools: a second provider claiming the same /dev/zram0
+# conflicts and fails at boot with "device busy". So remove zram-tools if an
+# earlier install added it, and only provision zram natively if this image
+# happens to ship without any zram swap.
+step "Ensuring zram swap..."
+if dpkg -s zram-tools >/dev/null 2>&1; then
+    sudo systemctl disable --now zramswap 2>/dev/null || true
+    sudo systemctl reset-failed zramswap 2>/dev/null || true
+    sudo apt-get purge -y zram-tools >/dev/null 2>&1 || true
+    ok "Removed conflicting zram-tools (Pi OS provides zram natively)"
+fi
+if swapon --show | grep -q zram; then
+    ok "zram swap active ($(swapon --show | awk '/zram/ {print $3; exit}'))"
+else
+    sudo apt-get install -y --no-install-recommends systemd-zram-generator
+    sudo tee /etc/systemd/zram-generator.conf > /dev/null <<'EOF'
+# Managed by Redwing — compressed in-RAM swap via systemd-zram-generator.
+[zram0]
+zram-size = ram
+compression-algorithm = zstd
+swap-priority = 100
 EOF
-sudo systemctl enable --now zramswap 2>/dev/null || sudo systemctl restart zramswap || \
-    warn "zramswap service not available — check 'zramctl' after reboot"
-ok "zram swap configured"
+    ok "Configured zram via systemd-zram-generator (active after reboot)"
+fi
 
 # ── 5b. Nintendo Switch controller support (hid-nintendo) ─────────────────────
 # Required for the GameSir Nova Lite (and any Switch-mode controller) to be

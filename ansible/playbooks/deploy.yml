@@ -47,36 +47,44 @@
 
     # ── zram swap ──────────────────────────────────────────────────────────
     # The full stack (code-server + Pylance, the vision daemon, and a student's
-    # own OpenCV/AprilTag script) can transiently exceed the 2 GB of RAM on a
-    # Pi 4. Without swap, a spike is fatal — the OOM killer takes a process.
-    # zram provides a compressed in-RAM swap device (zstd ~3-4x), giving a large
-    # safety margin for a few % CPU and zero SD-card wear. Harmless on 4 GB
-    # boards, which simply never touch it.
-    - name: Install zram-tools
+    # own OpenCV/AprilTag script) can transiently exceed the 2 GB on a Pi 4;
+    # without swap a spike lets the OOM killer take a process.
+    #
+    # Raspberry Pi OS already ships compressed zram swap via
+    # systemd-zram-generator (the "rpi-swap" units), so we rely on that. We must
+    # NOT install zram-tools: a second provider on the same /dev/zram0 conflicts
+    # and fails at boot ("device busy"). Remove it if present, and provision
+    # zram natively only if the image ships without any zram swap.
+    - name: Remove conflicting zram-tools if present
       apt:
         name: zram-tools
-        state: present
-        update_cache: true
+        state: absent
+        purge: true
 
-    - name: Configure zram swap device
-      copy:
-        dest: /etc/default/zramswap
-        mode: "0644"
-        content: |
-          # Managed by Redwing ansible — compressed in-RAM swap.
-          ALGO=zstd
-          # zram device size as a percentage of physical RAM. On a 2 GB Pi this
-          # allocates a ~2 GB swap device that costs far less actual RAM once
-          # compressed; on a 4 GB Pi it is available but rarely used.
-          PERCENT=100
-          PRIORITY=100
-      notify: restart zramswap
+    - name: Check whether zram swap is already active
+      command: swapon --show=NAME --noheadings
+      register: redwing_active_swaps
+      changed_when: false
 
-    - name: Enable zramswap service
-      systemd:
-        name: zramswap
-        enabled: true
-        state: started
+    - name: Provision zram natively when the image ships without it
+      when: "'zram' not in redwing_active_swaps.stdout"
+      block:
+        - name: Install systemd-zram-generator
+          apt:
+            name: systemd-zram-generator
+            state: present
+            update_cache: true
+
+        - name: Configure zram device (systemd-zram-generator)
+          copy:
+            dest: /etc/systemd/zram-generator.conf
+            mode: "0644"
+            content: |
+              # Managed by Redwing ansible — compressed in-RAM swap.
+              [zram0]
+              zram-size = ram
+              compression-algorithm = zstd
+              swap-priority = 100
 
     - name: Install udev rule for RP2040 stable symlink
       copy:
@@ -131,11 +139,6 @@
   handlers:
     - name: reload udev
       command: udevadm control --reload-rules && udevadm trigger
-
-    - name: restart zramswap
-      systemd:
-        name: zramswap
-        state: restarted
 
 
 - name: Restore a student's workspace (reset a single robot)
