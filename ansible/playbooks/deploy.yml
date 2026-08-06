@@ -120,6 +120,25 @@
       set_fact:
         daemon_mem_reservation: "{{ '384m' if (ansible_memtotal_mb | int) <= 2560 else '0' }}"
 
+    # A mem_reservation is only enforced if the kernel memory cgroup controller
+    # is enabled. Raspberry Pi OS ships it OFF by default, so Docker silently
+    # discards the reservation until these flags are added to the boot cmdline.
+    # Only needed on the boards that actually get a reservation; takes effect
+    # after a reboot (which this playbook does not perform automatically).
+    - name: Enable kernel memory cgroup for mem_reservation (<=2 GB boards)
+      when: daemon_mem_reservation != '0'
+      ansible.builtin.shell: |
+        set -e
+        f=/boot/firmware/cmdline.txt
+        [ -f "$f" ] || f=/boot/cmdline.txt
+        if [ -f "$f" ] && ! grep -q cgroup_enable=memory "$f"; then
+            sed -i 's/$/ cgroup_enable=memory cgroup_memory=1/' "$f"
+            echo CHANGED
+        fi
+      register: cgroup_cmdline
+      changed_when: "'CHANGED' in cgroup_cmdline.stdout"
+      notify: memory cgroup reboot notice
+
     - name: Build Docker images from synced source
       community.docker.docker_compose_v2:
         project_src: /opt/redwing/docker
@@ -139,6 +158,13 @@
   handlers:
     - name: reload udev
       command: udevadm control --reload-rules && udevadm trigger
+
+    - name: memory cgroup reboot notice
+      debug:
+        msg: >-
+          Kernel memory cgroup was just enabled on this host. REBOOT it for the
+          daemon's mem_reservation to take effect (this playbook does not reboot
+          automatically).
 
 
 - name: Restore a student's workspace (reset a single robot)

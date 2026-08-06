@@ -22,6 +22,7 @@ REPO_URL="https://github.com/RiversEngineering/redwing"
 REPO_BRANCH="${REDWING_BRANCH:-main}"
 INSTALL_DIR="/opt/redwing"
 SERVICE_NAME="redwing"
+NEED_REBOOT=0   # set to 1 by steps whose changes only apply after a reboot
 
 # ── Colour helpers ────────────────────────────────────────────────────────────
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; BOLD='\033[1m'; NC='\033[0m'
@@ -197,6 +198,23 @@ MEM_TOTAL_KB="$(awk '/^MemTotal:/ {print $2}' /proc/meminfo 2>/dev/null || echo 
 if [[ "$MEM_TOTAL_KB" -gt 0 && "$MEM_TOTAL_KB" -le 2621440 ]]; then   # <= 2.5 GiB
     DAEMON_MEM_RESERVATION="384m"
     ok "Low-RAM board detected (${MEM_TOTAL_KB} kB) — daemon mem_reservation=${DAEMON_MEM_RESERVATION}"
+
+    # A mem_reservation is only enforced if the kernel memory cgroup controller
+    # is enabled. Raspberry Pi OS ships it OFF by default, so Docker silently
+    # discards the reservation ("memory soft limit ... Limitation discarded")
+    # until these flags are added to the boot cmdline. Takes effect on reboot.
+    CGROUP_CMDLINE=/boot/firmware/cmdline.txt
+    [[ -f "$CGROUP_CMDLINE" ]] || CGROUP_CMDLINE=/boot/cmdline.txt
+    if [[ -f "$CGROUP_CMDLINE" ]] && ! grep -q "cgroup_enable=memory" "$CGROUP_CMDLINE"; then
+        # cmdline.txt is a single line; append the flags to it in place.
+        sudo sed -i 's/$/ cgroup_enable=memory cgroup_memory=1/' "$CGROUP_CMDLINE"
+        NEED_REBOOT=1
+        ok "Enabled kernel memory cgroup in $CGROUP_CMDLINE (reboot required)"
+    elif [[ -f "$CGROUP_CMDLINE" ]]; then
+        ok "Kernel memory cgroup already enabled"
+    else
+        warn "cmdline.txt not found — enable the memory cgroup manually or mem_reservation is ignored"
+    fi
 else
     DAEMON_MEM_RESERVATION="0"
     ok "Board has ample RAM (${MEM_TOTAL_KB} kB) — no daemon mem_reservation"
@@ -244,6 +262,10 @@ echo "    Dashboard:    http://${PI_IP}/dashboard"
 echo "    Code editor:  http://${PI_IP}/editor  (password: redwing)"
 echo ""
 echo "  A reboot is required for I²C and docker group changes to take full effect."
+if [[ "$NEED_REBOOT" -eq 1 ]]; then
+    echo -e "  ${YELLOW}The kernel memory cgroup was just enabled — the daemon's memory"
+    echo -e "  reservation is NOT active until you reboot.${NC}"
+fi
 echo ""
 
 # Only prompt if stdin is a terminal (not piped from curl)
