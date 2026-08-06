@@ -11,9 +11,11 @@
  */
 
 #include "vl53l0x.h"
+#include "../usb_comm.h"
 #include "hardware/i2c.h"
 #include "pico/time.h"
 #include <string.h>
+#include <stdio.h>
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -60,13 +62,15 @@ static bool wr1(uint8_t reg, uint8_t val) {
 }
 
 static bool rd1(uint8_t reg, uint8_t *out) {
-    if (i2c_write_blocking(i2c0, VL53_ADDR, &reg, 1, true)  != 1) return false;
+    // Use nostop=false (STOP then START) rather than nostop=true (REPEATED START).
+    // REPEATED START is unreliable on this hardware — same fix as mpu6050.c.
+    if (i2c_write_blocking(i2c0, VL53_ADDR, &reg, 1, false) != 1) return false;
     if (i2c_read_blocking (i2c0, VL53_ADDR, out,  1, false) != 1) return false;
     return true;
 }
 
 static bool rdn(uint8_t reg, uint8_t *buf, uint8_t len) {
-    if (i2c_write_blocking(i2c0, VL53_ADDR, &reg, 1,   true)  != 1)    return false;
+    if (i2c_write_blocking(i2c0, VL53_ADDR, &reg, 1,   false) != 1)    return false;
     if (i2c_read_blocking (i2c0, VL53_ADDR, buf,  len, false) != len)  return false;
     return true;
 }
@@ -154,7 +158,10 @@ static bool get_spad_info(uint8_t *count, bool *is_aperture) {
     uint32_t deadline = to_ms_since_boot(get_absolute_time()) + CALIB_TIMEOUT_MS;
     do {
         if (!rd1(0x83, &tmp)) return false;
-        if (to_ms_since_boot(get_absolute_time()) > deadline) return false;
+        if (to_ms_since_boot(get_absolute_time()) > deadline) {
+            usb_comm_send_log("[VL53] spad_timeout");
+            return false;
+        }
     } while (tmp == 0x00);
 
     wr1(0x83, 0x01);
@@ -179,7 +186,10 @@ static bool single_ref_cal(uint8_t vhv_init_byte) {
     uint8_t  status;
     do {
         if (!rd1(REG_RESULT_INTERRUPT_STATUS, &status)) return false;
-        if (to_ms_since_boot(get_absolute_time()) > deadline) return false;
+        if (to_ms_since_boot(get_absolute_time()) > deadline) {
+            usb_comm_send_log("[VL53] cal_timeout");
+            return false;
+        }
     } while ((status & 0x07u) == 0);
 
     wr1(REG_SYSTEM_INTERRUPT_CLEAR, 0x01);
@@ -191,14 +201,22 @@ static bool single_ref_cal(uint8_t vhv_init_byte) {
 
 bool vl53l0x_init(void) {
     // Verify model ID
-    uint8_t model_id;
-    if (!rd1(REG_IDENTIFICATION_MODEL_ID, &model_id)) return false;
-    if (model_id != 0xEEu) return false;
+    uint8_t model_id = 0;
+    bool rd_ok = rd1(REG_IDENTIFICATION_MODEL_ID, &model_id);
+    {
+        char tmp[64];
+        snprintf(tmp, sizeof(tmp), "[SENSOR] VL53: rd=%d model_id=0x%02X", (int)rd_ok, (unsigned)model_id);
+        usb_comm_send_log(tmp);
+    }
+    if (!rd_ok || model_id != 0xEEu) return false;
 
     // ── Data init ─────────────────────────────────────────────────────────────
     // Set 2V8 mode
     uint8_t v;
-    if (!rd1(REG_VHV_CONFIG_PAD_SCL_SDA_EXTSUP_HV, &v)) return false;
+    if (!rd1(REG_VHV_CONFIG_PAD_SCL_SDA_EXTSUP_HV, &v)) {
+        usb_comm_send_log("[VL53] fail:vhv");
+        return false;
+    }
     wr1(REG_VHV_CONFIG_PAD_SCL_SDA_EXTSUP_HV, v | 0x01u);
 
     wr1(0x88, 0x00);
@@ -243,10 +261,15 @@ bool vl53l0x_init(void) {
     wr1(0xFF, 0x01); wr1(0x8E, 0x01); wr1(0x00, 0x01);
     wr1(0xFF, 0x00); wr1(0x80, 0x00);
 
-    // Polling only — do not configure GPIO1 interrupt output.
-    // If the board connects VL53L0X GPIO1 to a user GPIO (e.g. GP6/S4),
-    // configuring GPIO1 as a push-pull output would interfere with that pin.
-    // The interrupt status register is polled via I2C in vl53l0x_read_mm().
+    // Enable "new sample ready" interrupt condition so RESULT_INTERRUPT_STATUS
+    // bits [2:0] become non-zero when a measurement finishes.  This is required
+    // for the calibration poll loops below AND for vl53l0x_read_mm() to work.
+    // Without it the status register stays 0 even after measurement completes.
+    //
+    // We do NOT write REG_GPIO_HV_MUX_ACTIVE_HIGH — that would configure the
+    // physical GPIO1 output pin, which may conflict with a board trace.  The
+    // status register poll is done over I2C so no hardware pin is needed.
+    wr1(REG_SYSTEM_INTERRUPT_CONFIG_GPIO, 0x04);
     wr1(REG_SYSTEM_INTERRUPT_CLEAR, 0x01);
 
     // Sequence config: disable MSRC + TCC
@@ -255,10 +278,16 @@ bool vl53l0x_init(void) {
     // ── SPAD configuration ────────────────────────────────────────────────────
     uint8_t spad_count;
     bool    spad_aperture;
-    if (!get_spad_info(&spad_count, &spad_aperture)) return false;
+    if (!get_spad_info(&spad_count, &spad_aperture)) {
+        usb_comm_send_log("[VL53] fail:spad");
+        return false;
+    }
 
     uint8_t spad_map[6];
-    if (!rdn(REG_GLOBAL_CONFIG_SPAD_ENABLES_REF_0, spad_map, 6)) return false;
+    if (!rdn(REG_GLOBAL_CONFIG_SPAD_ENABLES_REF_0, spad_map, 6)) {
+        usb_comm_send_log("[VL53] fail:spad_map");
+        return false;
+    }
 
     wr1(0xFF, 0x01);
     wr1(REG_DYNAMIC_SPAD_REF_EN_START_OFFSET,  0x00);
@@ -279,10 +308,16 @@ bool vl53l0x_init(void) {
 
     // ── Reference calibration: VHV then phase ────────────────────────────────
     wr1(REG_SYSTEM_SEQUENCE_CONFIG, 0x01);
-    if (!single_ref_cal(0x40)) return false;
+    if (!single_ref_cal(0x40)) {
+        usb_comm_send_log("[VL53] fail:cal_vhv");
+        return false;
+    }
 
     wr1(REG_SYSTEM_SEQUENCE_CONFIG, 0x02);
-    if (!single_ref_cal(0x00)) return false;
+    if (!single_ref_cal(0x00)) {
+        usb_comm_send_log("[VL53] fail:cal_phase");
+        return false;
+    }
 
     wr1(REG_SYSTEM_SEQUENCE_CONFIG, 0xE8);  // restore
 
