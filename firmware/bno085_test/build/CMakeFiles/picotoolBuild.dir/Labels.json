@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/Users/y.fujita/RiversEngineering/redwing/firmware/bno085_test/build/CMakeFiles/picotoolBuild"
+		},
+		{
+			"file" : "/Users/y.fujita/RiversEngineering/redwing/firmware/bno085_test/build/CMakeFiles/picotoolBuild.rule"
+		},
+		{
+			"file" : "/Users/y.fujita/RiversEngineering/redwing/firmware/bno085_test/build/CMakeFiles/picotoolBuild-complete.rule"
+		},
+		{
+			"file" : "/Users/y.fujita/RiversEngineering/redwing/firmware/bno085_test/build/picotool/src/picotoolBuild-stamp/picotoolBuild-build.rule"
+		},
+		{
+			"file" : "/Users/y.fujita/RiversEngineering/redwing/firmware/bno085_test/build/picotool/src/picotoolBuild-stamp/picotoolBuild-configure.rule"
+		},
+		{
+			"file" : "/Users/y.fujita/RiversEngineering/redwing/firmware/bno085_test/build/picotool/src/picotoolBuild-stamp/picotoolBuild-download.rule"
+		},
+		{
+			"file" : "/Users/y.fujita/RiversEngineering/redwing/firmware/bno085_test/build/picotool/src/picotoolBuild-stamp/picotoolBuild-install.rule"
+		},
+		{
+			"file" : "/Users/y.fujita/RiversEngineering/redwing/firmware/bno085_test/build/picotool/src/picotoolBuild-stamp/picotoolBuild-mkdir.rule"
+		},
+		{
+			"file" : "/Users/y.fujita/RiversEngineering/redwing/firmware/bno085_test/build/picotool/src/picotoolBuild-stamp/picotoolBuild-patch.rule"
+		},
+		{
+			"file" : "/Users/y.fujita/RiversEngineering/redwing/firmware/bno085_test/build/picotool/src/picotoolBuild-stamp/picotoolBuild-test.rule"
+		},
+		{
+			"file" : "/Users/y.fujita/RiversEngineering/redwing/firmware/bno085_test/build/picotool/src/picotoolBuild-stamp/picotoolBuild-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"picotoolBuild"
+		],
+		"name" : "picotoolBuild"
+	}
+}
