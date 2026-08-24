@@ -212,22 +212,12 @@ bool bno085_init(void) {
     else if (i2c_write_blocking(i2c0, 0x4Bu, rst_pkt, 5, false) == 5) rst_addr = 0x4Bu;
 
     // Fast exit: neither address ACKed — no BNO085 on this bus.
-    // Even though the address NAK should terminate with a STOP, the RP2040's
-    // DW I2C controller can leave the ACTIVITY bit set in IC_STATUS after an
-    // abort.  Every subsequent i2c_write_blocking / i2c_read_blocking call
-    // checks that bit and returns PICO_ERROR_GENERIC immediately if set — which
-    // would silently block mpu6050_init() and bno055_init() from running.
-    // Reset the peripheral to guarantee a clean bus state for the next caller.
-    // No sleep is needed here: BNO085 is absent, so nothing is holding SCL low.
+    // Both probes use i2c_write_blocking with nostop=false, whose abort path
+    // waits for STOP_DET before returning, leaving the bus clean.  No peripheral
+    // reset is needed; the next I2C caller (mpu6050_init, bno055_init) can
+    // proceed immediately.
     if (rst_addr == 0u) {
         snprintf(_diag, sizeof(_diag), "[IMU] not found");
-        reset_block(RESETS_RESET_I2C0_BITS);
-        unreset_block_wait(RESETS_RESET_I2C0_BITS);
-        i2c_init(i2c0, 400u * 1000u);
-        gpio_set_function(I2C_SDA_GPIO, GPIO_FUNC_I2C);
-        gpio_set_function(I2C_SCL_GPIO, GPIO_FUNC_I2C);
-        gpio_pull_up(I2C_SDA_GPIO);
-        gpio_pull_up(I2C_SCL_GPIO);
         return false;
     }
 

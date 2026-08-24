@@ -1,0 +1,108 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 5 Practice: Debug It</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 30 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 5 — While Loops</span>
+</div>
+
+<p>Seven broken <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while</code> loops are hiding in <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">practice_debug.py</code>. Three of them would either hang forever or crash the program, so those are commented out — you have to spot the bug by reading, not by running it. The other four run live: no crash, no hang, just the wrong answer. Read each one, figure out what's actually wrong, then check your fix against <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">practice_debug_solution.py</code>.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>What you'll practice</strong>
+  <ul style="margin:8px 0 0 0;">
+    <li>Spotting an infinite loop before you ever run it</li>
+    <li>Comparison direction — <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&gt;</code> vs <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;</code></li>
+    <li>Where <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">break</code> lives matters — indentation decides what it's conditional on</li>
+    <li>Initializing an accumulator before the loop, not inside it</li>
+    <li>Off-by-one mistakes from <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;</code> vs <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;=</code></li>
+    <li>A typo that updates the wrong variable, freezing the real counter</li>
+    <li>Operator precedence resurfacing from Assignment 2, inside a loop body</li>
+  </ul>
+</div>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>💡 Tip — recognizing an infinite loop</strong><br>
+Before you run any <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while</code> loop, ask: "what line inside this loop changes the variable in the condition?" If you can't point to one, it's an infinite loop. And if you ever do run one by accident, don't panic — press <strong>Ctrl+C</strong> in the terminal. That force-stops whatever is running and is always safe to use.</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 1 — counter never updated</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code># n = 1
+# while n &lt;= 5:
+#     print(n)</code></pre>
+<p><strong>Intended:</strong> count up from 1 to 5, printing each number.<br>
+<strong>Risk:</strong> infinite loop. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">n</code> is never changed inside the loop, so <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">n &lt;= 5</code> stays True forever. That's why it's shipped commented out. Fixed, it should print <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">1 2 3 4 5</code>, each on its own line.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 2 — wrong comparison direction</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>count = 5
+while count &lt; 0:
+    print(count)
+    count -= 1
+print("countdown done")</code></pre>
+<p><strong>Intended:</strong> count down from 5 to 1, printing each number.<br>
+<strong>Behavior as written:</strong> no crash, no hang — but <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">count</code> starts at 5, and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">5 &lt; 0</code> is False immediately, so the loop body runs zero times. Actual output: just <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">countdown done</code> — the countdown itself silently never happens. Corrected (<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">count &gt; 0</code>), it should print <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">5 4 3 2 1</code> then <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">countdown done</code>.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 3 — break in the wrong place</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>level = 100
+while level &gt; 0:
+    print("checking...", level)
+    level -= 10
+    if level &lt;= 50:
+        print("low enough, stopping")
+    break
+print("done")</code></pre>
+<p><strong>Intended:</strong> check the level every pass, printing "checking..." each time, and stop only once the level has dropped to 50 or below.<br>
+<strong>Behavior as written:</strong> no crash, no hang — but <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">break</code> is indented to the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while</code> block, not the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code> block, so it runs unconditionally on every pass. The loop exits after exactly one pass no matter what. Actual output: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">checking... 100</code> then <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">done</code>. Corrected (indent <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">break</code> one level deeper, inside the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code>), it should print <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">checking... 100</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">checking... 90</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">checking... 80</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">checking... 70</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">checking... 60</code>, then <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">low enough, stopping</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">done</code>.</p>
+
+<div style="background:#fff8e6;border-left:4px solid #e0a800;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>⚠️ Common mistake</strong><br>An indented line belongs to whichever block its indentation lines it up with. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">break</code> lined up with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code>'s body runs only when the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code> is True; <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">break</code> lined up with the loop's own body runs on every single pass, no matter what the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code> decided.</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 4 — accumulator never initialized</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code># n = 1
+# while n &lt;= 5:
+#     total += n
+#     n += 1
+# print(total)</code></pre>
+<p><strong>Intended:</strong> sum the numbers 1 through 5 into <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">total</code>, then print it.<br>
+<strong>Risk:</strong> crash. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">total += n</code> means "add <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">n</code> to whatever <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">total</code> already is," but <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">total</code> was never created — this raises <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">NameError: name 'total' is not defined</code>. That's why it's shipped commented out. Fixed (add <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">total = 0</code> before the loop), it should print <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">15</code>.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 5 — off-by-one</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>i = 1
+while i &lt; 10:
+    print(i)
+    i += 1</code></pre>
+<p><strong>Intended:</strong> print the numbers 1 through 10 (ten lines).<br>
+<strong>Behavior as written:</strong> no crash, no hang — but <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">i &lt; 10</code> stops being True once <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">i</code> reaches 10, so 10 itself never prints. Actual output: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">1 2 3 4 5 6 7 8 9</code> — only nine numbers. Corrected (<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">i &lt;= 10</code>), it should print <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">1 2 3 4 5 6 7 8 9 10</code>.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 6 — typo updates the wrong variable</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code># cnt = 1
+# while cnt &lt;= 5:
+#     print(cnt)
+#     count = cnt + 1</code></pre>
+<p><strong>Intended:</strong> count up from 1 to 5, printing each number.<br>
+<strong>Risk:</strong> infinite loop. The real loop counter is <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">cnt</code>, but the last line creates a <em>different</em> variable, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">count</code>, instead of updating <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">cnt</code>. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">cnt</code> stays 1 forever, so <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">cnt &lt;= 5</code> never becomes False. That's why it's shipped commented out. Fixed (<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">cnt = cnt + 1</code>), it should print <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">1 2 3 4 5</code>.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 7 — operator precedence</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>speed = 10
+boost = 5
+seconds = 0
+while seconds &lt; 3:
+    thrust = speed + boost * 2
+    print(f"second {seconds}: thrust = {thrust}")
+    speed += 5
+    seconds += 1</code></pre>
+<p><strong>Intended:</strong> each pass, print the robot's total thrust, calculated as <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">(speed + boost) * 2</code>.<br>
+<strong>Behavior as written:</strong> no crash, no hang — but without parentheses, Python does the multiplication first (remember order of operations from Assignment 2), so it actually computes <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">speed + (boost * 2)</code>. Actual output: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">thrust = 20</code>, then <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">25</code>, then <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">30</code> — wrong, but never crashes or hangs. Corrected (wrap <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">speed + boost</code> in parentheses), it should print <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">thrust = 30</code>, then <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">40</code>, then <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">50</code>.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Bug type</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Symptom</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Fix</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Counter never updated</td><td style="border:1px solid #ddd;padding:8px 12px;">Hangs forever</td><td style="border:1px solid #ddd;padding:8px 12px;">Add the missing <code>i += 1</code> line</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Wrong comparison direction</td><td style="border:1px solid #ddd;padding:8px 12px;">Runs zero times, silently</td><td style="border:1px solid #ddd;padding:8px 12px;">Flip <code>&lt;</code> to <code>&gt;</code> (or vice versa) to match the counter's direction</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>break</code> misplaced</td><td style="border:1px solid #ddd;padding:8px 12px;">Loop stops too early, every time</td><td style="border:1px solid #ddd;padding:8px 12px;">Indent <code>break</code> to match the block it should belong to</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Accumulator not initialized</td><td style="border:1px solid #ddd;padding:8px 12px;">NameError</td><td style="border:1px solid #ddd;padding:8px 12px;">Set <code>total = 0</code> before the loop starts</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Off-by-one</td><td style="border:1px solid #ddd;padding:8px 12px;">Runs one time too few (or many)</td><td style="border:1px solid #ddd;padding:8px 12px;">Double-check <code>&lt;</code> vs <code>&lt;=</code> against what you actually want included</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Typo'd increment</td><td style="border:1px solid #ddd;padding:8px 12px;">Hangs forever</td><td style="border:1px solid #ddd;padding:8px 12px;">Make sure the variable you update is the same one in the condition</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Missing parentheses</td><td style="border:1px solid #ddd;padding:8px 12px;">Wrong number, every pass</td><td style="border:1px solid #ddd;padding:8px 12px;">Group with <code>( )</code> to force the order you actually mean</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Ctrl+C</td><td style="border:1px solid #ddd;padding:8px 12px;">—</td><td style="border:1px solid #ddd;padding:8px 12px;">Emergency stop for a runaway loop in the terminal</td></tr>
+</table>
+
+</div>

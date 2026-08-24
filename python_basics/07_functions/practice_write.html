@@ -1,0 +1,151 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 7 Practice: Write It Yourself</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 40 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 7 — Functions</span>
+</div>
+
+<p>Time to write functions from scratch instead of just reading or fixing
+them. Each problem below gives you a spec in plain English — you decide
+how to turn it into working Python. Every function already has test
+calls with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> waiting below it, so you'll know
+immediately whether your answer is right.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>What you'll practice</strong>
+  <ul style="margin:8px 0 0 0;">
+    <li>Turning a plain-English spec into a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def</code> with the right parameters and a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return</code></li>
+    <li>Reusing conditionals and loops from earlier modules <em>inside</em> a function</li>
+    <li>Looping over the characters of a string, just like looping over a list</li>
+    <li>Combining a loop and an accumulator to reduce a list down to one number</li>
+    <li>Writing a general-purpose version of logic you've seen written one-off before</li>
+  </ul>
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">How to use this file</h2>
+
+<p>Open <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">practice_write.py</code>. Every function currently just has
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">pass</code> in its body — a placeholder keyword that means "do
+nothing," so the file runs without crashing but every test prints
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">None</code>. Replace <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">pass</code> with real
+code, one function at a time, running <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">python3
+practice_write.py</code> after each one to check your progress.</p>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>💡 Tip</strong><br>
+Write the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return</code> line first — even a simple, possibly
+wrong one — and run the file to make sure the function is being called
+correctly and something prints. Only after that basic wiring works
+should you go back and add the real logic. It's much easier to debug one
+small piece at a time than to write ten lines and then wonder why
+nothing works.</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 1 — is_even(n)</h2>
+<p>Write <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def is_even(n):</code> that returns
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">True</code> if <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">n</code> is even, and
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">False</code> if it's odd.</p>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Call</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Returns</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>is_even(4)</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>True</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>is_even(7)</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>False</code></td></tr>
+</table>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 2 — celsius_to_fahrenheit(c)</h2>
+<p>Write <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def celsius_to_fahrenheit(c):</code> that converts and
+returns a Fahrenheit temperature. Formula:
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">F = C * 9 / 5 + 32</code>. You may have written this exact math
+back in an earlier module — this time, package it into a reusable
+function.</p>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Call</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Returns</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>celsius_to_fahrenheit(0)</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>32.0</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>celsius_to_fahrenheit(100)</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>212.0</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>celsius_to_fahrenheit(37)</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>98.6</code></td></tr>
+</table>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 3 — max_of_three(a, b, c)</h2>
+<p>Write <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def max_of_three(a, b, c):</code> that returns whichever
+of the three numbers is largest. <strong>Do not</strong> use Python's
+built-in <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">max()</code> — use
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code>/<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">elif</code>/<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">else</code>
+comparisons, the same tool you already used for this kind of problem
+before functions existed — now generalized into something reusable.</p>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Call</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Returns</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>max_of_three(3, 7, 5)</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>7</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>max_of_three(10, 2, 9)</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>10</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>max_of_three(-1, -5, -3)</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>-1</code></td></tr>
+</table>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 4 — count_letter(word, letter)</h2>
+<p>Write <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def count_letter(word, letter):</code> that returns how
+many times <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">letter</code> appears inside
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">word</code>. You can loop over the characters of a string the
+exact same way you loop over a list:
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">for ch in word:</code>. A string is just a sequence of
+characters, so this is a natural extension of the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">for</code>
+loops you already know.</p>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Call</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Returns</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>count_letter("banana", "a")</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>3</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>count_letter("mississippi", "s")</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>4</code></td></tr>
+</table>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 5 — average_of_list(numbers)</h2>
+<p>Write <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def average_of_list(numbers):</code> that takes a list
+and returns the average of its values. Use a loop with an accumulator to
+add everything up (like you did in Module 6), then divide by
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">len(numbers)</code>.</p>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Call</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Returns</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>average_of_list([10, 20, 30])</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>20.0</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>average_of_list([5, 15, 25, 35])</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>20.0</code></td></tr>
+</table>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 6 — clamp(value, low, high)</h2>
+<p>Write <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def clamp(value, low, high):</code> — a general-purpose
+version of the core lesson's <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">clamp_power</code>, but not
+locked to the -100/100 range. Return <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">low</code> if
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">value</code> is less than <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">low</code>,
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">high</code> if <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">value</code> is
+greater than <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">high</code>, and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">value</code>
+unchanged otherwise.</p>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Call</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Returns</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>clamp(150, 0, 100)</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>100</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>clamp(-10, 0, 100)</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>0</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>clamp(50, 0, 100)</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>50</code></td></tr>
+</table>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 7 — calculate(a, b, operation)</h2>
+<p>Write <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def calculate(a, b, operation):</code> — a mini
+calculator. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">operation</code> is a string:
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"+"</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"-"</code>,
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"*"</code>, or <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"/"</code>. Use
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code>/<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">elif</code>/<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">else</code>
+to compare <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">operation</code> against each symbol and return
+the matching result. This one pulls together everything from this module
+— functions, conditionals, strings, and arithmetic — into one small
+program.</p>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Call</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Returns</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>calculate(6, 3, "+")</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>9</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>calculate(6, 3, "-")</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>3</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>calculate(6, 3, "*")</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>18</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>calculate(6, 3, "/")</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>2.0</code></td></tr>
+</table>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Problem</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Core idea reused</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>is_even</code></td><td style="border:1px solid #ddd;padding:8px 12px;">The modulo operator <code>%</code> and comparison</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>celsius_to_fahrenheit</code></td><td style="border:1px solid #ddd;padding:8px 12px;">A formula from an earlier module, now packaged as a function</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>max_of_three</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>if</code>/<code>elif</code>/<code>else</code> comparisons</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>count_letter</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Looping over a string's characters with <code>for</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>average_of_list</code></td><td style="border:1px solid #ddd;padding:8px 12px;">A loop with an accumulator variable</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>clamp</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Generalizing a specific example into reusable parameters</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>calculate</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Combining functions, conditionals, and strings together</td></tr>
+</table>
+
+</div>

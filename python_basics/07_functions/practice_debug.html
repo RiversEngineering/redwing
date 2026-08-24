@@ -1,0 +1,171 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 7 Practice: Debug It</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 30 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 7 — Functions</span>
+</div>
+
+<p>Seven bugs are waiting in <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">practice_debug.py</code> — different
+scenarios than the bug you already fixed in the core lesson. Four of
+them would crash the program, so they ship <strong>commented out</strong>;
+uncomment each one, read the traceback, and fix it. The other three run
+right now but print a wrong-but-plausible answer — no crash, no
+traceback, just a quietly wrong number. Those are often the hardest bugs
+to catch in real code, because nothing tells you something's wrong.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>What you'll practice</strong>
+  <ul style="margin:8px 0 0 0;">
+    <li>Reading a Python traceback and mapping it back to the actual mistake</li>
+    <li>Recognizing a missing <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return</code> vs. a forgotten function call vs. a missing argument</li>
+    <li>Spotting indentation mistakes that change WHEN code runs</li>
+    <li>Catching wrong-but-plausible results: swapped arguments, off-by-one boundaries, and misplaced accumulators</li>
+  </ul>
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">How to use this file</h2>
+
+<p>Open <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">practice_debug.py</code> and work through the bugs in order.
+For the commented-out ones: uncomment the whole block, run
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">python3 practice_debug.py</code>, read the error Python shows you,
+then edit the code until it's fixed and the crash is gone. For the live
+ones: read the spec comment above the function carefully, compare it to
+what the code actually does, and fix the logic so the printed value
+matches the spec.</p>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>💡 Tip</strong><br>
+If you ever see <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">TypeError: some_function() missing 1 required
+positional argument: 'b'</code>, Python is telling you exactly what's
+wrong: the function's <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def</code> line expects a value for
+parameter <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">b</code>, and the call site simply never
+supplied one. The fix is almost always at the <em>call site</em>, not
+inside the function itself — add the missing argument.</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 1 — missing return</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>def compute_area(width, height):
+    print(width * height)
+
+total_area = compute_area(5, 4) + 10
+print(total_area)</code></pre>
+<p><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">compute_area</code> is supposed to hand its answer back so it
+can be reused in more math, but it only <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code>s it, so
+it implicitly returns <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">None</code>. <strong>Error:</strong>
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">TypeError</code> (you can't add <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">None</code> and
+an int). <strong>Fix:</strong> change <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print(width * height)</code>
+to <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return width * height</code>. Expected output after the
+fix: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">30</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 2 — forgot to call the function</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>def triple(n):
+    return n * 3
+
+result = triple  # missing the (4)
+total = result + 5
+print(total)</code></pre>
+<p><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">triple</code> with no parentheses doesn't call the function
+at all — it grabs the function itself, the way you'd grab a value out
+of a variable. <strong>Error:</strong> <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">TypeError</code> because
+you can't add a number to a function object (don't worry about matching
+the exact wording Python prints for the function — it can look
+different from run to run; what matters is that math with it fails).
+<strong>Fix:</strong> change <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">result = triple</code> to
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">result = triple(4)</code>. Expected output after the fix:
+<span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">17</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 3 — arguments in the wrong order (no crash)</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>def subtract(a, b):
+    return a - b
+
+remaining_distance = subtract(5, 20)
+print(remaining_distance)</code></pre>
+<p>Nothing crashes here — that's what makes this bug sneaky. A 20-mile
+race with 5 miles already driven should leave 15 miles remaining, but
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">subtract(5, 20)</code> computes <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">5 - 20</code>, not
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">20 - 5</code>. Current (wrong) output:
+<span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">-15</span>. <strong>Fix:</strong> swap the argument order to
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">subtract(20, 5)</code>. Expected output after the fix:
+<span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">15</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 4 — dedented line runs at the wrong time</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>def summarize_lap(lap_time, best_time):
+    difference = lap_time - best_time
+print(f"You were {difference} seconds off the best time.")
+
+summarize_lap(32, 30)</code></pre>
+<p>The <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print(...)</code> line was meant to be the last line
+<em>inside</em> the function, but it isn't indented — so it isn't part
+of the function at all. Python runs it immediately, once, the moment it
+finishes reading the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def</code> block — long before
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">summarize_lap</code> is ever called, and before
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">difference</code> exists anywhere. <strong>Error:</strong>
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">NameError: name 'difference' is not defined</code>.
+<strong>Fix:</strong> indent the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print(...)</code> line so it's
+part of the function body. Expected output after the fix:
+<span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">You were 2 seconds off the best time.</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 5 — missing a required argument</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>def average_two(a, b):
+    return (a + b) / 2
+
+print(average_two(10))</code></pre>
+<p><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">average_two</code> needs two arguments, but the call site
+only supplies one. <strong>Error:</strong>
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">TypeError: average_two() missing 1 required positional
+argument: 'b'</code>. <strong>Fix:</strong> supply the second argument, e.g.
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">average_two(10, 20)</code>. Expected output after the fix:
+<span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">15.0</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 6 — off-by-one boundary check (no crash)</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>def is_too_close(distance_cm):
+    # Spec: a distance of 10 cm or less counts as "too close"
+    if distance_cm &lt; 10:
+        return True
+    return False
+
+print(is_too_close(5))    # True
+print(is_too_close(10))   # should be True
+print(is_too_close(15))   # False</code></pre>
+<p>The spec's own comment says 10 itself should count as "too close," but
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">distance_cm &lt; 10</code> is False when
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">distance_cm</code> is exactly 10. Every other value already
+works correctly — only the exact boundary is wrong. Current (wrong)
+output for <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">is_too_close(10)</code>:
+<span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">False</span>. <strong>Fix:</strong> change
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;</code> to <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;=</code>. Expected
+output after the fix, in order:
+<span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">True</span>,
+<span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">True</span>,
+<span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">False</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 7 — accumulator reset inside the loop (no crash)</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>def sum_range(n):
+    for i in range(1, n + 1):
+        total = 0
+        total = total + i
+    return total
+
+print(sum_range(5))</code></pre>
+<p><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">total = 0</code> sits <em>inside</em> the loop, so it wipes out
+the running total on every single pass instead of only once at the
+start. The function ends up returning just the last number added, not
+the true sum. Current (wrong) output:
+<span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">5</span>. <strong>Fix:</strong> move
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">total = 0</code> to before the
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">for</code> loop. Expected output after the fix:
+<span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">15</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Symptom</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Likely cause</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>TypeError</code> adding <code>None</code> to a number</td><td style="border:1px solid #ddd;padding:8px 12px;">Function uses <code>print()</code> instead of <code>return</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>TypeError</code> doing math with a function itself</td><td style="border:1px solid #ddd;padding:8px 12px;">Forgot the parentheses when calling it — <code>name</code> instead of <code>name()</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Wrong-but-plausible number, no crash</td><td style="border:1px solid #ddd;padding:8px 12px;">Arguments passed in the wrong order at the call site</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>NameError</code> right when the script starts, before any call</td><td style="border:1px solid #ddd;padding:8px 12px;">A line meant to be inside the function isn't indented</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>TypeError: ...missing 1 required positional argument</code></td><td style="border:1px solid #ddd;padding:8px 12px;">The call site left out one of the arguments the function needs</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Wrong result only at one exact boundary value</td><td style="border:1px solid #ddd;padding:8px 12px;"><code>&lt;</code> used where <code>&lt;=</code> was intended (or vice versa)</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Loop returns only the last item instead of a running total</td><td style="border:1px solid #ddd;padding:8px 12px;">The accumulator was reset to 0 inside the loop instead of before it</td></tr>
+</table>
+
+</div>

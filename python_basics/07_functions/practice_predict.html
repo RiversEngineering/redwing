@@ -1,0 +1,163 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 7 Practice: Predict the Output</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 25 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 7 — Functions</span>
+</div>
+
+<p>Reading code and predicting what it will print — <em>before</em> you run
+it — is one of the fastest ways to find gaps in how you think about
+functions. Each snippet below is complete and correct Python. Your job is
+only to predict its output, not to fix anything.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>What you'll practice</strong>
+  <ul style="margin:8px 0 0 0;">
+    <li>Tracing a function call to the value it returns</li>
+    <li>Telling <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return</code> apart from <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> when a function does both</li>
+    <li>Recognizing when a missing <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return</code> gives back <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">None</code></li>
+    <li>Confirming local variables never overwrite a global with the same name</li>
+    <li>Tracing a function that calls another function to build its result</li>
+    <li>Default parameter values used with no argument supplied</li>
+    <li>The order code actually runs in — definitions vs. calls</li>
+  </ul>
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">How to use this file</h2>
+
+<p>Open <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">practice_predict.py</code>. For each numbered section, read the
+code and write your guess on the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;"># My prediction: ____</code>
+line(s) — right there in the file is fine. <strong>Only after you've
+written every prediction down</strong>, run
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">python3 practice_predict.py</code> and compare.</p>
+
+<p>Below, each answer is hidden behind a spoiler. To check a prediction
+without spoiling the rest of the page, <strong>click and drag to select
+the gray box</strong> (like highlighting text to copy it) — the hidden
+text will become visible against the highlight. Example:
+<span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">this text is hidden until you select it</span></p>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>💡 Tip</strong><br>
+A wrong prediction is a good thing here — it means you found exactly
+where your mental model of functions needs an update. Don't just glance
+at the answer; run the file and watch the real output happen.</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 1 — a simple return value</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>def double(n):
+    return n * 2
+
+print(double(6))</code></pre>
+<p>Output: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">12</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 2 — the same function, two different calls</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>def cube(n):
+    return n * n * n
+
+print(cube(2))
+print(cube(3))</code></pre>
+<p>Output (in order): <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">8</span> then <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">27</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 3 — a function with no return</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>def shout(word):
+    print(word + "!!!")
+
+print(shout("watch out"))</code></pre>
+<p>Two lines print. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">shout</code> prints its own message as a side
+effect, then hands nothing back — so the <em>outer</em>
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> shows whatever <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">shout()</code>
+returned. Output: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">watch out!!!</span> then <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">None</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 4 — same variable name, inside and outside</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>score = 100
+
+def reset_score():
+    score = 0
+    print(score)
+
+reset_score()
+print(score)</code></pre>
+<p>Output (in order): <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">0</span> then <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">100</span> — the
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">score = 0</code> inside <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">reset_score()</code> is a brand-new
+local variable. The global <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">score</code> is never touched.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 5 — one function calling another</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>def double(n):
+    return n * 2
+
+def add_five(n):
+    return n + 5
+
+def double_then_add_five(n):
+    doubled = double(n)
+    return add_five(doubled)
+
+print(double_then_add_five(10))</code></pre>
+<p>Output: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">25</span> — 10 doubled is 20, then 20 plus 5 is 25.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 6 — a default parameter value</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>def greet(name="Robot"):
+    return f"Hello, {name}!"
+
+print(greet())</code></pre>
+<p>Output: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">Hello, Robot!</span> — calling
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">greet()</code> with no argument at all falls back to the
+default value written in the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def</code> line.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 7 — order matters (calls, not definitions)</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>def first_message():
+    print("A")
+
+def second_message():
+    print("B")
+
+print("start")
+first_message()
+print("middle")
+second_message()
+print("end")</code></pre>
+<p>Both functions are <em>defined</em> at the top, but nothing inside them
+runs until they're actually <em>called</em> — and those calls happen
+further down, interleaved with plain <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> statements.
+Predict the order all five lines print in, top to bottom. Output:
+<span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">start, A, middle, B, end</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 8 — Bonus, we haven't taught this, take a guess!</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>def check_temperature(temp):
+    if temp &gt; 100:
+        return "too hot"
+
+result = check_temperature(50)
+print(result)</code></pre>
+<p>The <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return</code> only lives inside the
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code> block. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">temp</code> is 50, so
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">temp &gt; 100</code> is False and that <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return</code> never
+runs. What happens when a function simply reaches the end of its body
+without ever hitting a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return</code>? Take your best guess before
+revealing. Output: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">None</span> — falling off the end of a
+function with no return statement executed behaves exactly like a
+function that never had a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return</code> at all.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Check Yourself</h2>
+<ul>
+  <li>In Prediction 3, why does <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">shout("watch out")</code> cause
+  <em>two</em> different lines to print, even though <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">shout</code> is
+  only called once?</li>
+  <li>In Prediction 7, would the output change if the two
+  <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def</code> blocks were moved to the very bottom of the file,
+  below all five <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print</code>/call lines? Why or why not?</li>
+</ul>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Situation</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">What to predict</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Function has a <code>return</code>, called inside <code>print()</code></td><td style="border:1px solid #ddd;padding:8px 12px;">The returned value gets printed</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Function has no <code>return</code>, called inside <code>print()</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>None</code> gets printed</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Local variable shares a name with a global variable</td><td style="border:1px solid #ddd;padding:8px 12px;">The global is untouched after the function returns</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Default parameter, called with no argument</td><td style="border:1px solid #ddd;padding:8px 12px;">The default value is used</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>def</code> appears earlier in the file than a call</td><td style="border:1px solid #ddd;padding:8px 12px;">Nothing runs until the call line executes, in top-to-bottom order</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>return</code> only inside an <code>if</code>, condition is False</td><td style="border:1px solid #ddd;padding:8px 12px;">Function falls through and implicitly returns <code>None</code></td></tr>
+</table>
+
+</div>

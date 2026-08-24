@@ -1,0 +1,103 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 2 Practice: Predict the Output</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 25 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 2 — Variables &amp; Numbers</span>
+</div>
+
+<p>Reading code and predicting what it will do — <em>before</em> you run
+it — is one of the fastest ways to build a real mental model of a
+language. Below are 8 short snippets pulled straight from the concepts
+in Assignment 2. For each one, write down your prediction first, then
+open <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">practice_predict.py</code> and run it with
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">python3 practice_predict.py</code> to see if you were right.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>What you'll practice</strong>
+  <ul style="margin:8px 0 0 0;">
+    <li>Tracing variable assignment and reassignment by hand</li>
+    <li>Operator precedence (order of operations)</li>
+    <li>The difference between <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">/</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">//</code>, and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">%</code></li>
+    <li>Predicting whether a result is an <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">int</code> or a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">float</code></li>
+  </ul>
+</div>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>💡 How the reveal boxes work</strong><br>
+Each snippet below has a gray box showing the correct answer. It's hidden
+on purpose — the pixel color is the same as the background, so it looks
+blank. <strong>Drag-select across it (or double-click it) to highlight
+the text and reveal the answer.</strong> Make your prediction first, then
+reveal it to check.</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 1 — assignment</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>x = 5
+print(x)</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">5</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 2 — reassignment</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>x = 5
+x = 10
+print(x)</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">10</span></p>
+<p>The first assignment is completely overwritten — Python doesn't
+remember that <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">x</code> was ever <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">5</code>.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 3 — precedence</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print(2 + 3 * 4)</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">14</span> (not 20 — multiplication happens before addition)</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 4 — true division vs. floor division</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print(7 / 2)
+print(7 // 2)</code></pre>
+<p><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">7 / 2</code> prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">3.5</span></p>
+<p><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">7 // 2</code> prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">3</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 5 — modulo</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print(10 % 3)</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">1</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 6 — exponent</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print(2 ** 10)</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">1024</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 7 — chained +=</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>x = 5
+x += 3
+x += 2
+print(x)</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">10</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 8 — mixed int/float</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print(5 + 2.0)</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">7.0</span> — a float, even though it looks like a whole number.</p>
+
+<div style="background:#fff8e6;border-left:4px solid #e0a800;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>⚠️ Common mistake</strong><br>
+Predicting <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">7</code> instead of <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">7.0</code> for Prediction 8. If
+<strong>any</strong> number involved in an arithmetic operation is a
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">float</code>, the result is a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">float</code>, even if the decimal
+part happens to be <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.0</code>.</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Check Yourself</h2>
+<ul>
+  <li>Why does <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">int + float</code> give a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">float</code> result, even
+  when that result has no fractional part?</li>
+  <li>In Prediction 7, why does <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">x</code> end up as <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">10</code>
+  instead of just <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">5</code>? Walk through each <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">+=</code> step by
+  step.</li>
+</ul>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Operator</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Meaning</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Example</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>=</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Assign / reassign a value to a name</td><td style="border:1px solid #ddd;padding:8px 12px;"><code>x = 10</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>+ - *</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Add, subtract, multiply</td><td style="border:1px solid #ddd;padding:8px 12px;"><code>2 + 3 * 4</code> → <code>14</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>/</code></td><td style="border:1px solid #ddd;padding:8px 12px;">True division — always gives a float</td><td style="border:1px solid #ddd;padding:8px 12px;"><code>7 / 2</code> → <code>3.5</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>//</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Floor division — drops the remainder</td><td style="border:1px solid #ddd;padding:8px 12px;"><code>7 // 2</code> → <code>3</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>%</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Modulo — the remainder</td><td style="border:1px solid #ddd;padding:8px 12px;"><code>10 % 3</code> → <code>1</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>**</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Exponent</td><td style="border:1px solid #ddd;padding:8px 12px;"><code>2 ** 10</code> → <code>1024</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>+=</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Shorthand for <code>x = x + n</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code>x += 3</code></td></tr>
+</table>
+
+</div>

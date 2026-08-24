@@ -1,0 +1,91 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 1 Practice: Predict the Output</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 20 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 1 — Hello, Python</span>
+</div>
+
+<p>This set is pure code-tracing — no editing, no fixing. For each snippet below, read the code first and write down what you think it will print. <strong>Do this before you run anything.</strong> Then run <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">python3 practice_predict.py</code> and compare your guess to the real output.</p>
+
+<p>Answers are hidden with a highlight-to-reveal trick — drag-select or double-click the gray box to read it. Try to make your own prediction before revealing the answer!</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>What you'll practice</strong>
+  <ul style="margin:8px 0 0 0;">
+    <li>Tracing code top to bottom without running it first</li>
+    <li>Recognizing that comments produce no output</li>
+    <li>Noticing what <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> does with no arguments, and when a line is commented out</li>
+    <li>Reading exact-case text and quote characters carefully</li>
+  </ul>
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 1</h2>
+<p>Two <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> calls, one after another. What order do they appear on screen?</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print("Booting up...")
+print("Systems online.")</code></pre>
+<p>My prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">Booting up...<br>Systems online.</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 2</h2>
+<p>There's a comment line right before the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code>. Does it produce any visible output?</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code># This line is just a note for humans — it won't show up when the program runs
+print("Sensors calibrated.")</code></pre>
+<p>My prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">Sensors calibrated.</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 3</h2>
+<p>A <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> call with nothing inside the parentheses sits between two other prints. What happens?</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print("Left motor: OK")
+print()
+print("Right motor: OK")</code></pre>
+<p>My prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">Left motor: OK<br>&nbsp;<br>Right motor: OK</span> (there's a blank line in the middle)</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 4</h2>
+<p>The first <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> line below is commented out. Does any part of it appear in the output?</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code># print("Overheating!")
+print("Temperature normal.")</code></pre>
+<p>My prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">Temperature normal.</span> (the commented-out line never runs, so "Overheating!" never appears)</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 5</h2>
+<p>These two lines look almost identical — but not quite. Predict the exact capitalization of the output.</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print("robot ready")
+print("Robot Ready")</code></pre>
+<p>My prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">robot ready<br>Robot Ready</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 6</h2>
+<p>One line prints the text <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"5"</code> (a string), the other prints the number <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">5</code> (no quotes). Will they look different on screen?</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print("5")
+print(5)</code></pre>
+<p>My prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">5<br>5</span> — they display identically, even though one is text and one is a number. (You'll learn more about that difference in Module 2.)</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 7</h2>
+<p>A mini 3-step robot boot sequence. Predict the full 3-line output, in order.</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print("Step 1: Battery check")
+print("Step 2: Sensor check")
+print("Step 3: Motor check")</code></pre>
+<p>My prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">Step 1: Battery check<br>Step 2: Sensor check<br>Step 3: Motor check</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 8</h2>
+<p>This one mixes quote styles — single quotes on the outside, double quotes on the inside. Predict the exact displayed text, including the inner quotes.</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print('The robot said "ready!"')</code></pre>
+<p>My prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">The robot said "ready!"</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Check Yourself</h2>
+<ul>
+  <li>In Predictions 2 and 4, both snippets involve a line starting with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">#</code>. Why does Python skip that line completely instead of running it?</li>
+  <li>Why did <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> with nothing inside the parentheses in Prediction 3 produce a blank line instead of no line at all? What does that tell you about what <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> actually does?</li>
+</ul>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Rule</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">What it means</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Top to bottom</td><td style="border:1px solid #ddd;padding:8px 12px;">Lines print in the exact order they're written</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>#</code> comments</td><td style="border:1px solid #ddd;padding:8px 12px;">Anything after a <code>#</code> is ignored — no output at all</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>print()</code> with nothing inside</td><td style="border:1px solid #ddd;padding:8px 12px;">Prints a blank line</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Commented-out <code>print()</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Never runs — produces zero output, not even part of it</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Capitalization</td><td style="border:1px solid #ddd;padding:8px 12px;">Text inside quotes prints exactly as typed, including case</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>"5"</code> vs <code>5</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Can look identical on screen, even though they're different types</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Mixed quotes</td><td style="border:1px solid #ddd;padding:8px 12px;"><code>'text "with" text'</code> lets a string safely contain the other quote style</td></tr>
+</table>
+
+</div>

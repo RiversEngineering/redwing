@@ -1,0 +1,72 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 1 Practice: Debug It</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 25 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 1 — Hello, Python</span>
+</div>
+
+<p>This set is about finding and fixing bugs. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">practice_debug.py</code> contains 6 numbered bugs. Five of them would <strong>crash</strong> the program (a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">SyntaxError</code> or <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">NameError</code>) if you ran them as written, so they're shown <strong>commented out</strong> — every line starts with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">#</code> — so the distributed file always runs cleanly with zero errors. One bug (Bug 6) doesn't crash anything; it's a <strong>logic</strong> bug — the code runs fine but produces the wrong output — so it's left active for you to actually see it misbehave.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>What you'll practice</strong>
+  <ul style="margin:8px 0 0 0;">
+    <li>Recognizing a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">SyntaxError</code> vs. a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">NameError</code></li>
+    <li>Spotting missing, extra, or mismatched quote characters</li>
+    <li>Noticing when a comment is missing its leading <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">#</code></li>
+    <li>Telling a crash bug apart from a logic bug (wrong order, no crash)</li>
+  </ul>
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 1</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print("Battery check passed)</code></pre>
+<p><strong>Error type:</strong> <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">SyntaxError</code> — unterminated string literal. The closing quote is missing.</p>
+<p><strong>Corrected output:</strong></p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Battery check passed</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 2</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print "Motors connected"</code></pre>
+<p><strong>Error type:</strong> <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">SyntaxError</code> — missing parentheses in call to <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print</code>. This is old Python 2 style — Python 3 always requires parentheses.</p>
+<p><strong>Corrected output:</strong></p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Motors connected</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 3</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print("Sensors online')</code></pre>
+<p><strong>Error type:</strong> <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">SyntaxError</code> — the opening quote is a double quote <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"</code> but the closing quote is a single quote <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">'</code>. They don't match, so Python can't tell where the string ends.</p>
+<p><strong>Corrected output:</strong></p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Sensors online</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 4</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Print("Camera ready")</code></pre>
+<p><strong>Error type:</strong> <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">NameError</code> — name <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">'Print'</code> is not defined. Python is case-sensitive — only lowercase <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print</code> is a real command.</p>
+<p><strong>Corrected output:</strong></p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Camera ready</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 5</h2>
+<p>This line was meant to be a plain comment reminding the team to check the wiring — but as originally written, it was missing its leading <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">#</code>:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Check the wiring before powering on</code></pre>
+<p><strong>Error type:</strong> <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">SyntaxError</code> — invalid syntax. Without the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">#</code>, Python tries to run those English words as a statement, and it isn't valid Python.</p>
+<p><strong>Corrected output:</strong> nothing is printed at all — once the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">#</code> is restored, it's a proper comment and Python skips it entirely.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 6 (logic bug — no crash)</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print("Engine check complete.")
+print("Engine check starting...")</code></pre>
+<p><strong>What's wrong:</strong> this runs without any error, but the two lines are in the wrong order — the engine is announced "complete" before it even starts checking. The fix is simply to swap the two lines.</p>
+<p><strong>Corrected output:</strong></p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Engine check starting...
+Engine check complete.</code></pre>
+
+<div style="background:#fff8e6;border-left:4px solid #e0a800;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>⚠️ Common mistake</strong><br>When Python shows you an error, read the message itself, not just the line number — it usually names the exact problem (missing quote, wrong parentheses, unknown name) and points at or very near where it happened. Beginners often panic and rewrite the whole line; instead, read the last line of the error first, then look at the arrow or line number it gives you.
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Error type</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">What it means</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>SyntaxError</code></td><td style="border:1px solid #ddd;padding:8px 12px;">You broke a grammar rule of the Python language — a missing quote, a mismatched quote, a missing parenthesis, or code where a comment should be</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>NameError</code></td><td style="border:1px solid #ddd;padding:8px 12px;">You used a name Python doesn't recognize, often from a typo or wrong capitalization</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Logic bug</td><td style="border:1px solid #ddd;padding:8px 12px;">The code runs with no error at all, but does the wrong thing — like printing lines in the wrong order</td></tr>
+</table>
+
+</div>

@@ -1,0 +1,124 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 5 Practice: Predict the Output</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 25 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 5 — While Loops</span>
+</div>
+
+<p>Reading a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while</code> loop and predicting exactly what it will print — <em>before</em> you run it — is the single best way to build a real mental model of how loops work. Below are 8 short snippets pulled straight from the concepts in Assignment 5. For each one, write down your prediction first, then open <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">practice_predict.py</code> and run it with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">python3 practice_predict.py</code> to see if you were right.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>What you'll practice</strong>
+  <ul style="margin:8px 0 0 0;">
+    <li>Tracing a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while</code> loop's condition check before <em>every</em> pass, including the first</li>
+    <li>Recognizing when a loop's condition is already False, so the body never runs at all</li>
+    <li>The counter pattern and the accumulator pattern</li>
+    <li><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">break</code> inside a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while True:</code> loop</li>
+    <li>Boundary conditions: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;</code> vs <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;=</code></li>
+    <li>A flag variable that turns a loop off from the inside (bonus — not yet taught)</li>
+  </ul>
+</div>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>💡 How the reveal boxes work</strong><br>
+Each snippet below has a gray box showing the correct answer. It's hidden on purpose — the text color is the same as the background, so it looks like a blank smudge. <strong>Drag-select across it (or double- or triple-click it) to highlight the text and reveal the answer.</strong> Make your prediction first, then reveal it to check.</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 1 — basic countdown</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>n = 4
+while n &gt;= 0:
+    print(n)
+    n -= 1</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">4, 3, 2, 1, 0 — each on its own line</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 2 — a condition that starts out False</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>n = 0
+while n &gt; 0:
+    print(n)
+    n -= 1
+print("loop finished")</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">nothing prints from the loop — only "loop finished"</span></p>
+<p>This is the important edge case: Python checks <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">n &gt; 0</code> <em>before</em> it ever runs the block. Since <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">n</code> is already <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">0</code>, the condition is False on the very first check, so the body runs <strong>zero times</strong> — it isn't skipped after one try, it never starts.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 3 — accumulator</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>n = 1
+total = 0
+while n &lt;= 5:
+    total += n
+    n += 1
+print(total)</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">15</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 4 — break inside while True:</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>count = 0
+while True:
+    count += 1
+    print(count)
+    if count == 3:
+        break</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">1, 2, 3 — each on its own line, then the loop stops</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 5 — stepping by 2</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>n = 1
+while n &lt;= 10:
+    print(n)
+    n += 2</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">1, 3, 5, 7, 9</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 6 — boundary comparison: &lt;= vs &lt;</h2>
+<p>Two separate loops, same starting value, two different operators.</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print("Loop A:")
+count = 1
+while count &lt;= 3:
+    print(count)
+    count += 1
+
+print("Loop B:")
+count = 1
+while count &lt; 3:
+    print(count)
+    count += 1</code></pre>
+<p>Loop A last value printed: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">3</span></p>
+<p>Loop B last value printed: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">2</span></p>
+<p>A one-character difference in the comparison — <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;=</code> versus <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;</code> — changes how many times the loop runs. This is exactly how off-by-one bugs sneak into real code.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 7 — break checked partway through</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>level = 50
+step = 0
+while level &gt; 0:
+    step += 1
+    level -= 15
+    if level &lt; 10:
+        break
+print(f"stopped after step {step}, level = {level}")</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">stopped after step 3, level = 5</span></p>
+<p>Trace it: step 1 takes <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">level</code> to 35 (not &lt; 10, keep going), step 2 takes it to 20 (still not &lt; 10), step 3 takes it to 5 — and 5 <em>is</em> &lt; 10, so <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">break</code> fires right there.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 8 (Bonus — we haven't taught this, take a guess!)</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>still_running = True
+passes = 0
+while still_running:
+    passes += 1
+    print(f"pass {passes}")
+    if passes == 2:
+        still_running = False
+print("stopped")</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">pass 1, pass 2, stopped — the loop body runs exactly twice</span></p>
+<p><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">still_running</code> is a <strong>flag variable</strong> — a variable whose only job is to be <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">True</code> or <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">False</code>. Instead of comparing a number, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while still_running:</code> just checks the flag directly, and code inside the loop flips it once it's time to stop. You'll see this pattern again and again once you start writing longer programs.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Check Yourself</h2>
+<p><strong>1.</strong> In Prediction 2, why does the loop print nothing at all instead of printing once and then stopping? What does that tell you about when a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while</code> condition gets checked?</p>
+<p><strong>2.</strong> In Prediction 8, could you rewrite the loop to use a plain comparison (like <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while passes &lt; 2:</code>) instead of a flag variable and get the same result? Why might a flag variable still be useful even when a plain comparison would also work?</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Pattern</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">What to notice</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Condition already False</td><td style="border:1px solid #ddd;padding:8px 12px;">The block runs zero times — it's checked before the first pass, not just after</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Counter</td><td style="border:1px solid #ddd;padding:8px 12px;">A variable stepped up/down by a fixed amount each pass (<code>n += 1</code>, <code>n += 2</code>, ...)</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Accumulator</td><td style="border:1px solid #ddd;padding:8px 12px;">A variable that builds a running total (<code>total += n</code>)</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>&lt;=</code> vs <code>&lt;</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Changes exactly how many times the loop runs — check boundaries carefully</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>break</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Exits immediately, even mid-pass, even if the while condition is still True</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Flag variable</td><td style="border:1px solid #ddd;padding:8px 12px;">A True/False variable the loop condition checks directly; code inside flips it to stop</td></tr>
+</table>
+
+</div>

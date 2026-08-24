@@ -1,0 +1,157 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 4 Practice: Predict the Output</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 25 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 4 — Making Decisions with Conditionals</span>
+</div>
+
+<p>Before you run a script, can you tell what it's going to print? This is one of the most useful skills a programmer builds — it's exactly what you'll do when a robot does something unexpected and you need to trace through the code in your head to find out why, before you ever plug it in.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>What you'll practice</strong><ul style="margin:8px 0 0 0;">
+  <li>Tracing <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code> / <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">elif</code> / <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">else</code> chains by hand, one condition at a time</li>
+  <li>Evaluating <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">and</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">or</code>, and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">not</code> before checking your work</li>
+  <li>Remembering that <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">elif</code> stops at the <strong>first</strong> match, top to bottom</li>
+  <li>Spotting the difference a single boundary operator (<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;</code> vs <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;=</code>) can make</li>
+</ul></div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">How to use this page</h2>
+
+<p>Every snippet below is real, working code — it's also in <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">practice_predict.py</code> in this folder. For each one: read it carefully, write your guess on the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"My prediction: ____"</code> line in the file, and only then check yourself — either by running the script, or by revealing the answer on this page.</p>
+
+<p>Answers on this page are hidden as gray-on-gray text, like this: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">42</span>. To reveal one, click and drag over it (or double/triple-click it) to select the text — your browser's text-selection highlight will make it readable. Don't peek before you've written your own prediction down!</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 1 — a basic if / else</h2>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>temperature = 95
+if temperature &gt; 90:
+    print("Too hot")
+else:
+    print("Temperature OK")
+</code></pre>
+
+<p>What prints? <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">Too hot</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 2 — a three-tier elif chain</h2>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>speed = 45
+if speed &lt; 20:
+    print("Slow")
+elif speed &lt; 60:
+    print("Medium")
+else:
+    print("Fast")
+</code></pre>
+
+<p>What prints? <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">Medium</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 3 — combining with and</h2>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>light_level = 30
+is_daytime = light_level &gt; 20 and light_level &lt; 100
+print(is_daytime)
+if is_daytime:
+    print("Cameras: normal mode")
+else:
+    print("Cameras: night mode")
+</code></pre>
+
+<p>What prints (two lines)? <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">True</span> then <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">Cameras: normal mode</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 4 — combining with or</h2>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>button_a_pressed = False
+button_b_pressed = True
+should_move = button_a_pressed or button_b_pressed
+print(should_move)
+if should_move:
+    print("Motors: engaged")
+else:
+    print("Motors: idle")
+</code></pre>
+
+<p>What prints (two lines)? <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">True</span> then <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">Motors: engaged</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 5 — flipping a boolean with not</h2>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print(not True)
+</code></pre>
+
+<p>What prints? <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">False</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 6 — first match wins</h2>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>score = 95
+if score &gt;= 60:
+    print("Pass")
+elif score &gt;= 90:
+    print("Honors")
+else:
+    print("Fail")
+</code></pre>
+
+<p>Notice that <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">score &gt;= 90</code> would also be <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">True</code> if you checked it on its own. What prints? <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">Pass</span></p>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>💡 Tip</strong><br>
+Python checks an <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">elif</code> chain top to bottom and stops the instant it finds a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">True</code> condition. It never goes back to check whether a later branch would <em>also</em> have matched. If you want the "Honors" case to actually be reachable, it needs to be checked <em>before</em> the broader "Pass" case.
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 7 — one value, two operators</h2>
+
+<p>Same starting value, two separate snippets — only the comparison operator changes.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>distance_cm = 20
+
+# Snippet A
+if distance_cm &lt; 20:
+    print("A: Too close")
+else:
+    print("A: Clear")
+
+# Snippet B
+if distance_cm &lt;= 20:
+    print("B: Too close")
+else:
+    print("B: Clear")
+</code></pre>
+
+<p>What prints from Snippet A? <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">A: Clear</span><br>
+What prints from Snippet B? <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">B: Too close</span></p>
+
+<div style="background:#fff8e6;border-left:4px solid #e0a800;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>⚠️ Common mistake</strong><br>
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;=</code> only disagree at the exact boundary value — everywhere else they behave the same. That's exactly what makes boundary bugs sneaky: your code can pass every test you try, right up until someone hits the one number where <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;=</code> disagree. Always ask: "should the boundary value itself count?"
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 8 (Bonus — we haven't taught this, take a guess!)</h2>
+
+<p>Python has a shortcut that most languages don't. See if you can guess what it does before you run it.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>x = 5
+print(1 &lt; x &lt; 10)
+</code></pre>
+
+<p>What prints? <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">True</span></p>
+
+<p>This is called a <strong>chained comparison</strong>. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">1 &lt; x &lt; 10</code> means exactly what it looks like it means in math class: "is x between 1 and 10?" Python quietly evaluates this as <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">1 &lt; x and x &lt; 10</code>. It's not required — the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">and</code> version works everywhere and is a perfectly good habit to keep — but you'll see the chained version in other people's code, so it's worth recognizing.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Check Yourself</h2>
+
+<ol>
+  <li>In Prediction 6, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">score = 95</code> would make both <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">score &gt;= 60</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">score &gt;= 90</code> true if you checked them separately. Why does only <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"Pass"</code> print? How would you reorder the branches so a 95 prints <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"Honors"</code> instead?</li>
+  <li>Snippets A and B in Prediction 7 use the exact same <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">distance_cm</code> value but print different results. What single character differs between them, and why does it matter only for this one value and no other?</li>
+</ol>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Pattern</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">What to remember when predicting</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if / elif / else</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Checked top to bottom; the <strong>first</strong> <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">True</code> condition wins and the rest are skipped</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">a and b</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">True</code> only if both sides are <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">True</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">a or b</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">True</code> if at least one side is <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">True</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">not a</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Flips <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">True</code> to <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">False</code> and vice versa</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;</code> vs <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;=</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Only disagree exactly at the boundary value — check whether the boundary itself should count</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">1 &lt; x &lt; 10</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Bonus: a chained comparison, same as <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">1 &lt; x and x &lt; 10</code></td></tr>
+</table>
+
+</div>
