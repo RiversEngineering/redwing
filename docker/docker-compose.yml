@@ -26,9 +26,13 @@ services:
       - student_workspace:/workspace
       - /dev:/host-dev:ro  # read-only view of host /dev; entrypoint creates device nodes
       - /dev/input:/dev/input
-      # Built by `firmware/build.sh` on the host (not by this image) — the
-      # daemon only reads the resulting .uf2 to flash it via picotool.
-      - ../firmware/build:/app/firmware:ro
+      # firmware/redwing.uf2 is committed to git by `firmware/build.sh` (see
+      # the README) — a `git pull` on the Pi is enough to update it, no build
+      # tooling needed on the Pi itself. Mounting the whole directory (rather
+      # than just that one file) means this doesn't depend on the file
+      # already existing when the container first starts — Docker would
+      # otherwise create an empty directory in its place.
+      - ../firmware:/app/firmware:ro
     environment:
       REDWING_SERIAL: /dev/rp2040
       REDWING_HOST:   "0.0.0.0"
