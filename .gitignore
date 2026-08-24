@@ -20,6 +20,16 @@ firmware/build/*
 !firmware/build/redwing.hex
 !firmware/build/redwing.dis
 
+# Same treatment for the bno085_test scratch project's build directory —
+# this one also vendors a from-source picotool build, so it's much bigger.
+firmware/bno085_test/build/*
+!firmware/bno085_test/build/bno085_test.elf
+!firmware/bno085_test/build/bno085_test.elf.map
+!firmware/bno085_test/build/bno085_test.bin
+!firmware/bno085_test/build/bno085_test.hex
+!firmware/bno085_test/build/bno085_test.dis
+!firmware/bno085_test/build/bno085_test.uf2
+
 # Dashboard build
 dashboard/node_modules/
 dashboard/dist/
