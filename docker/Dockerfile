@@ -13,6 +13,8 @@ RUN npm run build
 FROM python:3.11-slim
 
 # System deps for OpenCV + serial + evdev (evdev needs linux headers + gcc to build from source)
+# picotool + libusb-1.0-0: lets the dashboard's "Flash Firmware" button reset
+# the RP2040 into BOOTSEL over USB (no physical button press) and reflash it.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
@@ -20,6 +22,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     udev \
     build-essential \
     linux-libc-dev \
+    picotool \
+    libusb-1.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

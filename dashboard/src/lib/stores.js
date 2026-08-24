@@ -130,6 +130,13 @@ export function clearMap() {
 /** Latest camera frame as a base64 JPEG string, or '' if none yet. */
 export const cameraFrame = writable('');
 
+// ── Firmware flashing ─────────────────────────────────────────────────────────
+/**
+ * Status of the most recent "Flash Firmware" action.
+ * Shape: { state: 'idle'|'running'|'success'|'error', message: string }
+ */
+export const flashStatus = writable({ state: 'idle', message: '' });
+
 // ── Uptime ────────────────────────────────────────────────────────────────────
 /** Latest uptime value in seconds (float). */
 export const uptime = derived(robotState, ($s) => $s?.uptime ?? null);

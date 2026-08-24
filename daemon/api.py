@@ -3,6 +3,7 @@
 import asyncio
 import base64
 import logging
+import os
 from typing import AsyncIterator, TYPE_CHECKING
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -10,7 +11,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from .camera import CameraCapture
-from .config import STREAM_HZ
+from .config import STREAM_HZ, FIRMWARE_UF2_PATH
 from .state import SharedState
 from . import protocol as proto
 
@@ -28,6 +29,7 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
 
     ws_clients: set[WebSocket] = set()
     log_clients: set[WebSocket] = set()
+    flash_state = {"running": False}
 
     # ------------------------------------------------------------------
     # WebSocket — real-time state stream + dashboard command receiver
@@ -105,6 +107,14 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                 if action in ("shutdown", "reboot"):
                     log.warning(f"System {action} requested from dashboard")
                     asyncio.create_task(_do_power(action, ws_clients))
+
+            elif cmd == "flash_firmware":
+                if flash_state["running"]:
+                    async with state.lock:
+                        state.add_log("warning", "[Dashboard] Firmware flash already in progress")
+                else:
+                    log.warning("Firmware flash requested from dashboard")
+                    asyncio.create_task(_do_flash_firmware(ws_clients))
 
             elif cmd == "clear_map":
                 async with state.lock:
@@ -376,6 +386,78 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
         magic = 0x4321FEDC if action == "shutdown" else 0x01234567
         ctypes.CDLL("libc.so.6").reboot(ctypes.c_int32(magic))
 
+    async def _broadcast_flash_status(clients: set, flash_status: str, message: str):
+        msg = {"type": "flash_status", "state": flash_status, "message": message}
+        dead = set()
+        for ws in list(clients):
+            try:
+                await ws.send_json(msg)
+            except Exception:
+                dead.add(ws)
+        clients.difference_update(dead)
+
+    async def _do_flash_firmware(clients: set):
+        """Reflash the RP2040 from the on-disk .uf2 via picotool.
+
+        picotool's -f flag resets the Pico into BOOTSEL mode itself (via the
+        Pico SDK's USB reset-via-vendor-interface, no physical button press
+        needed) before loading, and -x reboots it back into the app once done.
+        The daemon's existing serial reconnect loop (rp2040.py) picks the Pico
+        back up automatically once it re-enumerates as a CDC device again.
+        """
+        flash_state["running"] = True
+        try:
+            await _broadcast_flash_status(clients, "running", "Flashing firmware...")
+            async with state.lock:
+                state.add_log("info", "[Dashboard] Flashing firmware...")
+
+            if not os.path.isfile(FIRMWARE_UF2_PATH):
+                msg = f"Firmware file not found: {FIRMWARE_UF2_PATH}"
+                async with state.lock:
+                    state.add_log("error", f"[Dashboard] {msg}")
+                await _broadcast_flash_status(clients, "error", msg)
+                return
+
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    "picotool", "load", "-f", "-x", FIRMWARE_UF2_PATH,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                )
+            except FileNotFoundError:
+                msg = "picotool not found — is it installed in the daemon image?"
+                async with state.lock:
+                    state.add_log("error", f"[Dashboard] {msg}")
+                await _broadcast_flash_status(clients, "error", msg)
+                return
+
+            while True:
+                line = await proc.stdout.readline()
+                if not line:
+                    break
+                text = line.decode(errors="replace").rstrip()
+                if text:
+                    async with state.lock:
+                        state.add_log("info", f"[picotool] {text}")
+
+            rc = await proc.wait()
+            if rc == 0:
+                async with state.lock:
+                    state.add_log("info", "[Dashboard] Firmware flashed successfully")
+                await _broadcast_flash_status(clients, "success", "Firmware flashed successfully.")
+            else:
+                msg = f"picotool exited with code {rc}"
+                async with state.lock:
+                    state.add_log("error", f"[Dashboard] {msg}")
+                await _broadcast_flash_status(clients, "error", msg)
+        except Exception as exc:
+            log.exception("Firmware flash failed")
+            async with state.lock:
+                state.add_log("error", f"[Dashboard] Flash failed: {exc}")
+            await _broadcast_flash_status(clients, "error", str(exc))
+        finally:
+            flash_state["running"] = False
+
     async def _broadcast_map():
         """Stream new map points to all dashboard clients at ~10 Hz."""
         sent_total = 0
@@ -465,7 +547,6 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
     # ------------------------------------------------------------------
     # Serve Svelte dashboard static files
     # ------------------------------------------------------------------
-    import os
     dashboard_dir = os.path.join(os.path.dirname(__file__), "..", "dashboard", "dist")
     if os.path.isdir(dashboard_dir):
         app.mount("/", StaticFiles(directory=dashboard_dir, html=True), name="dashboard")

@@ -2,7 +2,7 @@
   import { onDestroy } from 'svelte';
   import { subscribe, onStatus, send } from './lib/ws.js';
   import { connected, robotState, pushLog, cameraFrame, activeTab, pushPlot,
-            addMapPoints, clearMap, mapPose } from './lib/stores.js';
+            addMapPoints, clearMap, mapPose, flashStatus } from './lib/stores.js';
 
   import TopBar        from './components/TopBar.svelte';
   import CameraPanel   from './components/CameraPanel.svelte';
@@ -14,6 +14,7 @@
   import ControllerTab from './components/ControllerTab.svelte';
   import MapTab        from './components/MapTab.svelte';
   import SystemTab     from './components/SystemTab.svelte';
+  import FirmwareTab   from './components/FirmwareTab.svelte';
 
   // When navigating away from the controller tab, zero out gamepad state.
   // ControllerTab's onDestroy also sends zero, but this fires first.
@@ -46,6 +47,8 @@
       clearMap();
     } else if (msg.type === 'frame') {
       cameraFrame.set(msg.data);
+    } else if (msg.type === 'flash_status') {
+      flashStatus.set({ state: msg.state, message: msg.message });
     }
   });
 
@@ -61,6 +64,7 @@
     { id: 'controller',  label: 'Controller' },
     { id: 'map',         label: 'Map' },
     { id: 'system',      label: 'System' },
+    { id: 'firmware',    label: 'Firmware' },
   ];
 </script>
 
@@ -151,5 +155,13 @@
       <ControllerTab />
     </div>
   {/if}
+
+  <!-- Firmware tab -->
+  <div
+    class="flex-1 min-h-0 overflow-hidden"
+    style="display: {$activeTab === 'firmware' ? 'flex' : 'none'}; flex-direction: column;"
+  >
+    <FirmwareTab />
+  </div>
 
 </div>
