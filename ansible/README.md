@@ -71,7 +71,9 @@ extra CLI arg on a template, matching the comment at the top of
 ## Adding a new robot
 
 1. Image it (Raspberry Pi Imager, or `install.sh` for first boot).
-2. `ssh-copy-id -i ~/.ssh/redwing_key.pub pi@<new-robot>.local`
+2. `./add-robot.sh <new-robot-ip-or-hostname>` — trusts it with the fleet SSH
+   key (equivalent to `ssh-copy-id -i ~/.ssh/redwing_key.pub pi@<host>`, with
+   a reminder printed for step 3).
 3. Add it to `inventory.yml`.
 4. Commit/push — future deploys pick it up automatically.
 
