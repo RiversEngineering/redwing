@@ -1,0 +1,34 @@
+---
+# Reset a robot's student workspace — DESTRUCTIVE, wipes /home/pi/workspace.
+# Deliberately a separate playbook from deploy.yml (not a tag on it) so it
+# can never run as a side effect of a normal deploy.
+#
+# Usage (from the repo root):
+#   ansible-playbook ansible/playbooks/restore.yml --limit robot1
+
+- name: Restore a student's workspace (reset a single robot)
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Stop containers
+      community.docker.docker_compose_v2:
+        project_src: /opt/redwing/docker
+        state: stopped
+
+    - name: Clear student workspace
+      file:
+        path: /home/pi/workspace
+        state: absent
+
+    - name: Recreate empty workspace
+      file:
+        path: /home/pi/workspace
+        state: directory
+        owner: pi
+        mode: "0755"
+
+    - name: Restart containers
+      community.docker.docker_compose_v2:
+        project_src: /opt/redwing/docker
+        state: present

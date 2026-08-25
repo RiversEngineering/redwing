@@ -58,24 +58,50 @@ always: a **Project**, containing a **Key Store** entry, a **Repository**, an
 4. **Inventory** → New Inventory:
    - Type: File, pointing at `ansible/inventory.yml` in the repository above
    - User Credentials: the SSH key from step 2
-5. **Template** → New Template:
+5. **Template** → New Template, named e.g. "Deploy":
    - Playbook: `ansible/playbooks/deploy.yml`
    - Inventory / Repository: the ones created above
+   - Under **Ansible Prompts**, check **Limit** — this adds a "Limit" field
+     to the run dialog so you can target one host at a time.
    - Save, then **Run** — this is the button you'll use from now on instead
      of a terminal.
+6. **Template** → New Template again, named e.g. "Restore Workspace":
+   - Playbook: `ansible/playbooks/restore.yml`
+   - Same Inventory / Repository as above
+   - Also enable the **Limit** prompt here — this one wipes a robot's student
+     workspace, so you always want to target it at one specific robot, never
+     the whole fleet at once.
 
-Test against one robot first (Semaphore lets you pass `--limit robot1` as an
-extra CLI arg on a template, matching the comment at the top of
-`playbooks/deploy.yml`) before running the fleet-wide template.
+Two separate templates on purpose: `restore.yml` used to be a second,
+`restore`-tagged play bolted onto the bottom of `deploy.yml`, but Ansible
+runs every play by default unless you explicitly filter tags — so a plain
+"Run" on the old combined file would deploy *and* immediately wipe every
+robot's workspace in the same task. Splitting them into separate playbooks
+(and separate Templates) makes that structurally impossible instead of
+relying on remembering to pass the right flag every time.
+
+**To test a change on one robot before rolling it out to the fleet**: run
+the "Deploy" template, type that robot's inventory name (e.g. `robot5`) into
+the Limit field, and check the log. Once it looks right, run it again with
+the Limit field empty to hit the whole fleet.
 
 ## Adding a new robot
 
 1. Image it (Raspberry Pi Imager, or `install.sh` for first boot).
 2. `./add-robot.sh <new-robot-ip-or-hostname>` — trusts it with the fleet SSH
    key (equivalent to `ssh-copy-id -i ~/.ssh/redwing_key.pub pi@<host>`, with
-   a reminder printed for step 3).
-3. Add it to `inventory.yml`.
-4. Commit/push — future deploys pick it up automatically.
+   a reminder printed for step 3). Optionally alias it for a shorter command:
+   ```
+   echo 'alias add-robot="~/redwing/ansible/add-robot.sh"' >> ~/.bashrc
+   source ~/.bashrc
+   ```
+3. Add it to `inventory.yml` — either edit the file directly on GitHub, or
+   edit it on the Pi 3 and `git push`. Semaphore always re-clones fresh from
+   GitHub on every run, so either way works the same; nothing needs pushing
+   *to* the Pi 3 itself.
+4. Commit/push (if not already) — future deploys pick it up automatically.
+5. Run the "Deploy" template with **Limit** set to the new robot's name to
+   verify it before including it in a fleet-wide run.
 
 ## Known gap
 
