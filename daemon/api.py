@@ -396,6 +396,19 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                 dead.add(ws)
         clients.difference_update(dead)
 
+    async def _flash_log(level: str, message: str):
+        """Log to both the dashboard's WS log stream and `docker compose logs`.
+
+        state.add_log() alone only reaches the dashboard's own Debug Console
+        (via the WS broadcast) — it never touches Python's `logging` module,
+        so it's invisible to `docker compose logs`. Flashing is exactly the
+        kind of thing worth debugging from the container logs alone (no
+        browser needed), so mirror every line to both.
+        """
+        async with state.lock:
+            state.add_log(level, message)
+        getattr(log, level if level in ("info", "warning", "error") else "info")(message)
+
     async def _do_flash_firmware(clients: set):
         """Reflash the RP2040 from the on-disk .uf2 via picotool.
 
@@ -408,13 +421,11 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
         flash_state["running"] = True
         try:
             await _broadcast_flash_status(clients, "running", "Flashing firmware...")
-            async with state.lock:
-                state.add_log("info", "[Dashboard] Flashing firmware...")
+            await _flash_log("info", "[Dashboard] Flashing firmware...")
 
             if not os.path.isfile(FIRMWARE_UF2_PATH):
                 msg = f"Firmware file not found: {FIRMWARE_UF2_PATH}"
-                async with state.lock:
-                    state.add_log("error", f"[Dashboard] {msg}")
+                await _flash_log("error", f"[Dashboard] {msg}")
                 await _broadcast_flash_status(clients, "error", msg)
                 return
 
@@ -426,8 +437,7 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                 )
             except FileNotFoundError:
                 msg = "picotool not found — is it installed in the daemon image?"
-                async with state.lock:
-                    state.add_log("error", f"[Dashboard] {msg}")
+                await _flash_log("error", f"[Dashboard] {msg}")
                 await _broadcast_flash_status(clients, "error", msg)
                 return
 
@@ -437,23 +447,19 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                     break
                 text = line.decode(errors="replace").rstrip()
                 if text:
-                    async with state.lock:
-                        state.add_log("info", f"[picotool] {text}")
+                    await _flash_log("info", f"[picotool] {text}")
 
             rc = await proc.wait()
             if rc == 0:
-                async with state.lock:
-                    state.add_log("info", "[Dashboard] Firmware flashed successfully")
+                await _flash_log("info", "[Dashboard] Firmware flashed successfully")
                 await _broadcast_flash_status(clients, "success", "Firmware flashed successfully.")
             else:
                 msg = f"picotool exited with code {rc}"
-                async with state.lock:
-                    state.add_log("error", f"[Dashboard] {msg}")
+                await _flash_log("error", f"[Dashboard] {msg}")
                 await _broadcast_flash_status(clients, "error", msg)
         except Exception as exc:
             log.exception("Firmware flash failed")
-            async with state.lock:
-                state.add_log("error", f"[Dashboard] Flash failed: {exc}")
+            await _flash_log("error", f"[Dashboard] Flash failed: {exc}")
             await _broadcast_flash_status(clients, "error", str(exc))
         finally:
             flash_state["running"] = False
