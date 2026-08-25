@@ -53,8 +53,8 @@ always: a **Project**, containing a **Key Store** entry, a **Repository**, an
    - Branch: `main`
    - Access Key: None (the repo is public, cloned over plain HTTPS — the SSH
      key above is only for reaching the robots, not for cloning)
-   - Semaphore installs `../requirements.yml`'s collections (`community.docker`)
-     automatically before each run.
+   - Semaphore installs `../requirements.yml`'s collections (`community.docker`,
+     `community.general`) automatically before each run.
 4. **Inventory** → New Inventory:
    - Type: File, pointing at `ansible/inventory.yml` in the repository above
    - User Credentials: the SSH key from step 2
@@ -71,8 +71,26 @@ always: a **Project**, containing a **Key Store** entry, a **Repository**, an
    - Also enable the **Limit** prompt here — this one wipes a robot's student
      workspace, so you always want to target it at one specific robot, never
      the whole fleet at once.
+7. **Template** → New Template, named e.g. "Flash Firmware":
+   - Playbook: `ansible/playbooks/flash_firmware.yml`
+   - Same Inventory / Repository as above
+   - Enable the **Limit** prompt.
+   - Pulls latest `main` (so a new `firmware/redwing.uf2` is on disk even if
+     you haven't run Deploy since pushing it), then calls the daemon's
+     `/flash_firmware` endpoint — the same picotool sequence the dashboard's
+     Firmware tab uses, just triggered over HTTP instead of a click.
+   - Requires each robot's daemon container to already have this endpoint —
+     i.e. run "Deploy" at least once after this feature was added before
+     "Flash Firmware" will work on a given robot; otherwise the call 404s
+     against the still-running old container.
+8. **Template** → New Template, named e.g. "Power Off Fleet":
+   - Playbook: `ansible/playbooks/shutdown.yml`
+   - Same Inventory / Repository as above
+   - Leave **Limit** empty by default (or enable the prompt if you also want
+     the option to power off just one robot) — this one's meant to hit the
+     whole fleet.
 
-Two separate templates on purpose: `restore.yml` used to be a second,
+Two separate templates on purpose (Deploy vs. Restore): `restore.yml` used to be a second,
 `restore`-tagged play bolted onto the bottom of `deploy.yml`, but Ansible
 runs every play by default unless you explicitly filter tags — so a plain
 "Run" on the old combined file would deploy *and* immediately wipe every
@@ -84,6 +102,25 @@ relying on remembering to pass the right flag every time.
 the "Deploy" template, type that robot's inventory name (e.g. `robot5`) into
 the Limit field, and check the log. Once it looks right, run it again with
 the Limit field empty to hit the whole fleet.
+
+## Scheduling automatic shutdown
+
+To catch a robot a student left powered on (draining its battery), schedule
+the "Power Off Fleet" template to run automatically instead of relying on
+someone remembering to click it:
+
+1. Open the "Power Off Fleet" template → **Schedules** tab → New Schedule.
+2. Cron expression for 6pm daily: `0 18 * * *`
+3. Leave Limit empty so it hits every robot.
+
+Semaphore's scheduler defaults to **UTC**, not your local time — a `6 18`
+schedule would otherwise fire at 6pm UTC (2pm Eastern), not 6pm locally.
+`ansible/semaphore/docker-compose.yml` sets `SEMAPHORE_SCHEDULE_TIMEZONE` to
+`America/New_York` to handle this; override it in `.env` if that's the wrong
+zone. A powered-off robot won't respond to the next scheduled Deploy either —
+that's expected, not a failure — it'll just pick up whatever's latest the
+next time someone turns it on and runs Deploy (or its own next scheduled
+power-off, unaffected either way).
 
 ## Adding a new robot
 

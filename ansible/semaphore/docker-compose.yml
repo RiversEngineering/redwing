@@ -39,6 +39,12 @@ services:
       # SEMAPHORE_DB_HOST is the real env var for the sqlite file path;
       # SEMAPHORE_DB_PATH (used in some older upstream examples) isn't read.
       SEMAPHORE_DB_HOST: /var/lib/semaphore/database.db
+      # Semaphore's Schedules feature (cron-based template triggers, e.g. a
+      # nightly auto-shutdown) defaults to UTC — override in .env if
+      # America/New_York isn't right, or a scheduled "6pm" will actually
+      # fire at 6pm UTC (2pm Eastern). See the IANA tz database for valid
+      # names.
+      SEMAPHORE_SCHEDULE_TIMEZONE: ${SEMAPHORE_SCHEDULE_TIMEZONE:-America/New_York}
     volumes:
       - semaphore-data:/var/lib/semaphore
 

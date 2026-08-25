@@ -7,7 +7,7 @@ import os
 from typing import AsyncIterator, TYPE_CHECKING
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from .camera import CameraCapture
@@ -430,7 +430,7 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                 await _flash_log("info", f"[picotool] {text}")
         return await proc.wait()
 
-    async def _do_flash_firmware(clients: set):
+    async def _do_flash_firmware(clients: set) -> tuple[bool, str]:
         """Reflash the RP2040 from the on-disk .uf2 via picotool.
 
         This runs picotool TWICE, deliberately, as two separate OS processes:
@@ -455,6 +455,9 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
         The daemon's existing serial reconnect loop (rp2040.py) picks the Pico
         back up automatically once it re-enumerates as a CDC device again
         after step 2 reboots it back into the app.
+
+        Returns (success, message) — used by the HTTP endpoint below to give
+        Ansible a real pass/fail result instead of a fire-and-forget request.
         """
         flash_state["running"] = True
         try:
@@ -465,7 +468,7 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                 msg = f"Firmware file not found: {FIRMWARE_UF2_PATH}"
                 await _flash_log("error", f"[Dashboard] {msg}")
                 await _broadcast_flash_status(clients, "error", msg)
-                return
+                return False, msg
 
             try:
                 await _flash_log("info", "[Dashboard] Requesting reboot into BOOTSEL mode...")
@@ -477,19 +480,23 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                 msg = "picotool not found — is it installed in the daemon image?"
                 await _flash_log("error", f"[Dashboard] {msg}")
                 await _broadcast_flash_status(clients, "error", msg)
-                return
+                return False, msg
 
             if rc == 0:
-                await _flash_log("info", "[Dashboard] Firmware flashed successfully")
+                msg = "Firmware flashed successfully"
+                await _flash_log("info", f"[Dashboard] {msg}")
                 await _broadcast_flash_status(clients, "success", "Firmware flashed successfully.")
+                return True, msg
             else:
                 msg = f"picotool exited with code {rc}"
                 await _flash_log("error", f"[Dashboard] {msg}")
                 await _broadcast_flash_status(clients, "error", msg)
+                return False, msg
         except Exception as exc:
             log.exception("Firmware flash failed")
             await _flash_log("error", f"[Dashboard] Flash failed: {exc}")
             await _broadcast_flash_status(clients, "error", str(exc))
+            return False, str(exc)
         finally:
             flash_state["running"] = False
 
@@ -578,6 +585,24 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
     async def get_state():
         async with state.lock:
             return state.to_ws_message()
+
+    @app.post("/flash_firmware")
+    async def flash_firmware():
+        """Reflash the RP2040 from the on-disk .uf2, blocking until done.
+
+        For Ansible (see ansible/playbooks/flash_firmware.yml) — unlike the
+        dashboard's WebSocket "flash_firmware" command, which fires the flash
+        in the background and streams progress back over the socket, this
+        waits for the real result so a caller with no open WebSocket (like an
+        ansible.builtin.uri task) gets an honest pass/fail.
+        """
+        if flash_state["running"]:
+            return JSONResponse(
+                {"ok": False, "message": "Firmware flash already in progress"},
+                status_code=409,
+            )
+        ok, message = await _do_flash_firmware(ws_clients)
+        return JSONResponse({"ok": ok, "message": message}, status_code=200 if ok else 500)
 
     # ------------------------------------------------------------------
     # Serve Svelte dashboard static files

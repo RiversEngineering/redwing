@@ -1,0 +1,18 @@
+---
+# Power off every robot — e.g. a nightly safety net for boards left on and
+# draining batteries. Handles the SSH connection dropping out from under it
+# cleanly (that's what community.general.shutdown is for), unlike a raw
+# `shutdown -h now` command task.
+#
+# Usage (from the repo root):
+#   ansible-playbook ansible/playbooks/shutdown.yml
+#   ansible-playbook ansible/playbooks/shutdown.yml --limit robot1
+
+- name: Power off robots
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Shut down
+      community.general.shutdown:
+        msg: "Shutting down — triggered from the fleet control node."

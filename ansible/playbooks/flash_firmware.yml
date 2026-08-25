@@ -1,0 +1,45 @@
+---
+# Flash the latest firmware/redwing.uf2 to each robot's RP2040.
+# Pulls latest `main` first (same as deploy.yml) so the on-disk .uf2 is
+# current even if this is run without a preceding deploy — then calls the
+# daemon's /flash_firmware endpoint, which reuses the same hardware-tested
+# picotool sequence the dashboard's Firmware tab uses (see daemon/api.py).
+#
+# Usage (from the repo root):
+#   ansible-playbook ansible/playbooks/flash_firmware.yml --limit robot1
+
+- name: Flash RP2040 firmware
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Pull latest source from GitHub
+      git:
+        repo: https://github.com/RiversEngineering/redwing
+        dest: /opt/redwing
+        version: main
+        force: true
+
+    - name: Ensure /opt/redwing ownership matches the pi user
+      file:
+        path: /opt/redwing
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        recurse: true
+
+    - name: Flash firmware via the daemon's HTTP endpoint
+      uri:
+        url: http://localhost:8000/flash_firmware
+        method: POST
+        status_code: [200, 500, 409]
+        timeout: 60
+      register: flash_result
+
+    - name: Report flash result
+      debug:
+        msg: "{{ flash_result.json.message }}"
+
+    - name: Fail the task if flashing didn't succeed
+      fail:
+        msg: "{{ flash_result.json.message }}"
+      when: not flash_result.json.ok
