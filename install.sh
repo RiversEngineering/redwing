@@ -8,10 +8,11 @@
 # merging), download that branch's installer to a file and run it with
 # REDWING_BRANCH set to the same branch. Download-then-run works in any shell
 # (unlike `bash <(...)`, which needs bash), and the "refs/heads/" in the raw
-# URL is required for branch names that contain slashes. For this branch:
+# URL is required for branch names that contain slashes. For example, to
+# install a branch named my/branch:
 #   curl -fsSL -o /tmp/redwing-install.sh \
-#     https://raw.githubusercontent.com/RiversEngineering/redwing/refs/heads/claude/robotics-ram-requirements-pk02bv/install.sh
-#   REDWING_BRANCH=claude/robotics-ram-requirements-pk02bv bash /tmp/redwing-install.sh
+#     https://raw.githubusercontent.com/RiversEngineering/redwing/refs/heads/my/branch/install.sh
+#   REDWING_BRANCH=my/branch bash /tmp/redwing-install.sh
 #
 # Safe to re-run — all steps are idempotent.
 
