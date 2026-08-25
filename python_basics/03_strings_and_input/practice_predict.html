@@ -1,0 +1,104 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 3 Practice: Predict the Output</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 25 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 3 — Strings &amp; Input</span>
+</div>
+
+<p>Reading code and predicting what it does <em>before</em> you run it is one of
+the fastest ways to actually learn a language — instead of just watching
+output scroll by, you're testing your own mental model of Python against
+reality. Below are 8 short snippets from <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">practice_predict.py</code>.
+For each one, write down your guess first, then check yourself.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>What you'll practice</strong><ul style="margin:8px 0 0 0;">
+  <li>Reading f-strings and predicting what they print</li>
+  <li>Tracing string concatenation with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">+</code></li>
+  <li>Counting characters with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">len()</code></li>
+  <li>Spotting the difference between adding numbers and joining strings</li>
+  <li>Reasoning about an error <em>without</em> running the code</li>
+</ul></div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">How the reveal works</h2>
+
+<p>After each snippet you'll see a gray box like this one:
+<span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">the answer is hidden here</span>.
+The text is really there, it's just colored the same gray as its own
+background, so it's invisible until you reveal it. Click and drag across
+the box (or tap and hold on a phone) to select the hidden text the way
+you'd select any text on a page — the highlight color will show the
+answer underneath. Write your own prediction down <strong>before</strong>
+you reveal it — no peeking first!</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Predictions</h2>
+
+<p><strong>Prediction 1 — a basic f-string.</strong></p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>name = "Ada"
+print(f"Hi, {name}!")</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">Hi, Ada!</span></p>
+
+<p><strong>Prediction 2 — joining two words with +.</strong></p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>first_word = "Robot"
+second_word = "Builder"
+print(first_word + " " + second_word)</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">Robot Builder</span></p>
+
+<p><strong>Prediction 3 — len() on a string with a space in it.</strong></p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print(len("Redwing Robotics"))</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">16</span> (the space between the two words counts as a character too)</p>
+
+<p><strong>Prediction 4 — an expression inside an f-string.</strong></p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>a = 6
+b = 7
+print(f"{a} times {b} is {a * b}")</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">6 times 7 is 42</span></p>
+
+<p><strong>Prediction 5 — convert, then do math.</strong></p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>age_text = "16"
+age = int(age_text)
+print(age + 4)</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">20</span></p>
+
+<p><strong>Prediction 6 — predict the error, don't run it.</strong>
+This snippet stays commented out in <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">practice_predict.py</code> —
+it is never executed. Instead of predicting printed text, predict what
+<em>kind of error</em> Python would raise if this line did run:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code># print("Power level: " + 100)</code></pre>
+<p>Prediction (error type): <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">TypeError — can only concatenate str (not "int") to str</span></p>
+
+<p><strong>Prediction 7 — a silent gotcha (no crash, but is it what you expect?).</strong></p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>qty = "5"
+more = "3"
+print(qty + more)</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">53 — the text "53", NOT the number 8. qty and more are both strings, so + joins them instead of adding them.</span></p>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>💡 Tip</strong><br>
+This is exactly why the answer isn't 8 — Python doesn't look at what a
+string <em>looks like</em>, only what type it actually is. Two strings
+that happen to contain digits still get joined with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">+</code>,
+never added.</div>
+
+<p><strong>Prediction 8 — bonus, we haven't taught this, take a guess!</strong></p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print("-" * 10)</code></pre>
+<p>Prediction: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">----------  (ten dashes — * repeats a string that many times)</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Check Yourself</h2>
+<ul>
+  <li>Predictions 2 and 7 both use <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">+</code> between two strings. Why does one clearly "join two words" while the other looks like it should be doing math but isn't?</li>
+  <li>Prediction 6 never actually runs. Why is it still useful to predict the error type for code you never execute?</li>
+</ul>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Syntax</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">What it does</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">f"{x}"</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Inserts the value of <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">x</code> (or any expression) directly into text.</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"a" + "b"</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Joins two strings end to end. Both sides must already be strings.</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">len(text)</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Number of characters in the string <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">text</code>, including spaces.</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">int(text)</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Converts a numeric-looking string into a real number you can do math with.</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"str" + int</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Raises a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">TypeError</code> — Python won't silently guess what you meant.</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"5" + "3"</code></td><td style="border:1px solid #ddd;padding:8px 12px;">No error — but gives you the text <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"53"</code>, not the number <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">8</code>.</td></tr>
+</table>
+
+</div>

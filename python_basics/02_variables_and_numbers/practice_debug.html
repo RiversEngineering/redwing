@@ -1,0 +1,116 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 2 Practice: Debug It</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 30 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 2 — Variables &amp; Numbers</span>
+</div>
+
+<p><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">practice_debug.py</code> contains 7 bugs. Some of them would
+crash the program, so those are shipped fully commented out — you'll
+need to read the code and reason about what error it would raise before
+you uncomment and fix it. The rest are live: they run without crashing,
+but print the wrong answer. Your job is to find each bug and fix it so
+the output matches what's described below.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>What you'll practice</strong>
+  <ul style="margin:8px 0 0 0;">
+    <li>Recognizing <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">NameError</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">SyntaxError</code>, and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">ZeroDivisionError</code></li>
+    <li>Spotting a precedence bug that produces a wrong-but-plausible number</li>
+    <li>Spotting a stale-value bug caused by <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">+=</code> being in the wrong place</li>
+    <li>Spotting a shadowing/reassignment mistake</li>
+  </ul>
+</div>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>💡 Tip: read the traceback from the bottom up</strong><br>
+When Python crashes, the <strong>last line</strong> of the traceback tells
+you the error type and message — start there. The lines above it show you
+the path the program took to get there, with the line number of the
+crash listed last. For logic bugs (no crash, just a wrong number), there's
+no traceback to help you — you have to trace the variables by hand, the
+same way you did in Predict the Output.</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 1 — NameError</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code># score = 95
+# print(scroe)</code></pre>
+<p>Intended: store a robot's test score and print it. If uncommented as
+written, this raises a <strong>NameError</strong> — <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">scroe</code> was
+never defined. Expected output once fixed:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>95</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 2 — precedence</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>a = 90
+b = 80
+c = 100
+average = a + b + c / 3
+print("Average:", average)</code></pre>
+<p>Intended: compute the average of three scores (90, 80, 100). This bug
+doesn't crash — it runs live and currently prints
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">Average: 203.33333333333334</code>, which is way too high for an
+average of these three scores. Expected output once fixed:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Average: 90.0</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 3 — SyntaxError</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code># 1st_place = 1
+# print(1st_place)</code></pre>
+<p>Intended: store a robot's finishing place and print it. If
+uncommented as written, this raises a <strong>SyntaxError</strong> —
+variable names can't start with a digit. Expected output once fixed:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>1</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 4 — stale value</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>speed = 20
+print("Speed:", speed)
+speed += 10</code></pre>
+<p>Intended: increase the robot's speed by 10, then print the new speed.
+This bug doesn't crash — it runs live and currently prints
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">Speed: 20</code>, the value <em>before</em> the increase, because
+the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> runs before the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">+=</code>. Expected
+output once fixed:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Speed: 30</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 5 — ZeroDivisionError</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code># reading_total = 10 + 20 + 30
+# reading_count = 0
+# average_reading = reading_total / reading_count
+# print(average_reading)</code></pre>
+<p>Intended: compute the average of three sensor readings (10, 20, 30).
+If uncommented as written, this raises a <strong>ZeroDivisionError</strong>
+— <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">reading_count</code> doesn't match how many readings were
+actually added up. Expected output once fixed:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>20.0</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 6 — wrong constant</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>celsius = 20
+fahrenheit = celsius * 9 / 4 + 32
+print("Fahrenheit:", fahrenheit)</code></pre>
+<p>Intended: convert 20°C to Fahrenheit using the formula
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">F = C * 9 / 5 + 32</code>. This bug doesn't crash — it runs live
+and currently prints <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">Fahrenheit: 77.0</code>, which looks
+plausible but is wrong because the fraction uses the wrong denominator.
+Expected output once fixed:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Fahrenheit: 68.0</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 7 — shadowing / reassignment</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>cruising_speed = 30
+cruising_speed = cruising_speed - 30
+print("Cruising speed:", cruising_speed)</code></pre>
+<p>Intended: print the robot's cruising speed, which should still be
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">30</code>. This bug doesn't crash — it runs live and currently
+prints <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">Cruising speed: 0</code>, because a second line
+overwrites <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">cruising_speed</code> with a temporary
+checkpoint-stopped value instead of storing that value under its own
+name. Expected output once fixed:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Cruising speed: 30</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference — error types you'll meet</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Error</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">What it means</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Common cause</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>NameError</code></td><td style="border:1px solid #ddd;padding:8px 12px;">You used a name Python doesn't recognize</td><td style="border:1px solid #ddd;padding:8px 12px;">Typo in a variable name, or using it before it's created</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>SyntaxError</code></td><td style="border:1px solid #ddd;padding:8px 12px;">The code doesn't follow Python's grammar rules</td><td style="border:1px solid #ddd;padding:8px 12px;">A variable name starting with a digit, missing colon, unmatched quote</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>ZeroDivisionError</code></td><td style="border:1px solid #ddd;padding:8px 12px;">The program tried to divide by zero</td><td style="border:1px solid #ddd;padding:8px 12px;">A count or denominator variable that's <code>0</code></td></tr>
+</table>
+
+</div>

@@ -1,0 +1,101 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 3 Practice: Write It Yourself</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 40 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 3 — Strings &amp; Input</span>
+</div>
+
+<p>No fill-in-the-blank this time. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">practice_write.py</code> gives you seven
+problems, each with its own starting variables and a
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;"># Write your code here</code> placeholder — the rest is up to
+you. Match the expected output listed below for each problem; your exact
+code doesn't have to match anyone else's as long as the output does.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>What you'll practice</strong><ul style="margin:8px 0 0 0;">
+  <li>Writing f-strings from scratch instead of filling in a blank</li>
+  <li>Combining <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">+</code> and f-strings in the same program</li>
+  <li>Using <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">len()</code> and arithmetic inside a message you design yourself</li>
+  <li>Deciding how to word output so it reads like a real sentence</li>
+</ul></div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 1 — welcome message</h2>
+<p>Given:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>team_name = "Redwing Robotics"</code></pre>
+<p>Print a welcome sentence with an f-string that also includes
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">len(team_name)</code>. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Welcome, Redwing Robotics! Your team name has 16 characters.</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 2 — sum, difference, product</h2>
+<p>Given:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>first_num = 12
+second_num = 7</code></pre>
+<p>Print the sum, difference, and product, each on its own line with a
+labeled f-string. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Sum: 19
+Difference: 5
+Product: 84</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 3 — build a badge</h2>
+<p>Given:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>team_name = "Redwing"
+robot_number = 3</code></pre>
+<p>Combine them into a "badge" string like <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"Redwing-3"</code> using
+concatenation and/or an f-string, print it, then print its length with
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">len()</code>. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Redwing-3
+9</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 4 — Celsius to Fahrenheit</h2>
+<p>Given:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>celsius = 100.0</code></pre>
+<p>Convert to Fahrenheit using <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">F = C * 9 / 5 + 32</code> and print
+the result with an f-string. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>100.0°C is 212.0°F</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 5 — total minutes</h2>
+<p>Given:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>hours = 2
+minutes = 45</code></pre>
+<p>Compute the total number of minutes and print it with an f-string.
+Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>2 hours and 45 minutes is 165 minutes total.</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 6 — decorate a sentence</h2>
+<p>Given:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>sentence = "Robots are awesome"</code></pre>
+<p>Print it wrapped in decoration using an f-string (e.g.
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">f"*** {sentence} ***"</code>), then print its length.
+Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>*** Robots are awesome ***
+18</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 7 — mad libs</h2>
+<p>Given:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>noun = "gear"
+verb = "spins"
+number = 7</code></pre>
+<p>Build and print a silly sentence combining all three, with
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">number * 2</code> embedded via f-string. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>The gear spins 14 times before breakfast!</code></pre>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>💡 Tip</strong><br>
+When should you reach for <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">+</code> instead of an
+f-string? Plain concatenation reads fine for gluing two or three short
+pieces together, like a badge in Problem 3. But once you're mixing in
+numbers, punctuation, or more than a couple of pieces, an f-string is
+almost always easier to read and less error-prone — you write the
+sentence exactly as it should look and just drop values into
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">{ }</code> where they belong.</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Syntax</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">What it does</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">f"{x}"</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Drops the value of <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">x</code> (or any expression, like <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">number * 2</code>) directly into text.</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"a" + "b"</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Joins two strings end to end — good for short, simple combos like a badge.</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">len(text)</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Number of characters in a string.</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">a * b</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Ordinary multiplication when both sides are numbers.</td></tr>
+</table>
+
+</div>

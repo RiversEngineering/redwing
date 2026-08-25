@@ -1,0 +1,182 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 2: Variables &amp; Numbers</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 45 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 1 — Hello, Python</span>
+</div>
+
+<p>So far your programs could only print things you typed out directly. Real
+programs need to remember values — a battery voltage, a motor speed, a sensor
+reading — and do math with them. That's what variables are for, and they're
+the single most useful tool you'll use in every program from here on,
+including the ones that drive your robot.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>What you'll learn</strong>
+  <ul style="margin:8px 0 0 0;">
+    <li>How to create a variable and why <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">=</code> means "store," not "equals"</li>
+    <li>Naming rules and good naming habits</li>
+    <li>The two number types Python uses: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">int</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">float</code></li>
+    <li>Arithmetic operators, including two you probably haven't seen: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">//</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">%</code></li>
+    <li>Order of operations, and how to control it with parentheses</li>
+    <li>Updating a variable using its own value, and the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">+=</code> shorthand</li>
+  </ul>
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Variables: named boxes for values</h2>
+
+<p>A <strong>variable</strong> is a name that stores a value so you can use it
+later. You create one with an <strong>assignment statement</strong>: a name,
+an equals sign, and a value.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>battery_voltage = 11.1
+print(battery_voltage)</code></pre>
+
+<p>This does two things: it stores the value <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">11.1</code> in a box
+labeled <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">battery_voltage</code>, and from then on you can use
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">battery_voltage</code> anywhere you'd otherwise write <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">11.1</code>.</p>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>💡 Tip</strong><br>
+In math, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">=</code> means "these two things are equal." In Python it
+means something different: "store the thing on the right into the name on
+the left." That's why <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">x = x + 1</code> makes perfect sense in Python
+(it updates the box) even though it would be nonsense as a math equation.</div>
+
+<p><strong>Naming rules</strong> — a variable name:</p>
+<ul>
+  <li>can only contain letters, numbers, and underscores (<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">_</code>)</li>
+  <li>can't start with a number (<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">2fast</code> is invalid, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">fast2</code> is fine)</li>
+  <li>is <strong>case-sensitive</strong> — <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">Speed</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">speed</code> are two different variables</li>
+</ul>
+<p>By convention, Python names use <strong>snake_case</strong>: lowercase words
+separated by underscores, like <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">battery_voltage</code> rather than
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">BatteryVoltage</code>. Use descriptive names — <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">battery_voltage</code>
+instead of <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">bv</code>. Six months from now (or six minutes from now,
+debugging your robot), you'll thank yourself.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Two kinds of numbers</h2>
+
+<p>Python has two number types you'll use constantly:</p>
+<ul>
+  <li><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">int</code> — a whole number, like <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">3</code> or <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">-12</code>. No decimal point.</li>
+  <li><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">float</code> — a number with a decimal point, like <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">3.7</code> or <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">-0.5</code>.</li>
+</ul>
+<p>A battery cell count (<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">3</code>) is naturally an <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">int</code> — you
+can't have half a cell. A cell's voltage (<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">3.7</code>) is a
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">float</code>.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Arithmetic operators</h2>
+
+<p>Python can do all the arithmetic you'd expect, plus two operators that
+might be new to you:</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print(7 + 2)    # 9   addition
+print(7 - 2)    # 5   subtraction
+print(7 * 2)    # 14  multiplication
+print(7 / 2)    # 3.5 division — always gives a float, even if it divides evenly
+print(7 // 2)   # 3   floor division — divides, then drops anything after the decimal
+print(7 % 2)    # 1   modulo — the remainder left over after division
+print(7 ** 2)   # 49  exponent — 7 to the power of 2</code></pre>
+
+<p><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">//</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">%</code> are useful together: if
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">total_seconds = 125</code>, then <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">total_seconds // 60</code>
+gives the whole minutes (<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">2</code>) and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">total_seconds % 60</code>
+gives the leftover seconds (<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">5</code>).</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Order of operations</h2>
+
+<p>Python follows the same order of operations you learned in math class
+(often remembered as PEMDAS): <strong>parentheses first, then exponents,
+then multiplication/division, then addition/subtraction</strong>, left to
+right. When in doubt, add parentheses <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">()</code> to say exactly what
+you mean.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print(2 + 3 * 4)     # 14  -> multiplication happens before addition
+print((2 + 3) * 4)   # 20  -> parentheses force the addition first</code></pre>
+
+<div style="background:#fff8e6;border-left:4px solid #e0a800;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>⚠️ Common mistake</strong><br>
+Writing <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">average = a + b + c / 3</code> to compute an average of three
+numbers. Python does the division first (<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">c / 3</code>), then adds
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">a</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">b</code> — not what you wanted. The fix is
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">average = (a + b + c) / 3</code>, which adds everything first, then
+divides.</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Updating a variable with its own value</h2>
+
+<p>A variable can be updated using its own current value. This is one of
+the most common patterns in programming — you'll use it constantly for
+things like counting, accumulating, or nudging a motor's power up or
+down.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>motor_power = 45
+motor_power = motor_power + 15   # read the old value, add 15, store the new value
+print(motor_power)               # 60</code></pre>
+
+<p>Python has a shorthand for this that you'll see everywhere:
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">motor_power += 15</code> does exactly the same thing as
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">motor_power = motor_power + 15</code>. There are matching shorthands
+for subtraction and multiplication: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">-=</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">*=</code>.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Your Turn</h2>
+
+<p>Open <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">starter.py</code> and complete each <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">TODO</code>. Run
+the file after every change with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">python3 starter.py</code>.</p>
+
+<p><strong>Task 1 — Wheel circumference.</strong> Create a variable
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">wheel_diameter_cm = 6.0</code>, then compute
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">wheel_circumference_cm = 3.14159 * wheel_diameter_cm</code>, then
+print it with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print("Wheel circumference:", wheel_circumference_cm, "cm")</code>.
+Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Wheel circumference: 18.84954 cm</code></pre>
+<p>(Python may show a few extra tiny decimal digits due to how computers
+store floats — that's normal and not a bug.)</p>
+
+<p><strong>Task 2 — Motor power boost.</strong> Use <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">+=</code> to add
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">boost</code> onto <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">motor_power</code>. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Power before boost: 45
+Power after boost: 60</code></pre>
+
+<p><strong>Task 3 — Seconds to minutes and seconds.</strong> Given
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">total_seconds = 125</code>, create <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">minutes</code> using
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">//</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">seconds</code> using <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">%</code>,
+then uncomment the given print line. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>That's 2 minute(s) and 5 second(s).</code></pre>
+
+<p><strong>Task 4 — Fix the precedence bug.</strong> Three sensor readings
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">a = 10</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">b = 14</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">c = 18</code> are given.
+The line <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">average = a + b + c / 3</code> is meant to compute their
+average but has a precedence bug. Add parentheses to fix it. Expected
+output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Average sensor reading: 14.0</code></pre>
+
+<p><strong>Task 5 — Predict, then run.</strong> Before running the script,
+write your predicted output as a comment next to each of the three
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> calls at the bottom of the file
+(<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">2 ** 5</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">17 // 4</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">17 % 4</code>). Then run
+the script and see if you were right.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Check Yourself</h2>
+<ul>
+  <li>Why does <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">x = x + 1</code> make sense in Python even though it
+  looks like it can't be true mathematically?</li>
+  <li>What's the difference between <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">/</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">//</code>?</li>
+  <li>Why did adding parentheses in Task 4 change the answer?</li>
+</ul>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Syntax</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Meaning</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>name = value</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Create/update a variable — store <code>value</code> in <code>name</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>int</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Whole number type, e.g. <code>3</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>float</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Decimal number type, e.g. <code>3.7</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>+ - * /</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Add, subtract, multiply, divide (<code>/</code> always gives a float)</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>//</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Floor division — divide and drop the remainder</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>%</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Modulo — the remainder left over after division</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>**</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Exponent — raise to a power</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>()</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Parentheses — force an operation to happen first</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>x += n</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Shorthand for <code>x = x + n</code> (also <code>-=</code>, <code>*=</code>)</td></tr>
+</table>
+
+</div>

@@ -2,7 +2,7 @@
   import { onDestroy } from 'svelte';
   import { subscribe, onStatus, send } from './lib/ws.js';
   import { connected, robotState, pushLog, cameraFrame, activeTab, pushPlot,
-            addMapPoints, clearMap, mapPose } from './lib/stores.js';
+            addMapPoints, clearMap, mapPose, flashStatus } from './lib/stores.js';
 
   import TopBar        from './components/TopBar.svelte';
   import CameraPanel   from './components/CameraPanel.svelte';
@@ -46,6 +46,8 @@
       clearMap();
     } else if (msg.type === 'frame') {
       cameraFrame.set(msg.data);
+    } else if (msg.type === 'flash_status') {
+      flashStatus.set({ state: msg.state, message: msg.message });
     }
   });
 

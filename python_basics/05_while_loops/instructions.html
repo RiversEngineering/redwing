@@ -1,0 +1,140 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 5: While Loops</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 45 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 4 — Making Decisions with Conditionals</span>
+</div>
+
+<p>So far every program you've written runs each line exactly once, top to bottom. But a robot doesn't check its sensors once and quit — it checks them again, and again, and again, thousands of times a second, for as long as it's turned on. In fact, if you look inside <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">examples/05_obstacle_avoidance.py</code> in this repo, its entire main control section is a single <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while</code> loop that never stops checking its ultrasonic sensor. This lesson teaches you the tool that makes that possible: the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while</code> loop.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>What you'll learn</strong><ul style="margin:8px 0 0 0;">
+  <li>How <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while condition:</code> repeats a block of code as long as a condition is <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">True</code></li>
+  <li>Why a loop must change something that eventually makes its condition <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">False</code> — or it never stops</li>
+  <li>The counter pattern (a variable that steps up or down each pass)</li>
+  <li>The accumulator pattern (a variable that builds up a running total)</li>
+  <li><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">break</code> — leaving a loop early</li>
+  <li>How this connects to a robot's <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while True:</code> control loop</li>
+</ul></div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">The while Loop</h2>
+
+<p>A <strong>while loop</strong> repeats an indented block of code over and over, as long as its condition evaluates to <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">True</code>. Python checks the condition, and only if it's <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">True</code> does it run the block — then it goes back and checks the condition again. This re-checking happens <em>every single pass</em>, not just once at the start.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>count = 5
+while count &gt; 0:
+    print(count)
+    count -= 1
+print("Liftoff!")</code></pre>
+
+<p>Walk through it: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">count</code> is 5, so <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">count &gt; 0</code> is <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">True</code> — the block runs, printing 5 and lowering count to 4. Python loops back to the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while</code> line and checks again: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">4 &gt; 0</code> is still <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">True</code>, so it runs again. This continues until <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">count</code> becomes 0 — now <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">0 &gt; 0</code> is <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">False</code>, so Python skips the block entirely and moves on to <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print("Liftoff!")</code>. Output: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">5 4 3 2 1 Liftoff!</code>, one per line.</p>
+
+<p>Just like <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code>, the block belongs to the loop because it's indented underneath the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while</code> line. The indentation rules you already know from Assignment 4 apply here too.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">The Infinite Loop Trap</h2>
+
+<p>A while loop only stops when its condition becomes <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">False</code>. That means <strong>something inside the loop must change</strong> so the condition eventually flips. If nothing changes, the condition stays <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">True</code> forever, and you get an <strong>infinite loop</strong> — a program that never finishes.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code># DANGER: this never stops! n is always 1, so n &lt;= 5 is always True
+n = 1
+while n &lt;= 5:
+    print(n)</code></pre>
+
+<p>If you ever accidentally run something like this in a terminal, don't panic — press <strong>Ctrl+C</strong> to force-stop it. That's the emergency brake for a runaway program.</p>
+
+<div style="background:#fff8e6;border-left:4px solid #e0a800;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>⚠️ Common mistake</strong><br>Forgetting to update the variable the condition depends on — like leaving out <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">n += 1</code> — is the single most common way to write an infinite loop by accident. Whenever you write a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while</code> loop, ask yourself: "what line makes this condition eventually False?"</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">The Counter Pattern</h2>
+
+<p>A <strong>counter</strong> is a variable that steps up (or down) by a fixed amount each pass through the loop — that's exactly what <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">count -= 1</code> did above. You'll use this pattern constantly: "do this N times."</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>i = 1
+while i &lt;= 3:
+    print(f"pass number {i}")
+    i += 1</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">The Accumulator Pattern</h2>
+
+<p>An <strong>accumulator</strong> is a variable that builds up a running total across passes through the loop. You start it at 0 (or 1 for multiplying), and each pass you add (or multiply) something into it.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>n = 1
+total = 0
+while n &lt;= 5:
+    total = total + n
+    n += 1
+print(f"Total: {total}")   # Total: 15</code></pre>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>💡 Tip</strong><br>Notice this loop uses <em>two</em> variables that change: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">n</code> is the counter that controls when the loop stops, and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">total</code> is the accumulator that stores the answer you actually care about. Loops often combine both patterns at once.</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">break — Leaving a Loop Early</h2>
+
+<p>Sometimes you want to exit a loop the instant something happens, even if the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while</code> condition is still <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">True</code>. That's what <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">break</code> does — it immediately jumps out of the loop, skipping the rest of the block and any remaining passes.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>fuel = 100
+while fuel &gt; 0:
+    fuel -= 12
+    print(fuel)
+    if fuel &lt;= 20:
+        break   # stop early — don't wait for fuel &gt; 0 to become False</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">The Robot Connection: while True:</h2>
+
+<p>Here's the big idea this whole lesson is building toward. A robot's brain doesn't run once and quit — it runs forever, constantly re-checking its sensors. Python lets you write that directly: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while True:</code> is a condition that is <em>always</em> <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">True</code>, so the loop runs forever by design. The real "should I stop / should I turn / should I back up" logic doesn't live in the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while</code> condition at all — it lives in <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code> statements (and sometimes <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">break</code>) written inside the loop. Here's a real excerpt from <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">examples/05_obstacle_avoidance.py</code> in this repo:</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>while True:
+    d = sensor.distance
+
+    if d &gt; 0 and d &lt; 25:
+        # Obstacle — back up then turn right
+        ...
+    else:
+        # Path clear — drive forward
+        ...</code></pre>
+
+<p>The <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while True:</code> never becomes False on its own — the robot keeps looping, reading its sensor, and deciding what to do, pass after pass, exactly like the loops you just practiced. You now have every ingredient you need to read that code: a loop, a condition check inside it, and a decision made from that check.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Your Turn</h2>
+
+<p>Open <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">starter.py</code> and complete each task in order.</p>
+
+<p><strong>Task 1 — Count to 10.</strong> Write a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while</code> loop from scratch (there's no skeleton this time — you've seen enough examples to build it yourself) that prints the numbers 1 through 10, one per line. Expected output: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">1 2 3 4 5 6 7 8 9 10</code>, each on its own line.</p>
+
+<p><strong>Task 2 — Sum 1 to 20.</strong> Use the accumulator pattern to add up every number from 1 to 20 into a variable called <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">total</code>, then print it with an f-string. Expected output: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">Total: 210</code>.</p>
+
+<p><strong>Task 3 — Fuel and break.</strong> <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">fuel</code> starts at 100 and the robot burns 12 fuel per second. Write a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while fuel &gt; 0:</code> loop that decreases fuel by 12, prints it, and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">break</code>s as soon as fuel drops to 20 or below. Expected output: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">88 76 64 52 40 28 16</code>, each on its own line — the loop breaks right after printing 16, since 16 is the first value ≤ 20.</p>
+
+<p><strong>Task 4 — Fix the infinite loop.</strong> The commented-out loop counts <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">n</code> up to 5 but is missing the one line that actually changes <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">n</code> — as written, it would run forever. Uncomment it and add the single missing line to fix it. Expected output: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">1 2 3 4 5</code>, each on its own line.</p>
+
+<p><strong>Task 5 — Predict, then run.</strong> Before running the file, look at this loop and predict how many times it will print, and what the last number printed will be:</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>x = 2
+while x &lt; 20:
+    print(x)
+    x *= 2</code></pre>
+
+<p>Write down your prediction, then run the file and check. (No code to write here — just predict, then verify.)</p>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>💡 Tip</strong><br>When a loop's behavior isn't obvious, trace it by hand on paper first: write down the variable's value before each pass, check the condition, and only then decide whether the block runs. This is exactly what Python itself is doing.</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Check Yourself</h2>
+
+<p><strong>1.</strong> What's the difference between a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while</code> loop's condition being checked "once at the start" versus "every pass"? Why does that matter for whether a loop stops?</p>
+
+<p><strong>2.</strong> In the fuel example (Task 3), why does the loop stop at 16 instead of stopping exactly at 20 or 0?</p>
+
+<p><strong>3.</strong> Why is <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while True:</code> combined with an <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code>/<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">break</code> a good design for a robot's main loop, instead of writing a normal condition like <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">while distance &gt; 25:</code>?</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Syntax</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Meaning</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>while condition:</code></td><td style="border:1px solid #ddd;padding:8px 12px;">repeat the indented block as long as condition is True; re-checked every pass</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>i = i + 1</code> / <code>i += 1</code></td><td style="border:1px solid #ddd;padding:8px 12px;">counter pattern — steps a variable up (or down) each pass</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>total = total + x</code></td><td style="border:1px solid #ddd;padding:8px 12px;">accumulator pattern — builds a running total across passes</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>break</code></td><td style="border:1px solid #ddd;padding:8px 12px;">immediately exits the loop, even if the condition is still True</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>while True:</code></td><td style="border:1px solid #ddd;padding:8px 12px;">loops forever by design; stopping logic lives inside as if/break</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Ctrl+C</td><td style="border:1px solid #ddd;padding:8px 12px;">emergency stop for a runaway (infinite) loop in the terminal</td></tr>
+</table>
+
+</div>

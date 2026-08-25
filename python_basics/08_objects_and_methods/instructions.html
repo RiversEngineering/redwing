@@ -1,0 +1,166 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 8: Objects &amp; Methods — Reading Real Robot Code</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 60 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 7 — Functions</span>
+</div>
+
+<p>This is the last piece before you read real robot scripts. Every value you've used since Assignment 1 — strings, lists, even plain numbers — has secretly been an <strong>object</strong>: a bundle of data plus actions it knows how to perform. Once you can read the dot notation objects use, you can open a real robot script full of things like <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">robot.D0.motor()</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">sensor.distance</code> and already understand what's happening, line by line.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>What you'll learn</strong>
+<ul style="margin:8px 0 0 0;">
+  <li>What an <strong>object</strong> is: data (attributes) + actions (methods) bundled together</li>
+  <li>How to read dot notation: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">thing.attribute</code> vs. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">thing.method(args)</code></li>
+  <li>String methods that return new values: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.upper()</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.lower()</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.strip()</code></li>
+  <li>List methods that mutate in place and return <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">None</code>: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.append()</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.sort()</code></li>
+  <li>Attribute vs. method with Python's built-in complex numbers</li>
+  <li>How to annotate real <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">redwing</code> robot code, object by object</li>
+</ul>
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">What Is an Object?</h2>
+<p>An <strong>object</strong> is a value that bundles together data (called <strong>attributes</strong>) and the actions it can perform (called <strong>methods</strong>). You've been using objects since Lesson 1 without calling them that — every string, every list, every number is an object.</p>
+<p>Python objects use <strong>dot notation</strong> to expose their attributes and methods:</p>
+<ul>
+  <li><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">thing.attribute</code> — reads a piece of data off the object. No parentheses. It's just a value sitting there.</li>
+  <li><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">thing.method(args)</code> — calls an action the object can perform. Always has parentheses, even if there are no arguments: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">()</code>.</li>
+</ul>
+<p>The parentheses are the tell: seeing them means "this is happening right now," while their absence means "this is just data."</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">String Methods</h2>
+<p>Strings have methods that transform them. Each one <strong>returns a brand-new string</strong> — the original string is never changed.</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>team_name = "Redwing Robotics"
+print(team_name.upper())   # REDWING ROBOTICS
+print(team_name.lower())   # redwing robotics
+print(team_name)           # Redwing Robotics  &lt;- unchanged!</code></pre>
+<p>Notice <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">len(team_name)</code> looks similar but is <em>not</em> a method call — it's a plain function that takes the string as an argument. There's no dot. Both give you information about the string, but only <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.upper()</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.lower()</code> are methods living on the string object itself.</p>
+<p><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.strip()</code> removes whitespace from both ends of a string, again returning a new string:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>raw = "   scout-bot   "
+print(len(raw))          # 15  (spaces included)
+print(len(raw.strip()))  # 9   (spaces gone)
+print(raw)                # "   scout-bot   " &lt;- unchanged!</code></pre>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>💡 Tip</strong><br>If you want to keep the stripped version, you have to save it: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">clean = raw.strip()</code>. The method never changes <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">raw</code> itself — strings can't be changed in place at all, a property called being "immutable."</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">List Methods — and a Trap</h2>
+<p>Lists work differently. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.append(x)</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.sort()</code> change the list <strong>in place</strong> (this is called mutating it) and both hand back <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">None</code> — not the updated list.</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>fleet = ["scout", "hauler", "sentry"]
+fleet.append("drone")
+fleet.sort()
+print(fleet)   # ['drone', 'hauler', 'scout', 'sentry']</code></pre>
+
+<div style="background:#fff8e6;border-left:4px solid #e0a800;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>⚠️ Common mistake</strong><br>A very common trap: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">x = my_list.append(5)</code> does NOT make <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">x</code> the new list — it makes <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">x</code> equal to <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">None</code>, because <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.append()</code> returns <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">None</code>. The list was still updated — <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">my_list</code> itself has the new item — you just captured the wrong thing. The fix is to call the method on its own line, then print the original list variable.</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Attribute vs. Method: Complex Numbers</h2>
+<p>Python has a built-in complex number type, useful here because it makes the attribute/method distinction crystal clear with no custom classes involved:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>c = 3 + 4j
+print(c.real)          # 3.0   &lt;- attribute: just data, no parens
+print(c.imag)          # 4.0   &lt;- attribute: just data, no parens
+print(c.conjugate())   # (3-4j) &lt;- method: computes and returns something new</code></pre>
+<p><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">c.real</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">c.imag</code> are attributes — the real and imaginary parts are just numbers sitting on the object, nothing to compute. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">c.conjugate()</code> is a method — it performs a calculation (flips the sign of the imaginary part) and returns a brand-new complex number, so it needs parentheses.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Reading Real Robot Code</h2>
+<p>Here is the complete, unmodified contents of <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">examples/01_drive.py</code> from this repository:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>"""Example 1 — Drive a single motor.
+
+The simplest possible program. One motor runs at half power for two
+seconds, then stops.
+
+Hardware
+--------
+- Motor controller wired to port D0 (dual-pin, sign-magnitude mode)
+"""
+
+from redwing import Robot
+
+robot = Robot()
+
+motor = robot.D0.motor()   # configure D0 as a sign-magnitude motor
+
+robot.start()              # lock in configuration and enable commands
+
+motor.set_power(50)        # 50 % forward (-100 to +100)
+robot.sleep(2)
+motor.stop()</code></pre>
+<p><strong>Guided annotation:</strong> Line 13, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">robot = Robot()</code>, creates a new Robot <strong>object</strong> — the parentheses after <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">Robot</code> are what actually build it. Line 15, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">motor = robot.D0.motor()</code>, first reads <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">robot.D0</code> as an <strong>attribute</strong> (port D0, no parens), then calls <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.motor()</code> as a <strong>method</strong> that builds and returns a new motor object. Lines 17, 19, 20, and 21 — <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">robot.start()</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">motor.set_power(50)</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">robot.sleep(2)</code>, and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">motor.stop()</code> — are all method calls, each one an action performed by an object that already exists.</p>
+
+<p>And here is the complete, unmodified contents of <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">examples/05_obstacle_avoidance.py</code>:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>"""Example 5 — Obstacle avoidance.
+
+Drives forward until something is closer than 25 cm, then backs up,
+turns, and tries again.
+
+Hardware
+--------
+- Left motor controller  → D0
+- Right motor controller → D1
+- HC-SR04 ultrasonic     → D2
+"""
+
+from redwing import Robot
+
+robot = Robot()
+
+left   = robot.D0.motor()
+right  = robot.D1.motor()
+sensor = robot.D2.ultrasonic()
+
+robot.start()
+
+while True:
+    d = sensor.distance
+
+    if d > 0 and d < 25:
+        # Obstacle — back up then turn right
+        left.set_power(-50)
+        right.set_power(-50)
+        robot.sleep(0.5)
+
+        left.set_power(60)
+        right.set_power(-60)
+        robot.sleep(0.4)
+    else:
+        # Path clear — drive forward
+        left.set_power(60)
+        right.set_power(60)
+
+    robot.sleep(0.05)</code></pre>
+<p><strong>Guided annotation:</strong> Lines 17–19 create three objects at once — <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">left</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">right</code> from <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.motor()</code> calls on the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">robot.D0</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">robot.D1</code> attributes, and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">sensor</code> from a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.ultrasonic()</code> call on <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">robot.D2</code>. The key line is 24, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">d = sensor.distance</code> — no parentheses, because reading the current distance is just data, an <strong>attribute</strong>, not an action. Everywhere else you see <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">left.set_power(...)</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">right.set_power(...)</code>, and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">robot.sleep(...)</code>, those are method calls — actions being performed, each with parentheses.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Your Turn</h2>
+<p>Open <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">starter.py</code> and complete Tasks 1–5 in order.</p>
+
+<p><strong>Task 1 — <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.strip()</code> leaves the original alone.</strong> Given <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">raw_input = "   scout-bot   "</code>, print <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">len(raw_input)</code>, then print <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">len(raw_input.strip())</code>.<br>Expected output: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">15</code> then <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">9</code>.</p>
+
+<p><strong>Task 2 — list methods in place.</strong> Given <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">fleet = ["scout", "hauler", "sentry"]</code>, call <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">fleet.append("drone")</code>, then <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">fleet.sort()</code>, then <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print(fleet)</code>.<br>Expected output: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">['drone', 'hauler', 'scout', 'sentry']</code></p>
+
+<p><strong>Task 3 — bug fix.</strong> The starter has <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">names = fleet.append("medic")</code> followed by <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print(names)</code>, which prints <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">None</code>. Fix it by calling <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">fleet.append("medic")</code> on its own line and printing <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">fleet</code> instead.<br>Expected output: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">['drone', 'hauler', 'scout', 'sentry', 'medic']</code></p>
+
+<p><strong>Task 4 — attribute vs. method.</strong> Given <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">c = 3 + 4j</code>, print <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">c.real</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">c.imag</code>, and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">c.conjugate()</code>. Add a comment explaining why the last one needs parentheses and the first two don't.<br>Expected output: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">3.0</code>, then <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">4.0</code>, then <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">(3-4j)</code></p>
+
+<p><strong>Task 5 — reading exercise, no execution.</strong> This one is comments only — you will not run any hardware code. Open <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">examples/01_drive.py</code> in a tab. The starter gives you two worked example annotations for its first lines. Continue annotating every remaining line that creates an object, calls a method, or reads an attribute — copy the line as a comment, then write a one-line explanation next to it. When you finish that file, do the same for <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">examples/05_obstacle_avoidance.py</code>. There's no single "expected output" here — compare your reasoning against <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">solution.py</code> once you're done.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Check Yourself</h2>
+<ol>
+  <li>In <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">robot.D2.ultrasonic()</code>, which part is an attribute and which part is a method call? How do you tell them apart just by looking?</li>
+  <li>Why does <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">x = my_fleet.sort()</code> leave <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">x</code> equal to <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">None</code>, even though <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">my_fleet</code> really did get sorted?</li>
+  <li>In <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">d = sensor.distance</code>, why is there no <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">()</code> after <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">distance</code>?</li>
+</ol>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Syntax</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Meaning</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">thing.attribute</code></td><td style="border:1px solid #ddd;padding:8px 12px;">reads data off an object — no parentheses</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">thing.method(args)</code></td><td style="border:1px solid #ddd;padding:8px 12px;">calls an action the object performs — always has parentheses</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">s.upper()</code> / <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">s.lower()</code></td><td style="border:1px solid #ddd;padding:8px 12px;">returns a new string, uppercase/lowercase — <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">s</code> unchanged</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">s.strip()</code></td><td style="border:1px solid #ddd;padding:8px 12px;">returns a new string with leading/trailing whitespace removed</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">lst.append(x)</code></td><td style="border:1px solid #ddd;padding:8px 12px;">adds <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">x</code> to <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">lst</code> in place — returns <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">None</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">lst.sort()</code></td><td style="border:1px solid #ddd;padding:8px 12px;">sorts <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">lst</code> in place — returns <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">None</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">c.real</code> / <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">c.imag</code></td><td style="border:1px solid #ddd;padding:8px 12px;">attributes — the real/imaginary parts of a complex number</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">c.conjugate()</code></td><td style="border:1px solid #ddd;padding:8px 12px;">method — returns a new complex number with the imaginary part flipped</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">robot.D0.motor()</code></td><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">D0</code> is an attribute (a port); <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.motor()</code> is a method that creates a motor object</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">sensor.distance</code></td><td style="border:1px solid #ddd;padding:8px 12px;">attribute — reads the current measured distance, no parentheses</td></tr>
+</table>
+
+</div>

@@ -1,0 +1,96 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 6 Practice: Predict the Output</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 25 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 6 — For Loops &amp; Lists</span>
+</div>
+
+<p>This isn't about writing code — it's about <em>reading</em> it. For each snippet below, look at the code, work out what it will print in your head (or on scratch paper), and only then reveal the answer to check yourself. Being able to trace through a loop without running it is one of the most useful debugging skills you'll build — it's exactly what you'll do when a robot isn't behaving the way you expect and you can't just add a print statement in the moment.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>What you'll practice</strong>
+  <ul style="margin:8px 0 0 0;">
+    <li>Tracing a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">for item in a_list:</code> loop step by step</li>
+    <li>Knowing exactly where <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">range()</code> starts and stops</li>
+    <li>Reading positive and negative indices without running the code</li>
+    <li>Tracking what a list looks like after a loop of <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.append()</code> calls</li>
+    <li>Reasoning about a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">range()</code> with a custom step</li>
+  </ul>
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">How the reveal works</h2>
+
+<p>Every prediction below has a hidden answer that looks like a plain gray box, like this: <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">42</span>. The text is really there — it's just colored to match its own background, so it's invisible until you reveal it. To check your answer, click just before the box and drag to <strong>highlight/select</strong> the text (or double/triple-click it) — your browser's selection color will make the text readable. Write down your own prediction <strong>before</strong> you reveal each one; predicting after peeking doesn't build the skill.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 1 — looping over a list</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>temps = [68, 72, 65, 70]
+for t in temps:
+    print(t)</code></pre>
+<p>What gets printed? <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">68, 72, 65, 70 — each on its own line</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 2 — range(5)</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>for i in range(5):
+    print(i)</code></pre>
+<p>What gets printed? <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">0, 1, 2, 3, 4 — five lines. It stops before 5, it never prints 5.</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 3 — indexing</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>colors = ["red", "green", "blue", "yellow"]
+print(colors[0])
+print(colors[-1])</code></pre>
+<p>What gets printed? <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">red, then yellow</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 4 — len()</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>crew = ["Alex", "Sam", "Jordan", "Riley", "Morgan"]
+print(len(crew))</code></pre>
+<p>What gets printed? <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">5</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 5 — for + if filtering</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>scores = [55, 82, 91, 40, 76, 88]
+for s in scores:
+    if s &gt;= 80:
+        print(s)</code></pre>
+<p>What gets printed? <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">82, 91, 88 — only the scores 80 and above, in their original order</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 6 — building a list with append()</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>doubled = []
+for i in range(4):
+    doubled.append(i * 2)
+print(doubled)</code></pre>
+<p>What gets printed? <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">[0, 2, 4, 6]</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 7 — range() with a step</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>for i in range(2, 10, 3):
+    print(i)</code></pre>
+<p>What gets printed? <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">2, 5, 8 — starts at 2, jumps by 3 each time, stops before 10</span></p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Prediction 8 — Bonus, we haven't taught this, take a guess!</h2>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>nums = [10, 20, 30, 40, 50]
+print(nums[1:3])</code></pre>
+<p>What gets printed? <span style="background:#e0e0e0;color:#e0e0e0;padding:1px 4px;border-radius:3px;">[20, 30] — a "slice" of the list from index 1 up to (not including) index 3</span></p>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>💡 Tip</strong><br>Notice a pattern: with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">range()</code>, indexing, and now slicing, the "stop" value is always <em>excluded</em>. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">range(2, 10, 3)</code> stops before 10, and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">nums[1:3]</code> stops before index 3. Python is consistent about this everywhere — once it clicks in one place, it clicks everywhere.
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Check Yourself</h2>
+<ul>
+  <li>In Prediction 7, why doesn't <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">range(2, 10, 3)</code> ever print <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">11</code>? What's the rule for when a range stops counting?</li>
+  <li>In Prediction 6, why does <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print(doubled)</code> only run once, after the loop, instead of printing four separate lists?</li>
+</ul>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Syntax</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Meaning</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>a_list[0]</code></td><td style="border:1px solid #ddd;padding:8px 12px;">The first item</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>a_list[-1]</code></td><td style="border:1px solid #ddd;padding:8px 12px;">The last item</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>len(a_list)</code></td><td style="border:1px solid #ddd;padding:8px 12px;">The number of items in the list</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>for item in a_list:</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Runs once per item, in order</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>range(n)</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Counts 0, 1, ..., n-1 (n numbers total)</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>range(start, stop, step)</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Counts from start up to (not including) stop, by step</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>a_list.append(value)</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Adds value onto the end of the list</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>a_list[1:3]</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Bonus: a slice — items at index 1 up to (not including) index 3</td></tr>
+</table>
+
+</div>

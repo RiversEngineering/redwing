@@ -1,0 +1,196 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 7: Functions</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 50 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 6 — For Loops &amp; Lists</span>
+</div>
+
+<p>Take a look inside <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">examples/</code> and you'll see lines like
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">motor.set_power(60)</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">robot.sleep(2)</code>. Those are
+<strong>functions</strong> — someone else already wrote the logic inside
+them, and you just call them by name. This lesson teaches you to write
+your own functions, so you can package up your own reusable logic the
+same way.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>What you'll learn</strong>
+  <ul style="margin:8px 0 0 0;">
+    <li>Why functions exist: naming a reusable chunk of logic instead of repeating it</li>
+    <li>How to <strong>define</strong> a function with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def</code> and <strong>call</strong> it to actually run it</li>
+    <li>The difference between <strong>parameters</strong> and <strong>arguments</strong></li>
+    <li>How <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return</code> sends a value back to the caller, unlike <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code></li>
+    <li>Local scope: a variable made inside a function stays inside it</li>
+  </ul>
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Why functions?</h2>
+
+<p>Imagine you need to greet three different people in your program. Without
+functions, you'd write the same <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> logic over and over. A
+<strong>function</strong> lets you write that logic <em>once</em>, give it a
+name, and then reuse it as many times as you like. This isn't just about
+saving typing — it also makes your code read like a sentence of intent.
+Compare a page of raw math to a line that says
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">clamp_power(150)</code>. The second one tells you exactly what's
+happening without you needing to read the details.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Defining and calling a function</h2>
+
+<p>You create a function with a <strong>def</strong> block. Nothing inside it
+runs yet — <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def</code> just teaches Python the recipe. The code only
+runs when you <strong>call</strong> the function by writing its name
+followed by parentheses.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>def greet(name):
+    print(f"Hello, {name}!")
+
+greet("Ada")
+greet("Grace")</code></pre>
+
+<p>Output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Hello, Ada!
+Hello, Grace!</code></pre>
+
+<p>Notice the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def greet(name):</code> line itself printed nothing —
+it just defined the function. Each call below it is what actually ran the
+code, once per call.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Parameters vs. arguments</h2>
+
+<p>These two words get mixed up constantly, so it's worth being precise:</p>
+<ul>
+  <li>A <strong>parameter</strong> is the placeholder name in the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def</code> line — like <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">name</code> in <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def greet(name):</code>.</li>
+  <li>An <strong>argument</strong> is the actual value you pass in when you call the function — like <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"Ada"</code> in <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">greet("Ada")</code>.</li>
+</ul>
+<p>In short: parameters are the blanks in the recipe, arguments are what you
+actually put in them.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">return vs. print</h2>
+
+<p><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> only <em>displays</em> something on the screen — it
+doesn't give anything back to the rest of your code. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return</code>
+is different: it sends a value back to whoever called the function, so
+you can store it in a variable or use it in more math.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>def square(n):
+    return n * n
+
+result = square(5)
+print(result + 1)   # 26 -> we can do more math with the returned value</code></pre>
+
+<p>If a function never hits a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return</code> statement, calling it gives
+back a special value called <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">None</code> — Python's way of saying
+"nothing here."</p>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>💡 Tip</strong><br>
+A good way to tell the two apart: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> is for showing a
+human something on screen. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return</code> is for handing a value
+back to your own code so it can keep working with it. A function can do
+both, or either, or neither — but if you need to use the result later,
+you need <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return</code>.</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Local scope: variables stay inside their function</h2>
+
+<p>A variable created inside a function only exists inside that function —
+it's called a <strong>local variable</strong>. It doesn't leak out into the
+rest of your program, even if a variable with the same name exists
+outside.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>power = 10
+
+def use_local_power():
+    power = 999   # this is a brand-new, separate variable
+    print(power)
+
+use_local_power()   # prints 999
+print(power)         # prints 10 -- the outer power was never touched</code></pre>
+
+<div style="background:#fff8e6;border-left:4px solid #e0a800;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>⚠️ Common mistake</strong><br>
+Using <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> instead of <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return</code> inside a function
+that's supposed to hand back a value. The function will happily display
+the right number on screen, but any code that tries to use its result —
+like <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">result = my_function(5)</code> — ends up with
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">result = None</code>, since the function never actually returned
+anything. Trying to do math with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">None</code> (like
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">None + 1</code>) crashes with a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">TypeError</code>. You'll fix
+exactly this bug in Task 4.</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Your Turn</h2>
+
+<p>Open <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">starter.py</code> and complete each <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">TODO</code>. Run
+the file after every change with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">python3 starter.py</code>.</p>
+
+<p><strong>Task 1 — Square a number.</strong> Write
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def square(n):</code> that <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return</code>s
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">n * n</code>. Call it with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">4</code> and
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">7</code> and print the results. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>16
+49</code></pre>
+
+<p><strong>Task 2 — Clamp a motor power.</strong> Write
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def clamp_power(power):</code> that returns <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">power</code>
+clamped to the range -100 to 100: if <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">power &gt; 100</code> return
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">100</code>; if <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">power &lt; -100</code> return
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">-100</code>; otherwise return <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">power</code> unchanged. Call
+it on <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">150</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">-200</code>, and
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">42</code>, printing each result. This is exactly the kind of safety
+check that lives inside <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">motor.set_power()</code> in the real
+robot library — it stops a requested power from exceeding what the
+hardware can safely handle. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>100
+-100
+42</code></pre>
+
+<p><strong>Task 3 — Average two numbers.</strong> Write
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">def average(a, b):</code> that returns <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">(a + b) / 2</code>.
+Call <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print(average(10, 20))</code>. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>15.0</code></pre>
+
+<p><strong>Task 4 — Fix the missing return.</strong> Below the comments you'll
+find a commented-out function <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">broken_square</code> that uses
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print(n * n)</code> instead of returning the value, plus code
+that tries to use its result. Uncomment the whole block, then change
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print(n * n)</code> to <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return n * n</code>.
+Before the fix, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">result</code> ends up as <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">None</code>
+because the function displays the answer but doesn't hand it back — so
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">result + 1</code> crashes. After the fix, expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>26</code></pre>
+
+<p><strong>Task 5 — Predict, then run.</strong> At the bottom of the file,
+a module-level variable <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">power = 10</code> is given, along with a
+function <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">use_local_power()</code> that creates its own local
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">power = 999</code> and prints it. Before running, predict what the
+final <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print(power)</code> at the bottom will show — <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">10</code>
+or <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">999</code>? Write your guess as a comment, then run the script.
+Expected output (in order):</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>999
+10</code></pre>
+<p>The <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">999</code> comes from inside <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">use_local_power()</code>; the
+final <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">10</code> is the outer, module-level <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">power</code>,
+untouched by the function's local variable of the same name.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Check Yourself</h2>
+<ul>
+  <li>What's the difference between a parameter and an argument?</li>
+  <li>Why does a function that only uses <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> (and never
+  <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">return</code>) cause a crash when you try to do math with its
+  result?</li>
+  <li>In Task 5, why doesn't the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">power = 999</code> inside
+  <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">use_local_power()</code> change the outer <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">power</code>?</li>
+</ul>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Syntax</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Meaning</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>def name(params):</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Defines a function — nothing runs until it's called</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>name(arguments)</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Calls the function, running its code with those values</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>parameter</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Placeholder name in the <code>def</code> line</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>argument</code></td><td style="border:1px solid #ddd;padding:8px 12px;">The actual value passed in at the call site</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>return value</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Sends <code>value</code> back to the caller so it can be stored/used</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>None</code></td><td style="border:1px solid #ddd;padding:8px 12px;">What a function returns by default if it has no <code>return</code></td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">local variable</td><td style="border:1px solid #ddd;padding:8px 12px;">A variable created inside a function; doesn't exist outside it</td></tr>
+</table>
+
+</div>

@@ -1,0 +1,191 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 3: Strings &amp; Input</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 45 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 2 — Variables &amp; Numbers</span>
+</div>
+
+<p>So far your programs have run the same way every single time — same numbers,
+same output. In this assignment your program starts <em>listening</em>: it can
+ask a question, wait for a person to type an answer, and use that answer to
+decide what to do next. That's the first step toward a robot that reacts to
+the world instead of just running a fixed script.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>What you'll learn</strong><ul style="margin:8px 0 0 0;">
+  <li>How to join strings together with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">+</code>, and why it breaks on numbers</li>
+  <li>f-strings: a clean way to drop variables directly into text</li>
+  <li><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">len()</code> to measure a string</li>
+  <li><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">input()</code> to pause and read what someone types</li>
+  <li>Why you must convert input to a number before doing math with it</li>
+</ul></div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">1. Joining strings with +</h2>
+
+<p>You already know strings from Lesson 1 — text inside quotes. You can join
+("concatenate") two strings with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">+</code>:</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>greeting = "Hello, " + "world!"
+print(greeting)          # Hello, world!</code></pre>
+
+<p>But <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">+</code> only works between two strings. Try to
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">+</code> a string and a number and Python refuses:</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print("Power level: " + 100)
+# TypeError: can only concatenate str (not "int") to str</code></pre>
+
+<p>Python won't guess whether you meant to glue the number's digits onto the
+text or add it as a number — it just stops with an error. The fix is either
+to convert the number to a string first with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">str()</code>,
+or — better — use an f-string, which you'll meet next.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">2. f-strings: a cleaner way to build text</h2>
+
+<p>In Lesson 2 you printed mixed text and numbers with the comma trick:
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print(a, "text", b)</code>. It works, but Python
+inserts spaces for you and you can't control the wording as closely. An
+<strong>f-string</strong> lets you write the sentence exactly as you want it and drop
+variables straight into the middle of it using curly braces
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">{ }</code>:</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>name = "Ada"
+speed = 42
+print(f"Hello, {name}! Top speed is {speed} percent.")
+# Hello, Ada! Top speed is 42 percent.</code></pre>
+
+<p>The <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">f</code> right before the opening quote is what
+turns on this behavior — without it, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">{name}</code>
+would just print literally as the text <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">{name}</code>.
+Notice <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">speed</code> is a number, and Python converted it to text
+automatically — no <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">str()</code> needed inside an
+f-string. You can even put a whole expression inside the braces:</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>a = 6
+b = 7
+print(f"{a} times {b} is {a * b}")
+# 6 times 7 is 42</code></pre>
+
+<p>You can also measure a string with the built-in function
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">len()</code>, which counts its characters (letters, digits,
+spaces — everything counts):</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>team = "Redwing"
+print(len(team))    # 7</code></pre>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>💡 Tip</strong><br>
+f-strings are the modern, cleaner replacement for the comma-print trick from
+Lesson 2. Whenever you find yourself building a sentence out of several
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">+</code> or commas, reach for an f-string instead.</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">3. input(): asking the user a question</h2>
+
+<p>The function <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">input("prompt: ")</code> pauses your
+program, prints the prompt text, and waits for the person running the
+program to type something and press Enter. Whatever they typed comes back
+as the result:</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>name = input("What's your name? ")
+print(f"Hello, {name}!")</code></pre>
+
+<p>Run that, type <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">Ada</code>, hit Enter, and you'll
+see <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">Hello, Ada!</code>. Critically: no matter what
+the person types — even if they type <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">16</code> —
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">input()</code> always hands it back as a <strong>string</strong>, never
+a number.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">4. Converting input into a number</h2>
+
+<p>Because <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">input()</code> always returns text, if you want
+to do math with what the user typed you must convert it first, using
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">int()</code> for whole numbers or
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">float()</code> for decimals:</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>age = int(input("How old are you? "))
+age_in_months = age * 12
+print(f"You are about {age_in_months} months old.")</code></pre>
+
+<p>The conversion happens right around the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">input()</code>
+call: Python reads the text, hands it to <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">int()</code>,
+and only then stores the result in <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">age</code>.</p>
+
+<div style="background:#fff8e6;border-left:4px solid #e0a800;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>⚠️ Common mistake</strong><br>
+Forgetting to convert. If you write
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">age = input("How old are you? ")</code> without
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">int()</code>, then <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">age</code>
+is still text. Typing <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">age * 12</code> doesn't
+crash — but it doesn't multiply either. Multiplying a <em>string</em> by a number
+repeats the string that many times, so <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"16" * 12</code>
+gives you <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"161616161616161616161616"</code> — a wall of
+digits, not the number 192. If your math output looks like nonsense, check
+whether you forgot to convert the input first. And if you instead try
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">age + 12</code> on un-converted text, that <em>does</em> crash
+with a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">TypeError</code>, same as adding a string and a
+number anywhere else.</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Your Turn</h2>
+
+<p>Open <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">starter.py</code> and work through each task in
+order, running <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">python3 starter.py</code> after each
+one and typing an answer whenever it prompts you.</p>
+
+<p><strong>Task 1 — team name and its length.</strong>
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">team_name</code> is already read in for you with
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">input()</code>. Write an f-string
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> that reports how many characters are in
+it, using <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">len(team_name)</code>. If you type
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">My Team</code> at the prompt, expected output is:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>My Team has 7 characters in its name.</code></pre>
+
+<p><strong>Task 2 — convert age before doing math.</strong>
+The line <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">age = input("How old are you? ")</code>
+reads text, not a number. Wrap the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">input(...)</code>
+call in <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">int(...)</code> so
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">age_in_months = age * 12</code> does real
+multiplication. If you type <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">16</code>, expected
+output after the fix is:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>You are about 192 months old.</code></pre>
+<p>(Before you fix it, you'll see a long string of repeated digits instead —
+that's the clue that <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">age</code> is still text.)</p>
+
+<p><strong>Task 3 — join with +.</strong>
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">first = "Team"</code> and
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">second = "Redwing"</code> are given. Print one
+sentence built with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">+</code> that joins them
+with a space in between. Don't forget the space — <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">+</code>
+does not add one for you. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Team Redwing</code></pre>
+
+<p><strong>Task 4 — fix the bug.</strong>
+The commented-out line <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print("Power level: " + 100)</code>
+would crash with a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">TypeError</code> if you
+uncommented it as-is. Instead, write a working replacement below it using an
+f-string. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Power level: 100</code></pre>
+
+<p><strong>Task 5 — predict, then run.</strong>
+Before running the script, write a comment guessing what
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print(f"{a} times {b} is {a * b}")</code>
+will print for <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">a = 6</code> and
+<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">b = 7</code>. Then run it and check. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>6 times 7 is 42</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Check Yourself</h2>
+<ul>
+  <li>What data type does <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">input()</code> always return, and why does that matter before you try to do math with the result?</li>
+  <li>Why does <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print("Score: " + 10)</code> raise a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">TypeError</code>, but an f-string version of the same idea works fine?</li>
+  <li>What's the difference between <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"16" * 12</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">16 * 12</code>?</li>
+</ul>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Syntax</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Meaning</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"a" + "b"</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Joins two strings. Both sides must already be strings.</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">f"{x}"</code></td><td style="border:1px solid #ddd;padding:8px 12px;">f-string: inserts the value of <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">x</code> (or any expression) directly into text.</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">len(text)</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Number of characters in the string <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">text</code>.</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">input("prompt: ")</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Shows the prompt, waits for the user to type + Enter, returns what they typed as a string.</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">int(input(...))</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Reads input as text, then converts it to a whole number.</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">float(input(...))</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Same, but converts to a decimal number.</td></tr>
+</table>
+
+</div>

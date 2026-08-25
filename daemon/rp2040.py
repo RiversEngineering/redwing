@@ -60,6 +60,11 @@ class RP2040:
             # the previous session while we wait for the first state packet.
             self._state.ports.clear()
             self._state.port_config.clear()
+            # Clear PCA9685 presence so pca9685.detect() re-verifies after
+            # every Pico reconnect. If the PCA9685 was removed while the Pico
+            # was unplugged, this ensures the dashboard stops showing it.
+            self._state.pca9685_present = False
+            self._state.pca9685_channels.clear()
         log.info("RP2040 connected")
 
         await self._send_raw(proto.cmd_set_rate(STREAM_HZ))

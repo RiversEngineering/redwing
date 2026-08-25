@@ -210,19 +210,28 @@ bool bno085_init(void) {
     uint8_t rst_addr = 0u;
     if (i2c_write_blocking(i2c0, 0x4Au, rst_pkt, 5, false) == 5) rst_addr = 0x4Au;
     else if (i2c_write_blocking(i2c0, 0x4Bu, rst_pkt, 5, false) == 5) rst_addr = 0x4Bu;
+
+    // Fast exit: neither address ACKed — no BNO085 on this bus.
+    // Both probes use i2c_write_blocking with nostop=false, whose abort path
+    // waits for STOP_DET before returning, leaving the bus clean.  No peripheral
+    // reset is needed; the next I2C caller (mpu6050_init, bno055_init) can
+    // proceed immediately.
+    if (rst_addr == 0u) {
+        snprintf(_diag, sizeof(_diag), "[IMU] not found");
+        return false;
+    }
+
     {
         char tmp[64];
-        snprintf(tmp, sizeof(tmp), "[IMU] T=%lums: soft-reset → 0x%02X %s",
-            (unsigned long)to_ms_since_boot(get_absolute_time()),
-            rst_addr, rst_addr ? "OK" : "NAK");
+        snprintf(tmp, sizeof(tmp), "[IMU] T=%lums: soft-reset → 0x%02X OK",
+            (unsigned long)to_ms_since_boot(get_absolute_time()), rst_addr);
         usb_comm_send_log(tmp);
     }
 
-    // ── Phase 2: wait for boot ────────────────────────────────────────────────
+    // ── Phase 2: wait for BNO085 boot ────────────────────────────────────────
     {
-        uint32_t deadline = rst_addr ? 2300u : 1700u;
         uint32_t t = to_ms_since_boot(get_absolute_time());
-        if (t < deadline) sleep_ms(deadline - t);
+        if (t < 2300u) sleep_ms(2300u - t);
     }
 
     // ── Phase 3+4: single-transaction probe + drain ───────────────────────────
@@ -239,19 +248,15 @@ bool bno085_init(void) {
     _addr = 0u;
     static uint8_t big_buf[280];
     memset(big_buf, 0, sizeof(big_buf));
-    if (i2c_read_blocking_until(i2c0, 0x4Au, big_buf, sizeof(big_buf), false,
+    if (i2c_read_blocking_until(i2c0, rst_addr, big_buf, sizeof(big_buf), false,
                                  make_timeout_time_ms(500)) == (int)sizeof(big_buf)) {
-        _addr = 0x4Au;
-    } else {
-        memset(big_buf, 0, sizeof(big_buf));
-        if (i2c_read_blocking_until(i2c0, 0x4Bu, big_buf, sizeof(big_buf), false,
-                                     make_timeout_time_ms(500)) == (int)sizeof(big_buf)) {
-            _addr = 0x4Bu;
-        }
+        _addr = rst_addr;
     }
     if (_addr == 0u) {
-        snprintf(_diag, sizeof(_diag), "[IMU] T=%lums: not found", (unsigned long)t);
+        snprintf(_diag, sizeof(_diag), "[IMU] T=%lums: 0x%02X found but boot read failed",
+                 (unsigned long)t, rst_addr);
         usb_comm_send_log(_diag);
+        // BNO085 was found but didn't complete boot — it may be holding SCL low.
         _i2c0_recover();
         return false;
     }

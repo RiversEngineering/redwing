@@ -35,6 +35,10 @@ OPENCV_THREADS = int(os.getenv("REDWING_CV_THREADS", "2"))
 # LIDAR — leave empty to disable; set to e.g. /dev/ttyUSB0 to enable
 LIDAR_PORT = os.getenv("REDWING_LIDAR", "")
 
+# RP2040 firmware image flashed by the dashboard's "Flash Firmware" button.
+# Built separately via firmware/build.sh — this just points at the resulting .uf2.
+FIRMWARE_UF2_PATH = os.getenv("REDWING_FIRMWARE_UF2", "/app/firmware/redwing.uf2")
+
 # Battery monitor — I²C bus number for the MAX17043/17048 fuel gauge.
 # Set to -1 to disable.
 BATTERY_I2C_BUS = int(os.getenv("REDWING_BATTERY_BUS", "1"))

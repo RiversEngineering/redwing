@@ -26,20 +26,42 @@ services:
       - "c 81:* rmw"    # Video4Linux devices (camera)
       - "c 13:* rw"     # input devices (gamepads)
       - "c 89:* rw"     # I2C devices (battery monitor, HAT sensors)
+      - "c 189:* rmw"   # USB raw bus devices (picotool → BOOTSEL flashing)
     pid: "host"          # share host PID namespace — required for shutdown/reboot
     cap_add:
       - MKNOD            # lets entrypoint-daemon.sh create /dev/video* nodes
       - SYS_BOOT         # allows reboot() syscall to reach the host Pi
+      # NOTE: NET_ADMIN was tried here to let libusb's udev hotplug monitor
+      # thread subscribe to netlink uevents, on the theory that a single
+      # picotool process's device list goes stale after its first USB scan.
+      # Confirmed present on a running container and made no difference —
+      # that theory was wrong (or at least insufficient), so it was removed
+      # rather than keep an unproven capability grant around. The actual fix
+      # (daemon/api.py) runs picotool twice as separate OS processes instead,
+      # since a brand-new process's first scan is reliably correct.
     volumes:
       - student_workspace:/workspace
       - /dev:/host-dev:ro  # read-only view of host /dev; entrypoint creates device nodes
       - /dev/input:/dev/input
+      # firmware/redwing.uf2 is committed to git by `firmware/build.sh` (see
+      # the README) — a `git pull` on the Pi is enough to update it, no build
+      # tooling needed on the Pi itself. Mounting the whole directory (rather
+      # than just that one file) means this doesn't depend on the file
+      # already existing when the container first starts — Docker would
+      # otherwise create an empty directory in its place.
+      # NOT read-only: confirmed on hardware that picotool's `load` fails to
+      # open the .uf2 with a read-only bind mount (plain `cat` on the same
+      # file succeeds fine, so it's not a permissions issue — picotool
+      # opens/maps it in a mode that needs the mount to allow writes, even
+      # though it never actually needs to modify this file).
+      - ../firmware:/app/firmware
     environment:
       REDWING_SERIAL: /dev/rp2040
       REDWING_HOST:   "0.0.0.0"
       REDWING_PORT:   "8000"
       REDWING_HZ:     "50"
       REDWING_LIDAR: /dev/ttyUSB0
+      REDWING_FIRMWARE_UF2: /app/firmware/redwing.uf2
       # REDWING_BATTERY_CELLS: "4"  # set per-robot if battery module has internal voltage divider
       # Cap numpy/BLAS/OpenMP thread pools (OpenCV's own pool is capped via
       # REDWING_CV_THREADS). Keeps the vision daemon from oversubscribing the

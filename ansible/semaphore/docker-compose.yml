@@ -1,0 +1,46 @@
+name: redwing-fleet-control
+
+# Semaphore UI — the web dashboard for running ansible/playbooks/deploy.yml
+# against the robot fleet. Runs on the Pi 3 control node.
+#
+# Setup:
+#   cp .env.example .env
+#   # fill in .env (see comments inside it), then:
+#   docker compose up -d
+#   # open http://<pi3-hostname-or-ip>:3000
+#
+# See ../README.md for the one-time project setup inside the web UI
+# (SSH key, repository, inventory, template).
+
+services:
+  semaphore:
+    image: docker.io/semaphoreui/semaphore:${SEMAPHORE_VERSION:-latest}
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      SEMAPHORE_ADMIN_NAME: ${SEMAPHORE_ADMIN_NAME:-Admin}
+      SEMAPHORE_ADMIN: ${SEMAPHORE_ADMIN_USERNAME:-admin}
+      SEMAPHORE_ADMIN_PASSWORD: ${SEMAPHORE_ADMIN_PASSWORD:?set SEMAPHORE_ADMIN_PASSWORD in .env}
+      SEMAPHORE_ADMIN_EMAIL: ${SEMAPHORE_ADMIN_EMAIL:-admin@localhost}
+      # Leave unset for plain IP/hostname access — Semaphore then serves
+      # index.html's <base href> as "/" and resolves assets against
+      # whatever host the browser actually used. Only set this (in .env) if
+      # you put Semaphore behind a reverse proxy or a fixed public URL later;
+      # upstream's example defaults it to http://0.0.0.0:3000, which gets
+      # baked into <base href> verbatim and breaks asset loading for anyone
+      # connecting by IP or hostname, since 0.0.0.0 isn't browser-routable.
+      SEMAPHORE_WEB_ROOT: ${SEMAPHORE_WEB_ROOT:-}
+      SEMAPHORE_ACCESS_KEY_ENCRYPTION: ${SEMAPHORE_ACCESS_KEY_ENCRYPTION:?set SEMAPHORE_ACCESS_KEY_ENCRYPTION in .env}
+      SEMAPHORE_DB_DIALECT: sqlite
+      # The database file lives inside /var/lib/semaphore (not a separate
+      # volume) because that's the only data directory the image's non-root
+      # container user (uid 1001) actually owns — anything else 403s.
+      # SEMAPHORE_DB_HOST is the real env var for the sqlite file path;
+      # SEMAPHORE_DB_PATH (used in some older upstream examples) isn't read.
+      SEMAPHORE_DB_HOST: /var/lib/semaphore/database.db
+    volumes:
+      - semaphore-data:/var/lib/semaphore
+
+volumes:
+  semaphore-data:

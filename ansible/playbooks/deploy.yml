@@ -1,8 +1,11 @@
 ---
 # Deploy or update Redwing on all robots.
-# Usage:
-#   ansible-playbook -i ../inventory.yml deploy.yml
-#   ansible-playbook -i ../inventory.yml deploy.yml --limit robot1
+# Pulls the latest `main` straight from GitHub on each robot (no local
+# checkout needed on the control node), then rebuilds and restarts Docker.
+#
+# Usage (from the repo root — ansible.cfg supplies the default inventory):
+#   ansible-playbook ansible/playbooks/deploy.yml
+#   ansible-playbook ansible/playbooks/deploy.yml --limit robot1
 
 - name: Deploy Redwing
   hosts: all
@@ -100,17 +103,24 @@
         owner: pi
         mode: "0755"
 
-    - name: Copy project files
-      synchronize:
-        src: ../../
-        dest: /opt/redwing/
-        delete: true
-        rsync_opts:
-          - "--exclude=.git"
-          - "--exclude=node_modules"
-          - "--exclude=firmware/build"
-          - "--exclude=dashboard/node_modules"
-          - "--exclude=dashboard/dist"
+    - name: Install git
+      apt:
+        name: git
+        state: present
+
+    - name: Pull latest source from GitHub
+      git:
+        repo: https://github.com/RiversEngineering/redwing
+        dest: /opt/redwing
+        version: main
+        force: true
+
+    - name: Ensure /opt/redwing ownership matches the pi user
+      file:
+        path: /opt/redwing
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        recurse: true
 
     # Give the robot daemon a soft memory-protection floor on low-RAM boards so
     # the camera feed / control loop survive memory pressure (see mem_reservation
@@ -139,7 +149,7 @@
       changed_when: "'CHANGED' in cgroup_cmdline.stdout"
       notify: memory cgroup reboot notice
 
-    - name: Build Docker images from synced source
+    - name: Build Docker images from pulled source
       community.docker.docker_compose_v2:
         project_src: /opt/redwing/docker
         pull: missing

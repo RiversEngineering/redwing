@@ -1,0 +1,94 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 6 Practice: Write It Yourself</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 40 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 6 — For Loops &amp; Lists</span>
+</div>
+
+<p>Seven problems, all from scratch. Each one gives you starting values in <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">practice_write.py</code> and a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;"># Write your code here</code> placeholder — no fill-in-the-blank scaffolding this time, just the goal and the tools you already know. Run <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">python3 practice_write.py</code> after each one to check your output against the expected output listed below.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>What you'll practice</strong>
+  <ul style="margin:8px 0 0 0;">
+    <li>Looping over a list to transform and print each item</li>
+    <li>Looping by index with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">range(len(a_list)):</code></li>
+    <li>Tracking a "best so far" value across a loop</li>
+    <li>Building a list from nothing with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.append()</code></li>
+    <li>Counting items that meet a condition</li>
+    <li>Walking a list backwards with a negative <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">range()</code> step</li>
+    <li>Pairing up two lists by shared index</li>
+  </ul>
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 1 — double every reading</h2>
+<p>Given:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>readings = [12, 45, 8, 33, 19]</code></pre>
+<p>Print each reading doubled, one per line. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>24
+90
+16
+66
+38</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 2 — numbered list</h2>
+<p>Given:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>names = ["Ada", "Grace", "Katherine"]</code></pre>
+<p>Print each name with its position number, starting at 1, using <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">for i in range(len(names)):</code>. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>1: Ada
+2: Grace
+3: Katherine</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 3 — find the maximum without max()</h2>
+<p>Given:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>values = [14, 82, 3, 47, 65, 21]</code></pre>
+<p>Find and print the maximum value using a loop, a "best so far" variable, and an <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code> comparison — no <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">max()</code> allowed. Start <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">best</code> at the first value, then update it whenever you find something bigger. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>82</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 4 — build a list of squares</h2>
+<p>Given:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>squares = []</code></pre>
+<p>Using <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">range()</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.append()</code>, build the squares of every number from 1 to 10, then print the final list. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>[1, 4, 9, 16, 25, 36, 49, 64, 81, 100]</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 5 — count above a threshold</h2>
+<p>Given:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>distances = [12, 34, 8, 55, 19, 41]
+threshold = 20</code></pre>
+<p>Using a loop, an <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code>, and a counter variable, count and print how many distances are above the threshold. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Above threshold: 3</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 6 — print in reverse</h2>
+<p>Given:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>crew = ["Alex", "Sam", "Jordan", "Riley"]</code></pre>
+<p>Print the list in reverse order using <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">range()</code> with a negative step, e.g. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">range(len(crew)-1, -1, -1)</code>. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Riley
+Jordan
+Sam
+Alex</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 7 — pair up two lists</h2>
+<p>Given:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>motor_names = ["Left", "Right"]
+motor_powers = [60, 75]</code></pre>
+<p>Loop through indices with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">range(len(motor_names))</code> and print paired info like <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"Left: 60"</code>. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Left: 60
+Right: 75</code></pre>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>💡 Tip</strong><br><code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">range(len(a_list))</code> is the standard way to loop "by index" instead of by item — reach for it whenever you need the position number itself, or when you need to walk two equal-length lists side by side using the same index into each.
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Pattern</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Used for</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>for item in a_list:</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Transforming or printing each item, no position needed</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>for i in range(len(a_list)):</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Looping by index — you need the position, or a second list lined up by index</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">"Best so far" variable</td><td style="border:1px solid #ddd;padding:8px 12px;">Finding a max/min without a built-in function</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;">Counter variable</td><td style="border:1px solid #ddd;padding:8px 12px;">Counting how many items meet a condition</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>range(len(a_list)-1, -1, -1)</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Walking a list from the last index back to the first</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>empty_list = []</code> then <code>.append()</code> in a loop</td><td style="border:1px solid #ddd;padding:8px 12px;">Building a new list from scratch</td></tr>
+</table>
+
+</div>

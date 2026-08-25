@@ -1,0 +1,135 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 6: For Loops &amp; Lists</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 50 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 5 — While Loops</span>
+</div>
+
+<p>Robots almost never deal with just one number at a time. A distance sensor might report readings 50 times a second. A path-following robot needs to remember a whole list of waypoints. A four-motor rover has four speeds to set, every cycle. Python's answer to "I have a bunch of related values" is the <strong>list</strong> — and its answer to "do something with each one" is the <strong>for loop</strong>. Together, they're the tools you'll use constantly once you start writing real robot code.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>What you'll learn</strong>
+  <ul style="margin:8px 0 0 0;">
+    <li>What a list is and how to write one</li>
+    <li>How to access items in a list by index, including negative indices</li>
+    <li>How to find out how many items a list has with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">len()</code></li>
+    <li>How to loop over every item in a list with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">for item in a_list:</code></li>
+    <li>How to repeat something a fixed number of times with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">range()</code></li>
+    <li>How to build a list from scratch with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.append()</code></li>
+  </ul>
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Lists: a container for many values</h2>
+
+<p>So far, every variable you've made has held exactly one value: one number, one string. A <strong>list</strong> is a single variable that holds an ordered collection of values, written between square brackets <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">[ ]</code> and separated by commas.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>sensor_readings = [22, 19, 31, 8, 40]</code></pre>
+
+<p>This is one variable, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">sensor_readings</code>, holding five numbers in a specific order. Lists can hold numbers, strings, or a mix of both — Python doesn't require every item to be the same type, though in practice you'll usually keep a list to one kind of thing (like five distance readings, or four motor names).</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Indexing: reaching into a list</h2>
+
+<p>Every item in a list has a position, called an <strong>index</strong>. Python starts counting indices at <strong>0</strong>, not 1 — so the first item is at index 0, the second at index 1, and so on.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>sensor_readings = [22, 19, 31, 8, 40]
+print(sensor_readings[0])   # 22  (the first item)
+print(sensor_readings[2])   # 31  (the third item)</code></pre>
+
+<p>You can also count from the <em>end</em> of the list using negative indices. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">-1</code> is always the last item, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">-2</code> is the second-to-last, and so on — no need to know how long the list is.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print(sensor_readings[-1])  # 40  (the last item)</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">len(): how many items?</h2>
+
+<p>The built-in function <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">len()</code> tells you how many items are in a list.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print(len(sensor_readings))  # 5</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">for item in a_list: — looping without a counter</h2>
+
+<p>With a while loop, you'd need a counter to step through a list: start it at 0, check it's less than <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">len()</code>, increment it, and index into the list each time. A <strong>for loop</strong> does all of that automatically — it hands you each item, one at a time, until the list runs out.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>sensor_readings = [22, 19, 31, 8, 40]
+for reading in sensor_readings:
+    print(reading)</code></pre>
+
+<p>This prints all five numbers, one per line. Each time through the loop, the variable <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">reading</code> is set to the next item in the list — first 22, then 19, then 31, and so on. You can name that variable anything you like; it's just a label for "the current item." A for loop combines naturally with an <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code> statement to act only on items that meet some condition, or with an accumulator variable to total up every item — exactly the patterns you'll practice below.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">for i in range(n): — repeating a fixed number of times</h2>
+
+<p>Sometimes you don't have a list at all — you just want to repeat something a set number of times, like setting up four motors or blinking an LED ten times. The <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">range()</code> function generates a sequence of numbers for the for loop to step through.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>for i in range(4):
+    print(i)</code></pre>
+
+<p>This prints <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">0</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">1</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">2</code>, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">3</code> — four numbers total, starting at 0 and stopping <em>before</em> 4. In general, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">range(n)</code> runs the loop <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">n</code> times, with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">i</code> taking on <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">0, 1, ..., n-1</code>. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">range()</code> can also take a start and a step: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">range(2, 10, 2)</code> counts <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">2, 4, 6, 8</code> — starting at 2, stopping before 10, jumping by 2 each time.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">.append(): building a list inside a loop</h2>
+
+<p>You can start with an empty list, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">[]</code>, and grow it one item at a time using <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.append(value)</code>, which adds <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">value</code> onto the end of the list.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>squares = []
+for i in range(5):
+    squares.append(i * i)
+print(squares)   # [0, 1, 4, 9, 16]</code></pre>
+
+<p>This is a common pattern: start with an empty list, loop, and build it up — the list equivalent of the accumulator pattern you used with numbers in Assignment 5.</p>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>💡 Tip</strong><br>If you only need the items themselves, use <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">for item in a_list:</code>. If you need to count, repeat a fixed number of times, or don't have a list yet, use <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">for i in range(n):</code>. Both are "for loops" — just pick whichever fits what you're actually looping over.
+</div>
+
+<div style="background:#fff8e6;border-left:4px solid #e0a800;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>⚠️ Common mistake</strong><br>Indices start at <strong>0</strong>, not 1. For a 5-item list, the last valid index is <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">4</code>, not <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">5</code> — trying to access <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">sensor_readings[5]</code> on a 5-item list crashes with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">IndexError: list index out of range</code>. When in doubt, use <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">-1</code> to safely grab the last item instead of guessing the length.
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Your Turn</h2>
+
+<p>Open <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">starter.py</code> and complete the five tasks in order. Run <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">python3 starter.py</code> after each one to check your progress.</p>
+
+<p><strong>Task 1</strong>: Using the same <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">sensor_readings</code> list, loop through it and print only the values below 20 — combine a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">for</code> loop with an <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code>. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>19
+8</code></pre>
+
+<p><strong>Task 2</strong>: Compute the average of <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">sensor_readings</code> using a for loop accumulator — add every reading into a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">total</code> variable, then divide by <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">len(sensor_readings)</code>, and print the result with an f-string. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Average: 24.0</code></pre>
+
+<p><strong>Task 3</strong>: Use <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">for i in range(4):</code> to print the name of each of four motors, one per line. Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Motor 0
+Motor 1
+Motor 2
+Motor 3</code></pre>
+
+<p><strong>Task 4</strong>: An empty list <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">squares = []</code> is already there. Loop with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">for i in range(5):</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">.append()</code> each square (<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">i * i</code>) onto it. The existing <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print(squares)</code> line will then show:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>[0, 1, 4, 9, 16]</code></pre>
+
+<p><strong>Task 5</strong>: Using <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">sensor_readings</code> again, print the first reading using index <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">0</code>, and the last reading using index <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">-1</code> (remember: indices start at 0). Expected output:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>22
+40</code></pre>
+
+<p>When all five tasks are complete, running <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">python3 starter.py</code> should finish with:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Assignment 6 complete!</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Check Yourself</h2>
+<ul>
+  <li>What's the difference between <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">for item in a_list:</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">for i in range(n):</code>? When would you choose one over the other?</li>
+  <li>If <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">my_list</code> has 8 items, what is the index of the last one? Give two different ways to write it.</li>
+  <li>Why does <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">squares = []</code> need to be written before the loop that appends to it, instead of inside the loop?</li>
+</ul>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Syntax</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Meaning</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>a_list = [1, 2, 3]</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Creates a list holding three values, in order</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>a_list[0]</code></td><td style="border:1px solid #ddd;padding:8px 12px;">The first item (indices start at 0)</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>a_list[-1]</code></td><td style="border:1px solid #ddd;padding:8px 12px;">The last item</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>len(a_list)</code></td><td style="border:1px solid #ddd;padding:8px 12px;">The number of items in the list</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>for item in a_list:</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Runs the block once per item in the list</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>for i in range(n):</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Runs the block n times, i = 0, 1, ..., n-1</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>range(start, stop, step)</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Counts from start up to (not including) stop, by step</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>a_list.append(value)</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Adds value onto the end of the list</td></tr>
+</table>
+
+</div>

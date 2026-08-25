@@ -32,6 +32,25 @@ warn() { echo -e "  ${YELLOW}warn:${NC} $*"; }
 die()  { echo -e "  ${RED}error:${NC} $*" >&2; exit 1; }
 ok()   { echo -e "  ${GREEN}ok:${NC} $*"; }
 
+# A freshly-imaged Pi often has apt-daily/unattended-upgrades or first-boot
+# setup services touching dpkg right after boot. If one of those is killed
+# mid-operation (e.g. rebooted too early), dpkg is left "interrupted" and
+# every apt command fails until `dpkg --configure -a` is run; if one is still
+# running, apt-get just needs a moment for the lock to clear. Retry through
+# both cases instead of failing the whole install on a transient race.
+apt_get() {
+    local attempt
+    for attempt in 1 2 3; do
+        if sudo apt-get "$@"; then
+            return 0
+        fi
+        warn "apt-get $1 failed (attempt $attempt/3) — repairing package state and retrying..."
+        sudo dpkg --configure -a || true
+        sleep 5
+    done
+    sudo apt-get "$@"
+}
+
 # ── Preflight ─────────────────────────────────────────────────────────────────
 [[ "$(uname)" == "Linux" ]] || die "This script targets Raspberry Pi OS (Linux)."
 [[ "$(uname -m)" =~ ^(aarch64|armv7l)$ ]] || warn "Not running on ARM — intended for Raspberry Pi."
@@ -51,13 +70,14 @@ echo "  Branch:  $REPO_BRANCH"
 
 # ── 1. System update ──────────────────────────────────────────────────────────
 step "Updating system packages..."
-sudo apt-get update -q
-sudo apt-get upgrade -y -q
+sudo dpkg --configure -a || true
+apt_get update -q
+apt_get upgrade -y -q
 ok "System up to date"
 
 # ── 2. Prerequisites ──────────────────────────────────────────────────────────
 step "Installing prerequisites..."
-sudo apt-get install -y --no-install-recommends \
+apt_get install -y --no-install-recommends \
     curl \
     ca-certificates \
     git \
@@ -100,7 +120,7 @@ ok "Docker enabled"
 
 if ! docker compose version &>/dev/null 2>&1; then
     step "Installing docker-compose-plugin..."
-    sudo apt-get install -y docker-compose-plugin
+    apt_get install -y docker-compose-plugin
 fi
 ok "$(docker compose version)"
 
@@ -143,13 +163,13 @@ step "Ensuring zram swap..."
 if dpkg -s zram-tools >/dev/null 2>&1; then
     sudo systemctl disable --now zramswap 2>/dev/null || true
     sudo systemctl reset-failed zramswap 2>/dev/null || true
-    sudo apt-get purge -y zram-tools >/dev/null 2>&1 || true
+    apt_get purge -y zram-tools >/dev/null 2>&1 || true
     ok "Removed conflicting zram-tools (Pi OS provides zram natively)"
 fi
 if swapon --show | grep -q zram; then
     ok "zram swap active ($(swapon --show | awk '/zram/ {print $3; exit}'))"
 else
-    sudo apt-get install -y --no-install-recommends systemd-zram-generator
+    apt_get install -y --no-install-recommends systemd-zram-generator
     sudo tee /etc/systemd/zram-generator.conf > /dev/null <<'EOF'
 # Managed by Redwing — compressed in-RAM swap via systemd-zram-generator.
 [zram0]

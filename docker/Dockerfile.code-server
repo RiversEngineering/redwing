@@ -2,15 +2,24 @@ FROM codercom/code-server:latest
 
 USER root
 
-# Install Python, the redwing library, and gosu (for privilege drop in entrypoint)
+# Install Python, pip, and gosu (for privilege drop in entrypoint)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-pip gosu \
     && rm -rf /var/lib/apt/lists/*
 
+# Install only the dependencies listed in pyproject.toml — not the redwing source itself.
+# A minimal stub satisfies pip's package requirements so it can resolve and install
+# all deps (numpy, opencv, pyzmq) without needing the real source tree.
+# This layer is cached until pyproject.toml dependency specs change.
+# The real source is provided at runtime via the /opt/redwing volume mount.
 COPY pyproject.toml /tmp/redwing_build/
-COPY redwing/       /tmp/redwing_build/redwing/
-RUN pip3 install --no-cache-dir --break-system-packages /tmp/redwing_build \
+RUN mkdir -p /tmp/redwing_build/redwing \
+    && touch /tmp/redwing_build/redwing/__init__.py \
+    && pip3 install --no-cache-dir --break-system-packages /tmp/redwing_build \
     && rm -rf /tmp/redwing_build
+
+# Point Python at the live volume mount so source changes take effect without rebuilding.
+ENV PYTHONPATH=/opt/redwing
 
 RUN mkdir -p /home/coder/.local/share/code-server/User \
     && chown -R coder:coder /home/coder/.local

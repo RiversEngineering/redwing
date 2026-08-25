@@ -1,6 +1,6 @@
 <script>
   import { send } from '../lib/ws.js';
-  import { connected } from '../lib/stores.js';
+  import { connected, flashStatus } from '../lib/stores.js';
 
   // Confirmation state — null | 'shutdown' | 'reboot'
   let confirming = null;
@@ -20,6 +20,23 @@
     send({ cmd: 'system_power', action: confirming });
     confirming = null;
   }
+
+  // Firmware flash confirmation — separate from the power confirm above so
+  // flashing doesn't interrupt/replace the whole page the way shutdown does.
+  let firmwareConfirming = false;
+
+  function requestFlash() {
+    firmwareConfirming = true;
+  }
+
+  function cancelFlash() {
+    firmwareConfirming = false;
+  }
+
+  function confirmFlash() {
+    firmwareConfirming = false;
+    send({ cmd: 'flash_firmware' });
+  }
 </script>
 
 <div class="flex flex-col h-full bg-[#161920] text-slate-200">
@@ -34,7 +51,7 @@
   </div>
 
   <!-- Content -->
-  <div class="flex-1 flex items-start justify-center p-8">
+  <div class="flex-1 flex items-start justify-center p-8 overflow-y-auto">
     <div class="max-w-md w-full space-y-8">
 
       {#if shutdownSent}
@@ -132,6 +149,96 @@
             <p class="text-[11px] text-slate-700 text-center">
               Connect to the daemon before using power controls.
             </p>
+          {/if}
+        </div>
+
+        <!-- Firmware — kept at the bottom, out of the way of everyday controls -->
+        <div class="space-y-3 pt-6 mt-6 border-t border-[#2e3340]">
+          <p class="text-xs text-slate-600 uppercase tracking-widest">RP2040 — Admin Only</p>
+
+          {#if firmwareConfirming}
+            <!-- Confirmation step -->
+            <div class="bg-[#1e2129] rounded-xl border border-amber-700/40 p-6 space-y-4">
+              <div class="flex items-center gap-3">
+                <svg class="w-6 h-6 text-amber-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <p class="text-sm font-semibold text-slate-200">Flash the RP2040 now?</p>
+              </div>
+              <p class="text-xs text-slate-500">
+                The robot will stop responding for a few seconds while the RP2040 reboots into its
+                bootloader, gets reflashed, and restarts. Motors will not respond during this window.
+              </p>
+              <div class="flex gap-3 pt-1">
+                <button
+                  class="flex-1 py-2.5 rounded-lg text-sm font-bold bg-amber-700/30 border border-amber-600/60
+                         text-amber-300 hover:bg-amber-700/50 transition-colors"
+                  on:click={confirmFlash}
+                >
+                  Yes, flash firmware
+                </button>
+                <button
+                  class="px-5 py-2.5 rounded-lg text-sm text-slate-400 border border-[#2e3340]
+                         hover:text-slate-200 hover:border-slate-500 transition-colors"
+                  on:click={cancelFlash}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+
+          {:else}
+            <div class="bg-[#1e2129] rounded-xl border border-[#2e3340] p-5 flex items-center gap-4">
+              <div class="flex-1">
+                <p class="text-sm font-semibold text-slate-200">Flash Firmware</p>
+                <p class="text-xs text-slate-600 mt-0.5">
+                  Reflashes the RP2040 from the firmware built on this Pi — no need to unplug it or
+                  press BOOTSEL. See the Debug Console for flash progress.
+                </p>
+              </div>
+              <button
+                disabled={!$connected || $flashStatus.state === 'running'}
+                class="px-4 py-2 rounded-lg text-sm font-semibold border transition-colors flex-shrink-0
+                       {$connected && $flashStatus.state !== 'running'
+                         ? 'bg-blue-900/20 border-blue-700/50 text-blue-400 hover:bg-blue-800/30 hover:border-blue-600/70 cursor-pointer'
+                         : 'bg-[#161920] border-[#2e3340] text-slate-700 cursor-not-allowed'}"
+                on:click={requestFlash}
+              >
+                {$flashStatus.state === 'running' ? 'Flashing…' : 'Flash'}
+              </button>
+            </div>
+
+            {#if $flashStatus.state === 'running'}
+              <div class="flex items-center gap-2 px-1 text-xs text-blue-400">
+                <svg class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2a10 10 0 1 0 10 10" stroke-linecap="round"/>
+                </svg>
+                {$flashStatus.message}
+              </div>
+            {:else if $flashStatus.state === 'success'}
+              <div class="flex items-center gap-2 px-1 text-xs text-emerald-400">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                {$flashStatus.message}
+              </div>
+            {:else if $flashStatus.state === 'error'}
+              <div class="flex items-center gap-2 px-1 text-xs text-red-400">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M15 9l-6 6M9 9l6 6" stroke-linecap="round"/>
+                </svg>
+                {$flashStatus.message}
+              </div>
+            {/if}
+
+            {#if !$connected}
+              <p class="text-[11px] text-slate-700 text-center">
+                Connect to the daemon before flashing firmware.
+              </p>
+            {/if}
           {/if}
         </div>
       {/if}

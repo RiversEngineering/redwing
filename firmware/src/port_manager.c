@@ -134,27 +134,35 @@ void port_manager_init(void) {
     gpio_pull_up(I2C_SDA_GPIO);
     gpio_pull_up(I2C_SCL_GPIO);
 
-    // Give the sensor time to power up before probing; retry a few times in
-    // case of I²C transients at startup (RP2040 boots faster than the sensor).
+    // Give sensors time to fully power up. The RP2040 boots in ~10 ms; I²C
+    // devices ACK their address almost immediately (just transistor logic) but
+    // need more time before their internal registers are stable.  MPU-6050
+    // datasheet spec is 30 ms; real-world boards — especially with heavier
+    // decoupling capacitance — may need up to 100 ms.
     ports[PORT_ID_I2C].type = PORT_I2C;
-    sleep_ms(5);
+    sleep_ms(100);
     for (int attempt = 0; attempt < 3; attempt++) {
         if (vl53l0x_init()) {
             ports[PORT_ID_I2C].type = PORT_VL53L0X;
             break;
         }
-        sleep_ms(10);
+        sleep_ms(20);
     }
 
-    // Auto-detect IMU: BNO085 (0x4A) → BNO055 (0x28) → MPU-6050 (0x68).
+    // Auto-detect IMU: BNO085 (0x4A) → BNO055 (0x28) → MPU-6050/6500 (0x68).
     // Only one IMU is active; the first that responds wins.
+    // Retry each candidate a few times to handle residual power-up transients.
     ports[PORT_ID_IMU].type = PORT_UNCONFIGURED;
-    if (bno085_init()) {
-        ports[PORT_ID_IMU].type = PORT_BNO085;
-    } else if (bno055_init()) {
-        ports[PORT_ID_IMU].type = PORT_BNO055;
-    } else if (mpu6050_init()) {
-        ports[PORT_ID_IMU].type = PORT_MPU6050;
+    for (int attempt = 0; attempt < 3 && ports[PORT_ID_IMU].type == PORT_UNCONFIGURED; attempt++) {
+        if (bno085_init()) {
+            ports[PORT_ID_IMU].type = PORT_BNO085;
+        } else if (bno055_init()) {
+            ports[PORT_ID_IMU].type = PORT_BNO055;
+        } else if (mpu6050_init()) {
+            ports[PORT_ID_IMU].type = PORT_MPU6050;
+        } else if (attempt < 2) {
+            sleep_ms(20);
+        }
     }
 
     // Scan the full I²C address space and record responding addresses.

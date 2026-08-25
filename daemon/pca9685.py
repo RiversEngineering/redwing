@@ -82,12 +82,16 @@ class PCA9685:
     # Detection
     # ------------------------------------------------------------------
 
-    async def detect(self) -> bool:
-        """Probe for PCA9685 until found. Runs indefinitely in the background.
+    async def detect(self) -> None:
+        """Probe for PCA9685 and re-verify on every Pico reconnect.
 
-        Retries every 3 s while the RP2040 is not yet connected, then every
-        10 s once the RP2040 is up — so plugging the PCA9685 in after the
-        daemon has started is detected within 10 s.
+        Runs indefinitely. Retries every 3 s while the RP2040 is not yet
+        connected, then every 10 s once the RP2040 is up.
+
+        On each Pico reconnect, rp2040._connect_and_run() clears
+        state.pca9685_present. This causes detect() to call pca_init()
+        again and update the present flag to match reality — so removing the
+        PCA9685 and power-cycling the Pico clears it from the dashboard.
 
         If a saved calibration exists it is loaded before the first pca_init,
         so the corrected prescale is applied immediately rather than the
@@ -98,28 +102,42 @@ class PCA9685:
 
         attempt = 0
         while True:
-            found = await self._rp.pca_init(self._prescale)
-            if found:
-                self._present = True
-                async with self._state.lock:
-                    self._state.pca9685_present    = True
-                    self._state.pca9685_address    = 0x40
-                    self._state.pca9685_calibrated = calibrated
-                    self._state.pca9685_osc_freq   = self._osc_freq
-                log.info(
-                    f"PCA9685 detected on Pico I²C "
-                    f"(prescale={self._prescale}"
-                    f"{', calibrated' if calibrated else ', nominal'})"
-                )
-                return True
+            # Check whether the Pico has cleared pca9685_present (on reconnect).
+            # Only probe when: not yet confirmed present in shared state.
+            async with self._state.lock:
+                state_present = self._state.pca9685_present
+
+            if not state_present:
+                if self._present:
+                    # Pico reconnected and cleared the flag — provisionally mark
+                    # absent until pca_init() re-confirms presence.
+                    self._present = False
+
+                if self._rp.connected:
+                    found = await self._rp.pca_init(self._prescale)
+                    if found:
+                        self._present = True
+                        async with self._state.lock:
+                            self._state.pca9685_present    = True
+                            self._state.pca9685_address    = 0x40
+                            self._state.pca9685_calibrated = calibrated
+                            self._state.pca9685_osc_freq   = self._osc_freq
+                        log.info(
+                            f"PCA9685 detected on Pico I²C "
+                            f"(prescale={self._prescale}"
+                            f"{', calibrated' if calibrated else ', nominal'})"
+                        )
+                    else:
+                        if attempt == 0:
+                            log.info("PCA9685 not detected on Pico I²C — will retry every 10 s")
+                        else:
+                            log.debug("PCA9685 not found after Pico reconnect — will retry")
+
+            attempt += 1
             if self._rp.connected:
-                if attempt == 0:
-                    log.info("PCA9685 not detected on Pico I²C — will retry every 10 s")
                 await asyncio.sleep(10.0)
             else:
-                log.debug(f"PCA9685 detect attempt {attempt + 1}: RP2040 not connected yet, retrying")
                 await asyncio.sleep(3.0)
-            attempt += 1
 
     # ------------------------------------------------------------------
     # Pulse-width ↔ count conversion

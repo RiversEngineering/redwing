@@ -29,8 +29,12 @@ static bool reg_read(uint8_t reg, uint8_t *data, uint8_t len) {
 bool bno055_init(void) {
     // Fast address check — if 0x28 doesn't ACK at all, bail immediately rather
     // than burning 14 × 50 ms of retries when no BNO055 is on the bus.
-    uint8_t probe;
-    if (i2c_read_blocking(i2c0, BNO055_ADDR, &probe, 1, false) < 0) return false;
+    // Use a write probe rather than a read: the RP2040 SDK's read abort path
+    // does not wait for STOP_DET before returning, which leaves an in-flight
+    // STOP on the bus that corrupts the next I2C caller (mpu6050_init).
+    // The write abort path does wait for STOP_DET, so the bus is clean on exit.
+    uint8_t reg = REG_CHIP_ID;
+    if (i2c_write_blocking(i2c0, BNO055_ADDR, &reg, 1, false) != 1) return false;
 
     // BNO055 needs up to 650 ms from power-on. Retry until CHIP_ID is readable.
     uint8_t chip_id = 0;

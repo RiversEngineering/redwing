@@ -1,0 +1,120 @@
+<div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
+
+<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 1: Hello, Python</h1>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 30 minutes</span>
+  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: None — start here!</span>
+</div>
+
+<p>Every robot you'll ever program — one that drives, follows a line, or avoids obstacles — runs on code written in a language called <strong>Python</strong>. Before we touch any motors or sensors, we need to learn how to talk to the computer at all. This first assignment is your very first Python program: just a few lines of text that tell the computer what to do, one step at a time.</p>
+
+<div style="background:#f5f5f7;border-left:4px solid #6c757d;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>What you'll learn</strong>
+  <ul style="margin:8px 0 0 0;">
+    <li>What a program actually is</li>
+    <li>How to print text to the screen with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code></li>
+    <li>How to leave notes for humans using comments</li>
+    <li>How to run a script from a terminal on the Raspberry Pi</li>
+    <li>Why the order of your lines matters</li>
+    <li>How to read a Python error message without panicking</li>
+  </ul>
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">What is a program?</h2>
+
+<p>A <strong>program</strong> is just a list of instructions that the computer follows, exactly as written, one line at a time, from top to bottom. Think of it like a recipe: the computer doesn't skip ahead, doesn't guess what you meant, and doesn't do anything you didn't tell it to do. If you write three instructions, the computer runs the first one completely, then the second, then the third. That's it — that's the whole idea behind every piece of software, including the code that will one day drive your robot.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Your first command: print()</h2>
+
+<p>The simplest thing a program can do is display text on the screen. In Python, we do that with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code>. Whatever you put inside the parentheses gets shown on the screen when the program runs.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print("Hello, robotics team!")</code></pre>
+
+<p>Notice the quotation marks. In Python, text like this is called a <strong>string</strong> — a "string" of characters. The quotes mark exactly where the string starts and where it ends. Everything between the opening <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"</code> and the closing <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"</code> gets printed exactly as you typed it. If you run the line above, the computer will print:</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Hello, robotics team!</code></pre>
+
+<div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>💡 Tip</strong><br>You can use either double quotes <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"like this"</code> or single quotes <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">'like this'</code> — just make sure the opening and closing quote match.
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Comments: notes for humans</h2>
+
+<p>Sometimes you want to leave a note in your code that explains what's going on — but you don't want the computer to try to run it as an instruction. That's what a <strong>comment</strong> is. Any line that starts with a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">#</code> (called a "hash" or "pound sign") is completely ignored when the program runs. It's there purely for you and other people reading your code.</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code># This line does nothing when the program runs
+print("But this line does!")</code></pre>
+
+<p>Programmers use comments constantly — to explain tricky bits of code, to leave reminders, or to temporarily disable a line without deleting it (this is called "commenting out" a line, and you'll do exactly that in Task 5 below).</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Running a script on the Pi</h2>
+
+<p>A Python program saved in a file is often called a <strong>script</strong>. To run your script on the Raspberry Pi, open a terminal, navigate to the folder containing your file, and type:</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>python3 starter.py</code></pre>
+
+<p>This tells the computer: "use the Python 3 program to run the instructions in the file called starter.py." You should get in the habit of running your script after every single change you make — that's the fastest way to know whether your edit worked.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Order matters</h2>
+
+<p>Remember: Python runs your lines top to bottom, in the exact order they're written. If you print "Robot ready!" before you print "Powering on...", the screen will show "Robot ready!" first — even though that doesn't make logical sense. The computer doesn't understand meaning, only order. Swapping two lines is one of the most common fixes you'll make as you write code.</p>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Reading an error message</h2>
+
+<p>Eventually, you'll make a typo, and Python will refuse to run your program. This is completely normal — it happens to every programmer, every day, forever. Python's job in that moment is to tell you what went wrong and roughly where. For example, if you forget the closing quote on a string:</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>print("Almost done!)</code></pre>
+
+<p>Python will stop and show something like:</p>
+
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>  File "starter.py", line 27
+    print("Almost done!)
+                        ^
+SyntaxError: unterminated string literal (detected at line 27)</code></pre>
+
+<p>Read this from the bottom up: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">SyntaxError</code> means "you broke a grammar rule of the Python language." The words after it, <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">unterminated string literal</code>, mean "you opened a string with a quote but never closed it." And <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">line 27</code> tells you exactly which line to look at. Errors aren't a sign you've failed — they're Python pointing directly at the fix.</p>
+
+<div style="background:#fff8e6;border-left:4px solid #e0a800;padding:12px 18px;margin:16px 0;border-radius:4px;">
+  <strong>⚠️ Common mistake</strong><br>Forgetting to close a quote is one of the most common beginner errors. Every string needs a matching pair of quotes — one to open it, one to close it. If your program suddenly refuses to run after you added a <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> line, check your quotes first.
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Your Turn</h2>
+
+<p>Open <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">starter.py</code> and complete the five tasks below, in order. Run the script with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">python3 starter.py</code> after each task to check your progress.</p>
+
+<p><strong>Task 1</strong>: Find the line <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print("Hi, I'm ___ and I'm learning Python!")</code>. Replace the blank with your own name and one thing you want to learn this year — keep the quotes in place. For example, if your name is Sam and you want to learn how sensors work, your output line should look like:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Hi, I'm Sam and I'm learning Python!</code></pre>
+
+<p><strong>Task 2</strong>: Below the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">TODO 2</code> comment, add your own <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> statement that prints one thing you're excited to build with your robot. There's no single right answer here — just make sure it's a valid <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print("...")</code> line with matching quotes.</p>
+
+<p><strong>Task 3</strong>: Two <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> lines are in the wrong order. The comment above them says "Powering on..." should print first and "Robot ready!" second — but as written, "Robot ready!" comes first. Swap the two lines so the output reads:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Powering on...
+Robot ready!</code></pre>
+
+<p><strong>Task 4</strong>: Just above the line <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print("Batteries: OK")</code>, write a one-line comment (starting with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">#</code>) explaining, in your own words, what that line of code does. This won't change the printed output — it's practice writing a clear comment.</p>
+
+<p><strong>Task 5</strong>: Find the commented-out line near the bottom: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;"># print("Almost done!)</code>. Remove the leading <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">#</code> to uncomment it, then fix the missing closing quote. Once fixed and run, it should print:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Almost done!</code></pre>
+
+<p>When all five tasks are complete, running <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">python3 starter.py</code> should finish with:</p>
+<pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Assignment 1 complete!</code></pre>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Check Yourself</h2>
+<ul>
+  <li>What would happen if you moved the very first <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">print()</code> line to the very bottom of the file? Why?</li>
+  <li>Why doesn't Python run the lines that start with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">#</code>?</li>
+  <li>When you saw the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">SyntaxError</code> in Task 5, what two pieces of information did it give you, and how did each one help you fix the bug?</li>
+</ul>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:0.9em;">
+  <tr><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Syntax</th><th style="border:1px solid #ddd;background:#f5f5f7;padding:8px 12px;text-align:left;">Meaning</th></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>print("text")</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Displays the text on the screen</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code># a note</code></td><td style="border:1px solid #ddd;padding:8px 12px;">A comment — ignored by Python, for humans only</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>"..."</code> or <code>'...'</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Marks the start and end of a string of text</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>python3 starter.py</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Runs the script from a terminal</td></tr>
+  <tr><td style="border:1px solid #ddd;padding:8px 12px;"><code>SyntaxError</code></td><td style="border:1px solid #ddd;padding:8px 12px;">Python found a grammar mistake in your code</td></tr>
+</table>
+
+</div>
