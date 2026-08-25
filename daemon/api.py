@@ -409,14 +409,52 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
             state.add_log(level, message)
         getattr(log, level if level in ("info", "warning", "error") else "info")(message)
 
+    async def _run_picotool(*args: str) -> int:
+        """Run picotool with the given args, streaming its output via _flash_log.
+
+        Returns the exit code. Raises FileNotFoundError if picotool itself
+        isn't installed (a distinct condition from picotool running and
+        failing, which just yields a non-zero return code).
+        """
+        proc = await asyncio.create_subprocess_exec(
+            "picotool", *args,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        while True:
+            line = await proc.stdout.readline()
+            if not line:
+                break
+            text = line.decode(errors="replace").rstrip()
+            if text:
+                await _flash_log("info", f"[picotool] {text}")
+        return await proc.wait()
+
     async def _do_flash_firmware(clients: set):
         """Reflash the RP2040 from the on-disk .uf2 via picotool.
 
-        picotool's -f flag resets the Pico into BOOTSEL mode itself (via the
-        Pico SDK's USB reset-via-vendor-interface, no physical button press
-        needed) before loading, and -x reboots it back into the app once done.
+        This runs picotool TWICE, deliberately, as two separate OS processes:
+
+        1. `load -f -x` on the currently-running app — its -f flag resets the
+           Pico into BOOTSEL over USB (Pico SDK's reset-via-vendor-interface,
+           no physical button needed). This first run is expected to report
+           "no accessible devices found" and a non-zero exit — confirmed on
+           hardware that a single picotool process's device list goes stale
+           after its first scan and never notices the Pico reappear under a
+           new USB address mid-run, no matter what container capabilities are
+           granted. Its exit code is intentionally ignored; only the reboot
+           side-effect (already reliably confirmed via host-side USB traces)
+           matters here.
+        2. A brand-new `load -x` process, run fresh once step 1 has finished
+           (which, thanks to step 1's own ~6s of futile retrying, is already
+           well after the Pico has settled into BOOTSEL). A fresh process's
+           first device scan is a real, correct USB topology walk — this is
+           the run that actually writes the firmware and whose result is what
+           gets reported to the dashboard.
+
         The daemon's existing serial reconnect loop (rp2040.py) picks the Pico
-        back up automatically once it re-enumerates as a CDC device again.
+        back up automatically once it re-enumerates as a CDC device again
+        after step 2 reboots it back into the app.
         """
         flash_state["running"] = True
         try:
@@ -430,26 +468,17 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                 return
 
             try:
-                proc = await asyncio.create_subprocess_exec(
-                    "picotool", "load", "-f", "-x", FIRMWARE_UF2_PATH,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.STDOUT,
-                )
+                await _flash_log("info", "[Dashboard] Requesting reboot into BOOTSEL mode...")
+                await _run_picotool("load", "-f", "-x", FIRMWARE_UF2_PATH)
+
+                await _flash_log("info", "[Dashboard] Flashing from a fresh picotool run...")
+                rc = await _run_picotool("load", "-x", FIRMWARE_UF2_PATH)
             except FileNotFoundError:
                 msg = "picotool not found — is it installed in the daemon image?"
                 await _flash_log("error", f"[Dashboard] {msg}")
                 await _broadcast_flash_status(clients, "error", msg)
                 return
 
-            while True:
-                line = await proc.stdout.readline()
-                if not line:
-                    break
-                text = line.decode(errors="replace").rstrip()
-                if text:
-                    await _flash_log("info", f"[picotool] {text}")
-
-            rc = await proc.wait()
             if rc == 0:
                 await _flash_log("info", "[Dashboard] Firmware flashed successfully")
                 await _broadcast_flash_status(clients, "success", "Firmware flashed successfully.")
