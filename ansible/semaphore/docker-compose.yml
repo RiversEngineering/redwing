@@ -26,11 +26,14 @@ services:
       SEMAPHORE_WEB_ROOT: ${SEMAPHORE_WEB_ROOT:-http://0.0.0.0:3000}
       SEMAPHORE_ACCESS_KEY_ENCRYPTION: ${SEMAPHORE_ACCESS_KEY_ENCRYPTION:?set SEMAPHORE_ACCESS_KEY_ENCRYPTION in .env}
       SEMAPHORE_DB_DIALECT: sqlite
-      SEMAPHORE_DB_PATH: /var/lib/database
+      # The database file lives inside /var/lib/semaphore (not a separate
+      # volume) because that's the only data directory the image's non-root
+      # container user (uid 1001) actually owns — anything else 403s.
+      # SEMAPHORE_DB_HOST is the real env var for the sqlite file path;
+      # SEMAPHORE_DB_PATH (used in some older upstream examples) isn't read.
+      SEMAPHORE_DB_HOST: /var/lib/semaphore/database.db
     volumes:
       - semaphore-data:/var/lib/semaphore
-      - semaphore-db:/var/lib/database
 
 volumes:
   semaphore-data:
-  semaphore-db:
