@@ -32,7 +32,12 @@ services:
       # than just that one file) means this doesn't depend on the file
       # already existing when the container first starts — Docker would
       # otherwise create an empty directory in its place.
-      - ../firmware:/app/firmware:ro
+      # NOT read-only: confirmed on hardware that picotool's `load` fails to
+      # open the .uf2 with a read-only bind mount (plain `cat` on the same
+      # file succeeds fine, so it's not a permissions issue — picotool
+      # opens/maps it in a mode that needs the mount to allow writes, even
+      # though it never actually needs to modify this file).
+      - ../firmware:/app/firmware
     environment:
       REDWING_SERIAL: /dev/rp2040
       REDWING_HOST:   "0.0.0.0"
