@@ -56,13 +56,20 @@ _refresh_devices() {
         _mknod_if_present "i2c-${i}"
     done
 
-    # Raw USB bus devices — picotool (via libusb) uses these to reset the
-    # RP2040 into BOOTSEL mode over USB and to talk to its PICOBOOT interface
-    # once it re-enumerates there, so the dashboard can reflash it without a
-    # physical BOOTSEL button press. Bus/device numbers aren't stable names
-    # like ttyACM/video, so unlike the lookups above this mirrors every node
-    # currently on the host bus rather than one well-known path — this does
-    # widen the container's USB access beyond just the Pico.
+    _refresh_usb_bus
+}
+
+# Raw USB bus devices — picotool (via libusb) uses these to reset the RP2040
+# into BOOTSEL mode over USB and to talk to its PICOBOOT interface once it
+# re-enumerates there, so the dashboard can reflash it without a physical
+# BOOTSEL button press. Bus/device numbers aren't stable names like
+# ttyACM/video, so unlike the lookups above this mirrors every node currently
+# on the host bus rather than one well-known path — this does widen the
+# container's USB access beyond just the Pico. Kept as its own function (and
+# polled separately, much faster, below) because picotool's own "wait for the
+# device to come back in BOOTSEL mode" patience window is well under a
+# second — the general 1 s device watcher was too slow to win that race.
+_refresh_usb_bus() {
     for busdir in /host-dev/bus/usb/*/; do
         [ -d "$busdir" ] || continue
         bus="$(basename "$busdir")"
@@ -76,10 +83,9 @@ _refresh_devices() {
 # Initial scan at startup
 _refresh_devices
 
-# Background watcher: re-scan every 1 s to pick up hot-plugged devices.
-# Faster than the old 5 s interval so a picotool-triggered BOOTSEL
-# re-enumeration (Pico briefly vanishes and reappears as a different USB
-# device) is picked up quickly instead of racing picotool's own retry loop.
+# Background watcher: re-scan every 1 s to pick up hot-plugged devices
+# (camera, ttyACM/ttyUSB, I2C). Fine for these — nothing here needs to react
+# faster than human hot-plug speed.
 # After exec below, this process is reparented to PID 1 (the daemon) and runs
 # until the container stops.
 _device_watcher() {
@@ -89,5 +95,17 @@ _device_watcher() {
     done
 }
 _device_watcher &
+
+# Dedicated fast poller just for the USB bus mirroring — see comment on
+# _refresh_usb_bus above for why this needs a much tighter interval than the
+# general watcher. The fast path (device already mirrored) is a cheap `[ -e ]`
+# test with no forked processes, so polling this often costs very little.
+_usb_bus_watcher() {
+    while true; do
+        sleep 0.1
+        _refresh_usb_bus
+    done
+}
+_usb_bus_watcher &
 
 exec python -m daemon.main
