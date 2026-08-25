@@ -22,6 +22,17 @@ services:
     cap_add:
       - MKNOD            # lets entrypoint-daemon.sh create /dev/video* nodes
       - SYS_BOOT         # allows reboot() syscall to reach the host Pi
+      # Confirmed on hardware: without this, libusb's udev-based hotplug
+      # monitor thread can't subscribe to the netlink uevent multicast group
+      # (that bind requires CAP_NET_ADMIN even under network_mode: host,
+      # which only shares the namespace — it doesn't grant capabilities).
+      # Silent effect: picotool's *first* device scan in a process is a real
+      # sysfs walk and works fine, but once the Pico reboots into BOOTSEL
+      # mid-process, picotool's later re-scans rely on that broken monitor
+      # thread and keep retrying the stale pre-reboot USB address forever —
+      # this was the actual cause of "no accessible devices found" after a
+      # reboot was already confirmed to succeed via dmesg on the host.
+      - NET_ADMIN
     volumes:
       - student_workspace:/workspace
       - /dev:/host-dev:ro  # read-only view of host /dev; entrypoint creates device nodes
