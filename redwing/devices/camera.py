@@ -5,11 +5,32 @@ from __future__ import annotations
 import base64
 from typing import TYPE_CHECKING
 
-import cv2
-import numpy as np
-
 if TYPE_CHECKING:
-    pass
+    # For type checkers only — not imported at runtime (see lazy loading below).
+    import numpy as np
+
+
+# ── Lazy OpenCV loading ─────────────────────────────────────────────────────
+# OpenCV is imported on first camera use rather than at module load. Importing
+# `cv2` costs ~200 MB of resident memory, and on a 2 GB Pi 4 the daemon already
+# holds one copy for the live feed. Deferring the import here means a student
+# program that never touches the camera (drive, sensors, lidar, gamepad, PID…)
+# never loads a second copy — it only appears when vision code actually runs.
+_OPENCV_THREADS = 2  # Cap OpenCV's internal thread pool. On a 4-core Pi this
+                     # leaves cores free for the daemon's camera-feed loop, so
+                     # a student's heavy vision work (e.g. AprilTag detection)
+                     # can't starve the feed and make it stutter.
+_cv2 = None
+
+
+def _cv():
+    """Import OpenCV on first use and cap its thread pool (once)."""
+    global _cv2
+    if _cv2 is None:
+        import cv2
+        cv2.setNumThreads(_OPENCV_THREADS)
+        _cv2 = cv2
+    return _cv2
 
 
 class Camera:
@@ -37,6 +58,9 @@ class Camera:
 
         Returns an empty black frame if no camera is available.
         """
+        import numpy as np
+        cv2 = _cv()
+
         state = self._conn.get_all_state()
         frame_b64 = state.get("camera_frame")
         if not frame_b64:
@@ -55,6 +79,7 @@ class Camera:
         if frame is None:
             self._conn.send_command(cmd="camera_show_raw")
             return
+        cv2 = _cv()
         _, encoded = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
         b64 = base64.b64encode(encoded.tobytes()).decode()
         self._conn.send_command(cmd="camera_show_frame", frame=b64)
@@ -77,6 +102,9 @@ class Camera:
             if area > 500:
                 robot.log("Red object detected!")
         """
+        import numpy as np
+        cv2 = _cv()
+
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
         ranges = {
@@ -121,6 +149,8 @@ class Camera:
             if area > 500:
                 robot.log(f"Blue blob at ({x}, {y}), area={area}")
         """
+        cv2 = _cv()
+
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not contours:
             return None, None, 0

@@ -1,4 +1,19 @@
 {
     "workbench.colorTheme": "Default Dark Modern",
-    "security.workspace.trust.enabled": false
+    "security.workspace.trust.enabled": false,
+
+    // ── Memory tuning for 2 GB Pi 4 boards ──────────────────────────────────
+    // Pylance (the default Python language server) indexes the whole workspace
+    // and installed packages — including OpenCV and numpy — which spikes RAM by
+    // hundreds of MB on a 2 GB board and is the most likely trigger for the OOM
+    // killer when code-server, the daemon, and a student's OpenCV script are all
+    // running at once. These settings keep Pylance's completion/hover features
+    // but stop the expensive full-workspace indexing and limit diagnostics to
+    // files the student actually has open.
+    "python.analysis.indexing": false,
+    "python.analysis.diagnosticMode": "openFilesOnly",
+    "python.analysis.autoImportCompletions": false
+    // For an even smaller footprint you can drop Pylance entirely and use the
+    // lighter Jedi language server instead:
+    //   "python.languageServer": "Jedi"
 }

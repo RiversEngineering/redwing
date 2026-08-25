@@ -7,6 +7,15 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     restart: unless-stopped
+    # Soft memory protection for the robot daemon. On cgroup v2 (modern Pi OS)
+    # this maps to memory.low: the daemon's working set up to this size is kept
+    # off the reclaim/swap path under memory pressure, so code-server + student
+    # code spill to zram first and the camera feed / control loop stay live.
+    # It is a soft floor, not a hard cap — nothing is OOM-killed at this value.
+    # Left at 0 (no-op) unless REDWING_DAEMON_MEM_RESERVATION is set, which the
+    # installer/ansible do only on <=2 GB boards (Pi 4). 4 GB boards (Pi 5) have
+    # ample headroom and get no reservation.
+    mem_reservation: ${REDWING_DAEMON_MEM_RESERVATION:-0}
     privileged: false
     # No devices: binding — entrypoint-daemon.sh creates all device nodes and
     # symlinks from /host-dev at startup, so the container starts even when
@@ -54,6 +63,11 @@ services:
       REDWING_LIDAR: /dev/ttyUSB0
       REDWING_FIRMWARE_UF2: /app/firmware/redwing.uf2
       # REDWING_BATTERY_CELLS: "4"  # set per-robot if battery module has internal voltage divider
+      # Cap numpy/BLAS/OpenMP thread pools (OpenCV's own pool is capped via
+      # REDWING_CV_THREADS). Keeps the vision daemon from oversubscribing the
+      # 4 cores it shares with code-server + student code on a Pi 4.
+      OMP_NUM_THREADS:      "2"
+      OPENBLAS_NUM_THREADS: "2"
     network_mode: host   # ports: is redundant with host networking
 
   nginx:
@@ -78,6 +92,12 @@ services:
       - ..:/opt/redwing:ro
     environment:
       PASSWORD: "redwing"     # change per-robot in ansible vars
+      # Cap numpy/BLAS/OpenMP thread pools for student code. Combined with the
+      # OpenCV thread cap in the redwing library, this keeps a student's vision
+      # work (e.g. AprilTag detection) to ~2 cores so it can't starve the
+      # daemon's camera-feed loop and make the feed stutter on a 4-core Pi 4.
+      OMP_NUM_THREADS:      "2"
+      OPENBLAS_NUM_THREADS: "2"
     network_mode: host   # listens on port 8080 (code-server default)
 
 volumes:

@@ -48,6 +48,47 @@
         groups: docker
         append: true
 
+    # ── zram swap ──────────────────────────────────────────────────────────
+    # The full stack (code-server + Pylance, the vision daemon, and a student's
+    # own OpenCV/AprilTag script) can transiently exceed the 2 GB on a Pi 4;
+    # without swap a spike lets the OOM killer take a process.
+    #
+    # Raspberry Pi OS already ships compressed zram swap via
+    # systemd-zram-generator (the "rpi-swap" units), so we rely on that. We must
+    # NOT install zram-tools: a second provider on the same /dev/zram0 conflicts
+    # and fails at boot ("device busy"). Remove it if present, and provision
+    # zram natively only if the image ships without any zram swap.
+    - name: Remove conflicting zram-tools if present
+      apt:
+        name: zram-tools
+        state: absent
+        purge: true
+
+    - name: Check whether zram swap is already active
+      command: swapon --show=NAME --noheadings
+      register: redwing_active_swaps
+      changed_when: false
+
+    - name: Provision zram natively when the image ships without it
+      when: "'zram' not in redwing_active_swaps.stdout"
+      block:
+        - name: Install systemd-zram-generator
+          apt:
+            name: systemd-zram-generator
+            state: present
+            update_cache: true
+
+        - name: Configure zram device (systemd-zram-generator)
+          copy:
+            dest: /etc/systemd/zram-generator.conf
+            mode: "0644"
+            content: |
+              # Managed by Redwing ansible — compressed in-RAM swap.
+              [zram0]
+              zram-size = ram
+              compression-algorithm = zstd
+              swap-priority = 100
+
     - name: Install udev rule for RP2040 stable symlink
       copy:
         src: ../../docker/99-rp2040.rules
@@ -81,18 +122,56 @@
         group: "{{ ansible_user }}"
         recurse: true
 
+    # Give the robot daemon a soft memory-protection floor on low-RAM boards so
+    # the camera feed / control loop survive memory pressure (see mem_reservation
+    # in docker-compose.yml). Only <=2 GB boards (Pi 4) get it; 4 GB boards (Pi 5)
+    # have ample headroom and get 0 (no reservation).
+    - name: Determine daemon memory reservation from board RAM
+      set_fact:
+        daemon_mem_reservation: "{{ '384m' if (ansible_memtotal_mb | int) <= 2560 else '0' }}"
+
+    # A mem_reservation is only enforced if the kernel memory cgroup controller
+    # is enabled. Raspberry Pi OS ships it OFF by default, so Docker silently
+    # discards the reservation until these flags are added to the boot cmdline.
+    # Only needed on the boards that actually get a reservation; takes effect
+    # after a reboot (which this playbook does not perform automatically).
+    - name: Enable kernel memory cgroup for mem_reservation (<=2 GB boards)
+      when: daemon_mem_reservation != '0'
+      ansible.builtin.shell: |
+        set -e
+        f=/boot/firmware/cmdline.txt
+        [ -f "$f" ] || f=/boot/cmdline.txt
+        if [ -f "$f" ] && ! grep -q cgroup_enable=memory "$f"; then
+            sed -i 's/$/ cgroup_enable=memory cgroup_memory=1/' "$f"
+            echo CHANGED
+        fi
+      register: cgroup_cmdline
+      changed_when: "'CHANGED' in cgroup_cmdline.stdout"
+      notify: memory cgroup reboot notice
+
     - name: Build Docker images from pulled source
       community.docker.docker_compose_v2:
         project_src: /opt/redwing/docker
         pull: missing
         build: always
         state: present
+      environment:
+        REDWING_DAEMON_MEM_RESERVATION: "{{ daemon_mem_reservation }}"
 
     - name: Ensure redwing daemon is running
       community.docker.docker_compose_v2:
         project_src: /opt/redwing/docker
         state: present
+      environment:
+        REDWING_DAEMON_MEM_RESERVATION: "{{ daemon_mem_reservation }}"
 
   handlers:
     - name: reload udev
       command: udevadm control --reload-rules && udevadm trigger
+
+    - name: memory cgroup reboot notice
+      debug:
+        msg: >-
+          Kernel memory cgroup was just enabled on this host. REBOOT it for the
+          daemon's mem_reservation to take effect (this playbook does not reboot
+          automatically).

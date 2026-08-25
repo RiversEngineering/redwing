@@ -9,11 +9,16 @@ import cv2
 import numpy as np
 
 from .config import (
-    CAMERA_INDEX, CAMERA_WIDTH, CAMERA_HEIGHT, CAMERA_FPS, MJPEG_QUALITY
+    CAMERA_INDEX, CAMERA_WIDTH, CAMERA_HEIGHT, CAMERA_FPS, MJPEG_QUALITY,
+    OPENCV_THREADS,
 )
 from .state import SharedState
 
 log = logging.getLogger(__name__)
+
+# Cap OpenCV's thread pool for the feed. See OPENCV_THREADS in config.py —
+# limiting it leaves cores free for other processes without slowing the feed.
+cv2.setNumThreads(OPENCV_THREADS)
 
 _JPEG_PARAMS = [cv2.IMWRITE_JPEG_QUALITY, MJPEG_QUALITY]
 
