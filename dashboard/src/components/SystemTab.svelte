@@ -154,7 +154,7 @@
 
         <!-- Firmware — kept at the bottom, out of the way of everyday controls -->
         <div class="space-y-3 pt-6 mt-6 border-t border-[#2e3340]">
-          <p class="text-xs text-slate-600 uppercase tracking-widest">RP2040</p>
+          <p class="text-xs text-slate-600 uppercase tracking-widest">RP2040 — Admin Only</p>
 
           {#if firmwareConfirming}
             <!-- Confirmation step -->
