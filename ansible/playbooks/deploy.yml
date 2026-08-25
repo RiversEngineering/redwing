@@ -85,7 +85,7 @@
       community.docker.docker_compose_v2:
         project_src: /opt/redwing/docker
         pull: missing
-        build: true
+        build: always
         state: present
 
     - name: Ensure redwing daemon is running
