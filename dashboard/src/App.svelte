@@ -14,7 +14,6 @@
   import ControllerTab from './components/ControllerTab.svelte';
   import MapTab        from './components/MapTab.svelte';
   import SystemTab     from './components/SystemTab.svelte';
-  import FirmwareTab   from './components/FirmwareTab.svelte';
 
   // When navigating away from the controller tab, zero out gamepad state.
   // ControllerTab's onDestroy also sends zero, but this fires first.
@@ -64,7 +63,6 @@
     { id: 'controller',  label: 'Controller' },
     { id: 'map',         label: 'Map' },
     { id: 'system',      label: 'System' },
-    { id: 'firmware',    label: 'Firmware' },
   ];
 </script>
 
@@ -155,13 +153,5 @@
       <ControllerTab />
     </div>
   {/if}
-
-  <!-- Firmware tab -->
-  <div
-    class="flex-1 min-h-0 overflow-hidden"
-    style="display: {$activeTab === 'firmware' ? 'flex' : 'none'}; flex-direction: column;"
-  >
-    <FirmwareTab />
-  </div>
 
 </div>
