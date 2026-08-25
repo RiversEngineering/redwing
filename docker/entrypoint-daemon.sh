@@ -7,14 +7,29 @@
 _mknod_if_present() {
     HOST="/host-dev/${1}"
     DEST="/dev/${1}"
-    if [ -c "$HOST" ] && [ ! -e "$DEST" ]; then
-        MAJOR=$(printf '%d' "0x$(stat -c '%t' "$HOST" 2>/dev/null)" 2>/dev/null)
-        MINOR=$(printf '%d' "0x$(stat -c '%T' "$HOST" 2>/dev/null)" 2>/dev/null)
-        if [ "${MAJOR:-0}" -gt 0 ] 2>/dev/null; then
-            mkdir -p "$(dirname "$DEST")" 2>/dev/null
-            mknod "$DEST" c "$MAJOR" "$MINOR" 2>/dev/null && chmod 660 "$DEST" 2>/dev/null || true
+    [ -c "$HOST" ] || return 0
+    HOSTMM=$(stat -c '%t:%T' "$HOST" 2>/dev/null)
+    MAJOR=$(printf '%d' "0x${HOSTMM%%:*}" 2>/dev/null)
+    MINOR=$(printf '%d' "0x${HOSTMM##*:}" 2>/dev/null)
+    [ "${MAJOR:-0}" -gt 0 ] 2>/dev/null || return 0
+    if [ -e "$DEST" ]; then
+        # Bus/device numbers (and, in principle, other dynamically-assigned
+        # major:minor pairs) get reused as devices disconnect and reconnect —
+        # confirmed on hardware: a Pico cycling through BOOTSEL<->app mode
+        # repeatedly eventually left a stale node whose major:minor pointed
+        # at a cdev the kernel had already destroyed, which open() reports as
+        # ENODEV even though the file itself still exists. Refresh instead of
+        # assuming "exists" means "still correct."
+        DESTMM=$(stat -c '%t:%T' "$DEST" 2>/dev/null)
+        DMAJOR=$(printf '%d' "0x${DESTMM%%:*}" 2>/dev/null)
+        DMINOR=$(printf '%d' "0x${DESTMM##*:}" 2>/dev/null)
+        if [ "$DMAJOR" = "$MAJOR" ] && [ "$DMINOR" = "$MINOR" ]; then
+            return 0
         fi
+        rm -f "$DEST" 2>/dev/null
     fi
+    mkdir -p "$(dirname "$DEST")" 2>/dev/null
+    mknod "$DEST" c "$MAJOR" "$MINOR" 2>/dev/null && chmod 660 "$DEST" 2>/dev/null || true
 }
 
 _refresh_devices() {
