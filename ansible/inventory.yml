@@ -10,10 +10,10 @@ all:
 
   hosts:
     r2d2:
-      ansible_host: 10.105.0.71
-    robot2:
-      ansible_host: robot2.local
-    robot3:
-      ansible_host: robot3.local
-    robot4:
-      ansible_host: robot4.local
+      ansible_host: r2d2.local
+    bender:
+      ansible_host: bender.local
+    ultron:
+      ansible_host: ultron.local
+    pi416:
+      ansible_host: pi416.local
