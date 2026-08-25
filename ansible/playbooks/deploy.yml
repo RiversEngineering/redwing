@@ -153,7 +153,7 @@
       community.docker.docker_compose_v2:
         project_src: /opt/redwing/docker
         pull: missing
-        build: true
+        build: always
         state: present
       environment:
         REDWING_DAEMON_MEM_RESERVATION: "{{ daemon_mem_reservation }}"
@@ -175,32 +175,3 @@
           Kernel memory cgroup was just enabled on this host. REBOOT it for the
           daemon's mem_reservation to take effect (this playbook does not reboot
           automatically).
-
-
-- name: Restore a student's workspace (reset a single robot)
-  hosts: all
-  become: true
-  tags: [restore]
-
-  tasks:
-    - name: Stop containers
-      community.docker.docker_compose_v2:
-        project_src: /opt/redwing/docker
-        state: stopped
-
-    - name: Clear student workspace
-      file:
-        path: /home/pi/workspace
-        state: absent
-
-    - name: Recreate empty workspace
-      file:
-        path: /home/pi/workspace
-        state: directory
-        owner: pi
-        mode: "0755"
-
-    - name: Restart containers
-      community.docker.docker_compose_v2:
-        project_src: /opt/redwing/docker
-        state: present

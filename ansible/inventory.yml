@@ -9,8 +9,8 @@ all:
     redwing_password: "redwing"   # code-server password — override per host if needed
 
   hosts:
-    robot1:
-      ansible_host: robot1.local
+    r2d2:
+      ansible_host: 10.105.0.71
     robot2:
       ansible_host: robot2.local
     robot3:
