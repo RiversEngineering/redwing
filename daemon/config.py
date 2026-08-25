@@ -25,6 +25,13 @@ CAMERA_HEIGHT = int(os.getenv("REDWING_CAM_H",  "480"))
 CAMERA_FPS    = int(os.getenv("REDWING_CAM_FPS", "30"))
 MJPEG_QUALITY = int(os.getenv("REDWING_JPEG",    "75"))
 
+# Cap OpenCV's internal thread pool. The feed's per-frame work (resize + JPEG
+# encode at 640×480) is tiny and gains nothing from more threads, so limiting
+# it costs no feed performance — it just keeps cores free so a student's heavy
+# vision work in the code-server container can't starve the capture loop on a
+# 4-core Pi 4.
+OPENCV_THREADS = int(os.getenv("REDWING_CV_THREADS", "2"))
+
 # LIDAR — leave empty to disable; set to e.g. /dev/ttyUSB0 to enable
 LIDAR_PORT = os.getenv("REDWING_LIDAR", "")
 
