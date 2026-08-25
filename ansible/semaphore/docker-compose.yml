@@ -1,0 +1,36 @@
+name: redwing-fleet-control
+
+# Semaphore UI — the web dashboard for running ansible/playbooks/deploy.yml
+# against the robot fleet. Runs on the Pi 3 control node.
+#
+# Setup:
+#   cp .env.example .env
+#   # fill in .env (see comments inside it), then:
+#   docker compose up -d
+#   # open http://<pi3-hostname-or-ip>:3000
+#
+# See ../README.md for the one-time project setup inside the web UI
+# (SSH key, repository, inventory, template).
+
+services:
+  semaphore:
+    image: docker.io/semaphoreui/semaphore:${SEMAPHORE_VERSION:-latest}
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      SEMAPHORE_ADMIN_NAME: ${SEMAPHORE_ADMIN_NAME:-Admin}
+      SEMAPHORE_ADMIN: ${SEMAPHORE_ADMIN_USERNAME:-admin}
+      SEMAPHORE_ADMIN_PASSWORD: ${SEMAPHORE_ADMIN_PASSWORD:?set SEMAPHORE_ADMIN_PASSWORD in .env}
+      SEMAPHORE_ADMIN_EMAIL: ${SEMAPHORE_ADMIN_EMAIL:-admin@localhost}
+      SEMAPHORE_WEB_ROOT: ${SEMAPHORE_WEB_ROOT:-http://0.0.0.0:3000}
+      SEMAPHORE_ACCESS_KEY_ENCRYPTION: ${SEMAPHORE_ACCESS_KEY_ENCRYPTION:?set SEMAPHORE_ACCESS_KEY_ENCRYPTION in .env}
+      SEMAPHORE_DB_DIALECT: sqlite
+      SEMAPHORE_DB_PATH: /var/lib/database
+    volumes:
+      - semaphore-data:/var/lib/semaphore
+      - semaphore-db:/var/lib/database
+
+volumes:
+  semaphore-data:
+  semaphore-db:

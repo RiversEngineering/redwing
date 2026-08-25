@@ -1,0 +1,8 @@
+---
+# Ansible Galaxy collections required by ansible/playbooks/deploy.yml.
+# Install locally with: ansible-galaxy install -r requirements.yml
+# Semaphore installs this automatically before each run (it looks for
+# requirements.yml at the repository root).
+collections:
+  - name: community.docker
+    version: ">=3.0.0"
