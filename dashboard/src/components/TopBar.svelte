@@ -1,7 +1,7 @@
 <script>
   import { connected, uptime, robotState } from '../lib/stores.js';
 
-  $: picoConnected = $robotState?.rp2040_connected ?? false;
+  $: blackbirdConnected = $robotState?.rp2040_connected ?? false;
 
   function formatUptime(secs) {
     if (secs === null || secs === undefined) return '--:--';
@@ -52,15 +52,15 @@
 
   <div class="h-6 w-px bg-[#2e3340]"></div>
 
-  <!-- Pico connection -->
-  <div class="flex items-center gap-1.5" title="RP2040 / Pico">
+  <!-- Blackbird connection -->
+  <div class="flex items-center gap-1.5" title="Blackbird">
     <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 transition-colors duration-300"
-          class:bg-emerald-400={picoConnected} class:shadow-[0_0_5px_#34d399]={picoConnected}
-          class:bg-slate-600={!picoConnected}></span>
+          class:bg-emerald-400={blackbirdConnected} class:shadow-[0_0_5px_#34d399]={blackbirdConnected}
+          class:bg-slate-600={!blackbirdConnected}></span>
     <span class="text-xs font-medium"
-          class:text-emerald-400={picoConnected}
-          class:text-slate-500={!picoConnected}>
-      Pico
+          class:text-emerald-400={blackbirdConnected}
+          class:text-slate-500={!blackbirdConnected}>
+      Blackbird
     </span>
   </div>
 
@@ -116,4 +116,12 @@
   <div class="text-xs text-slate-600 font-mono">
     ws://{location.host}/ws
   </div>
+
+  <a href="http://{location.hostname}:8080/" target="_blank" rel="noopener noreferrer"
+     class="flex items-center gap-1.5 px-3 h-7 rounded-md text-sm font-medium text-slate-300 bg-[#242835] border border-[#2e3340] hover:bg-[#2e3340] hover:text-slate-100 transition-colors">
+    <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none">
+      <path d="M5 4L2 8l3 4M11 4l3 4-3 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Editor
+  </a>
 </header>
