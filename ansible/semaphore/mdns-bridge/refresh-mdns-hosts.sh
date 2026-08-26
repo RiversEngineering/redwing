@@ -35,5 +35,11 @@ done
 
 if ! cmp -s "$tmp" "$OUT" 2>/dev/null; then
     cp "$tmp" "$OUT"
-    systemctl reload dnsmasq
+    # restart, not reload: confirmed on hardware that SIGHUP-reload doesn't
+    # pick up a conf-dir file that didn't exist at dnsmasq's last full
+    # start — silently, no error, host-record entries just don't apply.
+    # A full restart has nothing meaningful to lose here (no DHCP leases or
+    # long-lived client state, this instance only ever does DNS), so always
+    # restart rather than depend on which case reload does or doesn't cover.
+    systemctl restart dnsmasq
 fi
