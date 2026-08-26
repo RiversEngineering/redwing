@@ -2,6 +2,12 @@
     "workbench.colorTheme": "Default Dark Modern",
     "security.workspace.trust.enabled": false,
 
+    // Students should learn to write code themselves, not lean on an AI
+    // chat panel. This disables and hides the built-in Copilot Chat
+    // extension/view (VS Code ships it bundled by default since ~1.116).
+    // A teacher can still flip this off in Settings if ever needed.
+    "chat.disableAIFeatures": true,
+
     // ── Memory tuning for 2 GB Pi 4 boards ──────────────────────────────────
     // Pylance (the default Python language server) indexes the whole workspace
     // and installed packages — including OpenCV and numpy — which spikes RAM by

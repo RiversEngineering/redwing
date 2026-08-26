@@ -380,22 +380,22 @@
         </div>
 
         <!-- Quick presets -->
-        <div class="flex gap-2">
+        <div class="flex flex-wrap justify-center gap-1">
           {#each [[-100, '−100%'], [-75, '−75%'], [-50, '−50%'], [-25, '−25%']] as [v, label]}
             <button
-              class="px-3 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
+              class="px-1.5 py-1 rounded text-[10px] font-mono bg-[#1e2129] border border-[#2e3340]
                      text-red-400 hover:bg-red-900/20 hover:border-red-600/40 transition-colors"
               on:click={() => sendMotor(v)}>{label}</button>
           {/each}
 
           <button
-            class="px-4 py-1.5 rounded text-xs font-bold bg-slate-700 border border-slate-600
+            class="px-2.5 py-1 rounded text-[10px] font-bold bg-slate-700 border border-slate-600
                    text-slate-200 hover:bg-slate-600 transition-colors"
             on:click={() => sendMotor(0)}>STOP</button>
 
           {#each [[25, '+25%'], [50, '+50%'], [75, '+75%'], [100, '+100%']] as [v, label]}
             <button
-              class="px-3 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
+              class="px-1.5 py-1 rounded text-[10px] font-mono bg-[#1e2129] border border-[#2e3340]
                      text-blue-400 hover:bg-blue-900/20 hover:border-blue-600/40 transition-colors"
               on:click={() => sendMotor(v)}>{label}</button>
           {/each}
@@ -451,7 +451,7 @@
         </div>
 
         <!-- Quick presets -->
-        <div class="flex gap-2 flex-wrap">
+        <div class="flex gap-2 flex-wrap justify-center">
           {#each servoPresets(sr, servoUnit) as [v, label]}
             <button
               class="px-3 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
@@ -461,9 +461,24 @@
         </div>
 
         <!-- Range configuration -->
-        {#if servoRangeEditing}
+        <div class="space-y-2">
+          <button
+            class="w-full flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors
+                   {servoRangeEditing
+                     ? 'bg-amber-900/10 border-amber-500/30 text-amber-400'
+                     : 'bg-[#1e2129] border-[#2e3340] text-slate-400 hover:border-amber-500/40 hover:text-amber-400'}"
+            on:click={() => servoRangeEditing ? (servoRangeEditing = false) : openServoRange()}
+          >
+            <svg class="w-3 h-3 flex-shrink-0 transition-transform {servoRangeEditing ? 'rotate-90' : ''}"
+                 viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="text-xs font-semibold">Range</span>
+            <span class="text-xs text-slate-500">{sr.minAngle}{servoUnit} – {sr.maxAngle}{servoUnit} · {sr.minPulse}–{sr.maxPulse} µs</span>
+          </button>
+
+          {#if servoRangeEditing}
           <div class="border border-amber-500/30 rounded-lg p-4 space-y-3 bg-amber-900/10">
-            <p class="text-xs font-semibold text-amber-400">Set servo range</p>
             <div class="grid grid-cols-2 gap-3">
               <label class="space-y-1">
                 <span class="text-[10px] text-slate-500 uppercase tracking-wider">Min angle (°)</span>
@@ -499,12 +514,8 @@
                 on:click={() => servoRangeEditing = false}>Cancel</button>
             </div>
           </div>
-        {:else}
-          <button class="text-[10px] text-slate-600 hover:text-amber-500 transition-colors"
-            on:click={openServoRange}>
-            ⚙ Range: {sr.minAngle}{servoUnit} – {sr.maxAngle}{servoUnit} ({sr.minPulse}–{sr.maxPulse} µs)
-          </button>
-        {/if}
+          {/if}
+        </div>
 
         <!-- GoBilda dual-mode switch (S-port servos only) -->
         {#if portId !== null && portId < 8}
