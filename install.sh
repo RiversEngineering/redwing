@@ -1,18 +1,23 @@
 #!/bin/bash
 # Redwing robotics platform — complete first-time setup for Raspberry Pi.
 #
-# Run directly or pipe from GitHub:
-#   bash <(curl -fsSL https://raw.githubusercontent.com/RiversEngineering/redwing/main/install.sh)
+# Download and run:
+#   curl -fsSL -o install.sh https://raw.githubusercontent.com/RiversEngineering/redwing/main/install.sh
+#   bash install.sh
+#
+# (No chmod +x needed — `bash install.sh` has bash read and interpret the
+# file directly, rather than relying on the OS exec mechanism, which is the
+# only path that actually checks the executable bit. That only matters if
+# you run it as ./install.sh instead.)
 #
 # To install a specific branch instead of main (e.g. to test changes before
-# merging), download that branch's installer to a file and run it with
-# REDWING_BRANCH set to the same branch. Download-then-run works in any shell
-# (unlike `bash <(...)`, which needs bash), and the "refs/heads/" in the raw
-# URL is required for branch names that contain slashes. For example, to
-# install a branch named my/branch:
-#   curl -fsSL -o /tmp/redwing-install.sh \
+# merging), download that branch's installer instead and set REDWING_BRANCH
+# to the same branch — the "refs/heads/" in the raw URL is required for
+# branch names that contain slashes. For example, to install a branch named
+# my/branch:
+#   curl -fsSL -o install.sh \
 #     https://raw.githubusercontent.com/RiversEngineering/redwing/refs/heads/my/branch/install.sh
-#   REDWING_BRANCH=my/branch bash /tmp/redwing-install.sh
+#   REDWING_BRANCH=my/branch bash install.sh
 #
 # Safe to re-run — all steps are idempotent.
 
