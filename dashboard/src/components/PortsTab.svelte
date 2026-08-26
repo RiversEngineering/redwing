@@ -15,6 +15,14 @@
   const IMU_PORT = { id: 17, label: 'IMU', dual: true };
   const ALL_PORTS = [...SINGLE, ...DUAL, I2C_PORT, IMU_PORT];
 
+  // D6/D7 configured for a UART-based protocol list under the bus sidebar
+  // (right) instead of the physical port sidebar (left).
+  const UART_TYPES = new Set(['uart', 'tfluna', 'tfmini']);
+  const isUartCapable = (id) => id === 14 || id === 15; // D6, D7
+
+  $: dualLeft  = DUAL.filter((p) => !(isUartCapable(p.id) && UART_TYPES.has($ports[p.id]?.type)));
+  $: dualRight = DUAL.filter((p) =>   isUartCapable(p.id) && UART_TYPES.has($ports[p.id]?.type));
+
   let selectedId = null;
 
   $: selectedData = selectedId !== null ? $ports[selectedId] : null;
@@ -413,43 +421,8 @@
     </div>
 
     <div class="flex-1 overflow-y-auto min-h-0">
-      <!-- Dual-pin section -->
-      <div class="px-2 pt-2 pb-1">
-        <div class="text-[9px] text-slate-700 uppercase tracking-widest px-1 mb-1">Dual-pin D0–D7</div>
-        {#each DUAL as p}
-          {@const d = $ports[p.id]}
-          <button
-            class="w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors mb-px
-                   {selectedId === p.id
-                     ? 'bg-[#252932] ring-1 ring-[#3e4455]'
-                     : 'hover:bg-[#1e2129]'}"
-            on:click={() => selectPort(p.id)}
-          >
-            <!-- Port label badge -->
-            <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
-                         bg-slate-700/60 text-slate-400">{p.label}</span>
-
-            {#if d}
-              <!-- Color dot -->
-              <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {dotColor(d.type)}"></span>
-              <span class="text-[11px] text-slate-300 truncate">{deviceLabel(d.type)}</span>
-              {#if liveValue(d)}
-                <span class="text-[10px] font-mono text-slate-500 ml-auto flex-shrink-0">
-                  {liveValue(d)}
-                </span>
-              {/if}
-            {:else}
-              <span class="text-[11px] text-slate-700 italic">empty</span>
-            {/if}
-          </button>
-        {/each}
-      </div>
-
-      <!-- Divider -->
-      <div class="border-t border-[#2e3340] mx-2 my-1"></div>
-
       <!-- Single-pin section -->
-      <div class="px-2 pb-2">
+      <div class="px-2 pt-2 pb-1">
         <div class="text-[9px] text-slate-700 uppercase tracking-widest px-1 mb-1">Single-pin S0–S7</div>
         {#each SINGLE as p}
           {@const d = $ports[p.id]}
@@ -478,103 +451,44 @@
         {/each}
       </div>
 
-      <!-- I²C port (port 16) — shown when a sensor is detected -->
-      <!-- PCA9685 expansion channels (P0–P15) — shown when expander is detected -->
-      {#if !pcaState.present}
-        <div class="border-t border-[#2e3340] mx-2 my-1"></div>
-        <div class="px-3 py-1.5 flex items-center gap-1.5">
-          <span class="text-[9px] text-slate-700 uppercase tracking-widest">PCA9685</span>
-          <span class="ml-auto text-[8px] text-slate-700 italic">not detected</span>
-        </div>
-      {:else}
-      {/if}
-      {#if pcaState.present}
-        <div class="border-t border-[#2e3340] mx-2 my-1"></div>
-        <div class="px-2 pb-1">
-          <div class="flex items-center px-1 mb-1">
-            <div class="text-[9px] text-slate-700 uppercase tracking-widest">PCA9685  P0–P15</div>
-            {#if pcaState.calibrated}
-              <span class="ml-auto text-[8px] text-green-600 font-semibold">calibrated</span>
-            {:else}
-              <button
-                class="ml-auto text-[8px] text-amber-600 hover:text-amber-400 transition-colors cursor-pointer"
-                on:click={openCalibration}
-              >calibrate…</button>
-            {/if}
-          </div>
-          {#each PCA_CHANNELS as ch}
-            {@const chData = pcaState.channels?.[String(ch.id)]}
-            <button
-              class="w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors mb-px
-                     {selectedPcaChannel === ch.id
-                       ? 'bg-[#252932] ring-1 ring-[#3e4455]'
-                       : 'hover:bg-[#1e2129]'}"
-              on:click={() => selectPcaChannel(ch.id)}
-            >
-              <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
-                           bg-purple-900/40 text-purple-400">{ch.label}</span>
-              {#if chData?.type}
-                <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {isMotor(chData.type) ? 'bg-blue-400' : 'bg-amber-400'}"></span>
-                <span class="text-[11px] text-slate-300 truncate">{isMotor(chData.type) ? 'Motor' : 'Servo'}</span>
-              {:else}
-                <span class="text-[11px] text-slate-700 italic">empty</span>
-              {/if}
-            </button>
-          {/each}
-          {#if !pcaState.calibrated}
-            <button
-              class="w-full mt-1 px-2 py-1 rounded text-[9px] text-amber-700 border border-amber-900/40
-                     hover:bg-amber-900/20 hover:text-amber-500 transition-colors text-center"
-              on:click={openCalibration}
-            >⚠ Oscillator uncalibrated — click to calibrate</button>
-          {/if}
-        </div>
-      {/if}
+      <!-- Divider -->
+      <div class="border-t border-[#2e3340] mx-2 my-1"></div>
 
-      {#if $ports[16]}
-        <div class="border-t border-[#2e3340] mx-2 my-1"></div>
-        <div class="px-2 pb-2">
-          <div class="text-[9px] text-slate-700 uppercase tracking-widest px-1 mb-1">I²C</div>
+      <!-- Dual-pin section -->
+      <div class="px-2 pb-2">
+        <div class="text-[9px] text-slate-700 uppercase tracking-widest px-1 mb-1">Dual-pin D0–D7</div>
+        {#each dualLeft as p}
+          {@const d = $ports[p.id]}
           <button
             class="w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors mb-px
-                   {selectedId === 16
+                   {selectedId === p.id
                      ? 'bg-[#252932] ring-1 ring-[#3e4455]'
                      : 'hover:bg-[#1e2129]'}"
-            on:click={() => selectPort(16)}
+            on:click={() => selectPort(p.id)}
           >
+            <!-- Port label badge -->
             <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
-                         bg-slate-700/60 text-slate-400">I²C</span>
-            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {dotColor($ports[16].type)}"></span>
-            <span class="text-[11px] text-slate-300 truncate">{deviceLabel($ports[16].type)}</span>
-            {#if liveValue($ports[16])}
-              <span class="text-[10px] font-mono text-slate-500 ml-auto flex-shrink-0">
-                {liveValue($ports[16])}
-              </span>
+                         bg-slate-700/60 text-slate-400">{p.label}</span>
+
+            {#if d}
+              <!-- Color dot -->
+              <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {dotColor(d.type)}"></span>
+              <span class="text-[11px] text-slate-300 truncate">{deviceLabel(d.type)}</span>
+              {#if liveValue(d)}
+                <span class="text-[10px] font-mono text-slate-500 ml-auto flex-shrink-0">
+                  {liveValue(d)}
+                </span>
+              {/if}
+            {:else}
+              <span class="text-[11px] text-slate-700 italic">empty</span>
             {/if}
           </button>
-          <button
-            class="w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors mb-px
-                   {selectedId === 17
-                     ? 'bg-[#252932] ring-1 ring-[#3e4455]'
-                     : 'hover:bg-[#1e2129]'}"
-            on:click={() => selectPort(17)}
-          >
-            <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
-                         bg-slate-700/60 text-slate-400">IMU</span>
-            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {dotColor($ports[17]?.type)}"></span>
-            <span class="text-[11px] text-slate-300 truncate">{deviceLabel($ports[17]?.type)}</span>
-            {#if liveValue($ports[17])}
-              <span class="text-[10px] font-mono text-slate-500 ml-auto flex-shrink-0">
-                {liveValue($ports[17])}
-              </span>
-            {/if}
-          </button>
-        </div>
-      {/if}
+        {/each}
+      </div>
     </div>
   </div>
 
-  <!-- ── Detail / control panel (right) ── -->
+  <!-- ── Detail / control panel (center) ── -->
   <div class="flex-1 min-w-0 flex flex-col overflow-hidden bg-[#161920]">
 
     {#if pcaCalibrating}
@@ -1616,6 +1530,136 @@
       </div>
     {/if}
 
+  </div>
+
+  <!-- ── Bus / expansion device list (right column) — mirror image of the port list ── -->
+  <div class="w-52 flex-shrink-0 flex flex-col border-l border-[#2e3340] bg-[#1a1d26] overflow-hidden">
+    <div class="px-3 py-2 border-b border-[#2e3340] flex-shrink-0 text-right">
+      <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500">I²C &amp; UART</span>
+    </div>
+
+    <div class="flex-1 overflow-y-auto min-h-0">
+      <!-- I²C port (port 16) + IMU (port 17) — shown when an I²C sensor is detected -->
+      {#if $ports[16]}
+        <div class="px-2 pt-2 pb-2">
+          <div class="text-[9px] text-slate-700 uppercase tracking-widest px-1 mb-1 text-right">I²C</div>
+          <button
+            class="w-full flex flex-row-reverse items-center gap-2 px-2 py-1.5 rounded text-right transition-colors mb-px
+                   {selectedId === 16
+                     ? 'bg-[#252932] ring-1 ring-[#3e4455]'
+                     : 'hover:bg-[#1e2129]'}"
+            on:click={() => selectPort(16)}
+          >
+            <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
+                         bg-slate-700/60 text-slate-400">I²C</span>
+            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {dotColor($ports[16].type)}"></span>
+            <span class="text-[11px] text-slate-300 truncate">{deviceLabel($ports[16].type)}</span>
+            {#if liveValue($ports[16])}
+              <span class="text-[10px] font-mono text-slate-500 mr-auto flex-shrink-0">
+                {liveValue($ports[16])}
+              </span>
+            {/if}
+          </button>
+          <button
+            class="w-full flex flex-row-reverse items-center gap-2 px-2 py-1.5 rounded text-right transition-colors mb-px
+                   {selectedId === 17
+                     ? 'bg-[#252932] ring-1 ring-[#3e4455]'
+                     : 'hover:bg-[#1e2129]'}"
+            on:click={() => selectPort(17)}
+          >
+            <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
+                         bg-slate-700/60 text-slate-400">IMU</span>
+            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {dotColor($ports[17]?.type)}"></span>
+            <span class="text-[11px] text-slate-300 truncate">{deviceLabel($ports[17]?.type)}</span>
+            {#if liveValue($ports[17])}
+              <span class="text-[10px] font-mono text-slate-500 mr-auto flex-shrink-0">
+                {liveValue($ports[17])}
+              </span>
+            {/if}
+          </button>
+        </div>
+        <div class="border-t border-[#2e3340] mx-2 my-1"></div>
+      {/if}
+
+      <!-- UART section — D6/D7 when configured for a UART-based protocol -->
+      <div class="px-2 pt-2 pb-1">
+        <div class="text-[9px] text-slate-700 uppercase tracking-widest px-1 mb-1 text-right">UART D6–D7</div>
+        {#if dualRight.length === 0}
+          <div class="px-2 py-1.5 text-[11px] text-slate-700 italic text-right">none configured</div>
+        {:else}
+          {#each dualRight as p}
+            {@const d = $ports[p.id]}
+            <button
+              class="w-full flex flex-row-reverse items-center gap-2 px-2 py-1.5 rounded text-right transition-colors mb-px
+                     {selectedId === p.id
+                       ? 'bg-[#252932] ring-1 ring-[#3e4455]'
+                       : 'hover:bg-[#1e2129]'}"
+              on:click={() => selectPort(p.id)}
+            >
+              <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
+                           bg-slate-700/60 text-slate-400">{p.label}</span>
+              <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {dotColor(d.type)}"></span>
+              <span class="text-[11px] text-slate-300 truncate">{deviceLabel(d.type)}</span>
+              {#if liveValue(d)}
+                <span class="text-[10px] font-mono text-slate-500 mr-auto flex-shrink-0">
+                  {liveValue(d)}
+                </span>
+              {/if}
+            </button>
+          {/each}
+        {/if}
+      </div>
+
+      <!-- PCA9685 expansion channels (P0–P15) -->
+      {#if !pcaState.present}
+        <div class="border-t border-[#2e3340] mx-2 my-1"></div>
+        <div class="px-3 py-1.5 flex flex-row-reverse items-center gap-1.5">
+          <span class="text-[9px] text-slate-700 uppercase tracking-widest">PCA9685</span>
+          <span class="mr-auto text-[8px] text-slate-700 italic">not detected</span>
+        </div>
+      {:else}
+        <div class="border-t border-[#2e3340] mx-2 my-1"></div>
+        <div class="px-2 pb-1">
+          <div class="flex flex-row-reverse items-center px-1 mb-1">
+            <div class="text-[9px] text-slate-700 uppercase tracking-widest">PCA9685  P0–P15</div>
+            {#if pcaState.calibrated}
+              <span class="mr-auto text-[8px] text-green-600 font-semibold">calibrated</span>
+            {:else}
+              <button
+                class="mr-auto text-[8px] text-amber-600 hover:text-amber-400 transition-colors cursor-pointer"
+                on:click={openCalibration}
+              >calibrate…</button>
+            {/if}
+          </div>
+          {#each PCA_CHANNELS as ch}
+            {@const chData = pcaState.channels?.[String(ch.id)]}
+            <button
+              class="w-full flex flex-row-reverse items-center gap-2 px-2 py-1.5 rounded text-right transition-colors mb-px
+                     {selectedPcaChannel === ch.id
+                       ? 'bg-[#252932] ring-1 ring-[#3e4455]'
+                       : 'hover:bg-[#1e2129]'}"
+              on:click={() => selectPcaChannel(ch.id)}
+            >
+              <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
+                           bg-purple-900/40 text-purple-400">{ch.label}</span>
+              {#if chData?.type}
+                <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {isMotor(chData.type) ? 'bg-blue-400' : 'bg-amber-400'}"></span>
+                <span class="text-[11px] text-slate-300 truncate">{isMotor(chData.type) ? 'Motor' : 'Servo'}</span>
+              {:else}
+                <span class="text-[11px] text-slate-700 italic">empty</span>
+              {/if}
+            </button>
+          {/each}
+          {#if !pcaState.calibrated}
+            <button
+              class="w-full mt-1 px-2 py-1 rounded text-[9px] text-amber-700 border border-amber-900/40
+                     hover:bg-amber-900/20 hover:text-amber-500 transition-colors text-center"
+              on:click={openCalibration}
+            >⚠ Oscillator uncalibrated — click to calibrate</button>
+          {/if}
+        </div>
+      {/if}
+    </div>
   </div>
 </div>
 

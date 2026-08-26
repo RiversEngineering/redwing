@@ -57,7 +57,7 @@
     <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 transition-colors duration-300"
           class:bg-emerald-400={blackbirdConnected} class:shadow-[0_0_5px_#34d399]={blackbirdConnected}
           class:bg-slate-600={!blackbirdConnected}></span>
-    <span class="text-xs font-medium"
+    <span class="text-sm font-medium"
           class:text-emerald-400={blackbirdConnected}
           class:text-slate-500={!blackbirdConnected}>
       Blackbird
