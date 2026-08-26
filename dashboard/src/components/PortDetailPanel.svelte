@@ -380,25 +380,26 @@
         </div>
 
         <!-- Quick presets -->
-        <div class="flex flex-wrap justify-center gap-1">
-          {#each [[-100, '−100%'], [-75, '−75%'], [-50, '−50%'], [-25, '−25%']] as [v, label]}
+        <div class="flex justify-center">
+          <div class="flex flex-col items-center gap-2 w-full max-w-[15rem]">
             <button
-              class="px-1.5 py-1 rounded text-[10px] font-mono bg-[#1e2129] border border-[#2e3340]
-                     text-red-400 hover:bg-red-900/20 hover:border-red-600/40 transition-colors"
-              on:click={() => sendMotor(v)}>{label}</button>
-          {/each}
+              class="w-full py-2.5 rounded text-sm font-bold bg-slate-700 border border-slate-600
+                     text-slate-200 hover:bg-slate-600 transition-colors"
+              on:click={() => sendMotor(0)}>STOP</button>
 
-          <button
-            class="px-2.5 py-1 rounded text-[10px] font-bold bg-slate-700 border border-slate-600
-                   text-slate-200 hover:bg-slate-600 transition-colors"
-            on:click={() => sendMotor(0)}>STOP</button>
-
-          {#each [[25, '+25%'], [50, '+50%'], [75, '+75%'], [100, '+100%']] as [v, label]}
-            <button
-              class="px-1.5 py-1 rounded text-[10px] font-mono bg-[#1e2129] border border-[#2e3340]
-                     text-blue-400 hover:bg-blue-900/20 hover:border-blue-600/40 transition-colors"
-              on:click={() => sendMotor(v)}>{label}</button>
-          {/each}
+            <div class="grid grid-cols-2 gap-x-3 gap-y-2 w-full">
+              {#each [25, 50, 75, 100] as mag}
+                <button
+                  class="py-2.5 rounded text-sm font-mono bg-[#1e2129] border border-[#2e3340]
+                         text-red-400 hover:bg-red-900/20 hover:border-red-600/40 transition-colors"
+                  on:click={() => sendMotor(-mag)}>−{mag}%</button>
+                <button
+                  class="py-2.5 rounded text-sm font-mono bg-[#1e2129] border border-[#2e3340]
+                         text-blue-400 hover:bg-blue-900/20 hover:border-blue-600/40 transition-colors"
+                  on:click={() => sendMotor(mag)}>+{mag}%</button>
+              {/each}
+            </div>
+          </div>
         </div>
 
         <p class="text-[11px] text-slate-600">
@@ -451,10 +452,10 @@
         </div>
 
         <!-- Quick presets -->
-        <div class="flex gap-2 flex-wrap justify-center">
+        <div class="flex gap-1.5 flex-wrap justify-center">
           {#each servoPresets(sr, servoUnit) as [v, label]}
             <button
-              class="px-3 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
+              class="px-2 py-1 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
                      text-amber-400 hover:bg-amber-900/20 hover:border-amber-600/40 transition-colors"
               on:click={() => sendServo(v)}>{label}</button>
           {/each}

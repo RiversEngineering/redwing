@@ -59,11 +59,10 @@ export function pulseToAngle(pulse_us, r) {
 export function servoPresets(r, unit = '°') {
   const fmt = (n) => Number.isInteger(n) ? String(n) : n.toFixed(0);
   const c = (r.minAngle + r.maxAngle) / 2;
-  const cLabel = unit === '%' ? `${fmt(c)}% (stop)` : `${fmt(c)}° (center)`;
   return [
     [r.minAngle, `${fmt(r.minAngle)}${unit}`],
     [r.minAngle + (r.maxAngle - r.minAngle) * 0.25, `${fmt(r.minAngle + (r.maxAngle - r.minAngle) * 0.25)}${unit}`],
-    [c, cLabel],
+    [c, `${fmt(c)}${unit}`],
     [r.minAngle + (r.maxAngle - r.minAngle) * 0.75, `${fmt(r.minAngle + (r.maxAngle - r.minAngle) * 0.75)}${unit}`],
     [r.maxAngle, `${fmt(r.maxAngle)}${unit}`],
   ];
