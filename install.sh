@@ -68,6 +68,27 @@ echo "  Install: $INSTALL_DIR"
 echo "  Repo:    $REPO_URL"
 echo "  Branch:  $REPO_BRANCH"
 
+# ── 0. Passwordless sudo ───────────────────────────────────────────────────────
+# Fresh Raspberry Pi OS images normally set this up automatically for the
+# first user, but not every board that reaches this script got here that way
+# (reused SD cards, older images, accounts created some other path) — a few
+# robots in this fleet needed it added by hand before Ansible could reach
+# them non-interactively (there's no human around to type a sudo password
+# when a deploy is triggered remotely). Idempotent, and everything below this
+# depends on it: if you're piping this script (`curl ... | bash`), there's no
+# terminal attached for sudo to prompt on, so a board missing this can't get
+# past the very next step regardless — run it locally instead
+# (`bash install.sh`) on a board that needs a password typed once.
+step "Ensuring passwordless sudo for $INSTALL_USER..."
+if sudo -n true 2>/dev/null; then
+    ok "Already passwordless"
+else
+    sudo install -m 0440 -o root -g root /dev/stdin /etc/sudoers.d/010-redwing-nopasswd <<EOF
+${INSTALL_USER} ALL=(ALL) NOPASSWD: ALL
+EOF
+    ok "Configured passwordless sudo for $INSTALL_USER"
+fi
+
 # ── 1. System update ──────────────────────────────────────────────────────────
 step "Updating system packages..."
 sudo dpkg --configure -a || true
