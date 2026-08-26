@@ -20,6 +20,11 @@ names=$(grep -oE '[A-Za-z0-9_-]+\.local' "$INVENTORY" | sort -u || true)
 
 tmp=$(mktemp)
 trap 'rm -f "$tmp"' EXIT
+# mktemp creates this 600 (owner-only) by default. dnsmasq runs as its own
+# unprivileged `dnsmasq` user, not root, so a 600 root-owned file it can't
+# even open — it skips unreadable files silently, no error logged, which
+# looks identical to "the host-record just isn't there" from the outside.
+chmod 644 "$tmp"
 
 for name in $names; do
     ip=$(avahi-resolve -4 -n "$name" 2>/dev/null | awk '{print $2}') || ip=""
