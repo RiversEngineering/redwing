@@ -1,0 +1,11 @@
+# Install to /etc/systemd/system/mdns-hosts-refresh.timer — see ../../README.md.
+[Unit]
+Description=Run mdns-hosts-refresh.service every 2 minutes
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=2min
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target

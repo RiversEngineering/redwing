@@ -1,0 +1,9 @@
+# Install to /etc/systemd/system/mdns-hosts-refresh.service — see ../../README.md.
+[Unit]
+Description=Refresh .local hostname mappings for the fleet-control dnsmasq bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/pi/redwing/ansible/semaphore/mdns-bridge/refresh-mdns-hosts.sh

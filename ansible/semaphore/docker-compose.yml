@@ -47,6 +47,26 @@ services:
       SEMAPHORE_SCHEDULE_TIMEZONE: ${SEMAPHORE_SCHEDULE_TIMEZONE:-America/New_York}
     volumes:
       - semaphore-data:/var/lib/semaphore
+    # Alpine (this image's base) has no mDNS support at all — musl libc
+    # doesn't support glibc-style pluggable NSS modules, so .local names in
+    # inventory.yml can't resolve inside this container by any of the usual
+    # tricks. Instead point DNS at the dnsmasq bridge on the host (see
+    # mdns-bridge/ in this directory) — it resolves .local names via the
+    # host's own working Avahi and re-serves them as plain DNS, which works
+    # from any container regardless of libc. Uses a fixed subnet (below) so
+    # the bridge has one predictable, documented address to listen on,
+    # instead of whatever Docker happens to assign.
+    dns:
+      - 172.28.55.1
+    networks:
+      default:
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.28.55.0/24
+          gateway: 172.28.55.1
 
 volumes:
   semaphore-data:

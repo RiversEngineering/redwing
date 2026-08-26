@@ -37,6 +37,55 @@ the control node doesn't need its own checkout of the app code, just this
 6. Open `http://<pi3-hostname-or-ip>:3000` and log in with the admin
    credentials from `.env`.
 
+## Making `.local` hostnames resolve (mDNS bridge)
+
+If `inventory.yml` uses IPs (like r2d2's `10.105.0.71`), skip this section.
+
+If you'd rather use `robotN.local` names — e.g. because you don't control
+the network and can't get IPs reserved — there's a catch: the Semaphore
+image is Alpine-based (musl libc), which has no support for the
+glibc-style pluggable NSS modules the usual `.local`-in-Docker fix
+(`apt install libnss-mdns`) relies on. **A locked-down NetworkManager +
+systemd-resolved combination was tried and hit a wall that looked like a
+version-specific bug** (both per-link and global mDNS settings correctly
+configured per the docs, confirmed via logs that NetworkManager pushed
+the right config to resolved — and `resolvectl` still reported it off).
+Don't spend more time on that path without a specific reason to revisit it.
+
+What actually works: `docker-compose.yml` already points Semaphore's DNS at
+`172.28.55.1` (the fixed gateway of its own Docker network) and expects a
+narrowly-scoped **dnsmasq** there that resolves `.local` names via the
+host's own Avahi (confirmed working independently — `getent hosts
+<name>.local` on the Pi 3 itself) and re-serves them as plain DNS, which
+works from any container regardless of its libc. One-time setup, all in
+`ansible/semaphore/mdns-bridge/`:
+
+```
+sudo apt install -y dnsmasq avahi-utils
+sudo cp ansible/semaphore/mdns-bridge/dnsmasq-bridge.conf /etc/dnsmasq.d/redwing-bridge.conf
+sudo systemctl restart dnsmasq
+
+sudo cp ansible/semaphore/mdns-bridge/mdns-hosts-refresh.service /etc/systemd/system/
+sudo cp ansible/semaphore/mdns-bridge/mdns-hosts-refresh.timer /etc/systemd/system/
+sudo systemctl enable --now mdns-hosts-refresh.timer
+sudo systemctl start mdns-hosts-refresh.service   # run once immediately, don't wait for the timer
+```
+
+Verify:
+```
+cat /etc/dnsmasq.d/redwing-mdns-hosts.conf   # should list host-record= lines for each *.local in inventory.yml
+docker compose -f ansible/semaphore/docker-compose.yml exec semaphore getent hosts bender.local
+```
+The second command runs *inside* the Semaphore container — that's the real
+test, since it's the thing that couldn't resolve `.local` names before.
+
+`refresh-mdns-hosts.sh` assumes the repo is checked out at
+`/home/pi/redwing` — adjust the path in the `.service` file if yours lives
+elsewhere. It re-resolves every `*.local` name in `inventory.yml` every 2
+minutes (mDNS has no "list everyone" query, so each name is resolved
+individually); a robot that's temporarily offline just drops out of the
+file until it's reachable again, rather than serving a stale IP.
+
 ## One-time setup inside Semaphore's web UI
 
 Semaphore's UI changes cosmetically between versions, but the shape is
