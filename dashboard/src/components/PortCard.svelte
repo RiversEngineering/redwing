@@ -29,6 +29,8 @@
       case 'encoder':      return 'Encoder';
       case 'ultrasonic':   return 'Ultrasonic';
       case 'vl53l0x':     return 'VL53L0X';
+      case 'tfluna':      return 'TF-Luna';
+      case 'tfmini':      return 'TF-Mini';
       case 'ir_distance':  return 'IR Sensor';
       case 'bno085':      return 'BNO085';
       case 'bno055':      return 'BNO055';
@@ -54,6 +56,11 @@
       case 'vl53l0x': {
         if (!d.valid) return 'OOB';
         return `${(d.distance_mm / 10).toFixed(1)} cm`;
+      }
+      case 'tfluna':
+      case 'tfmini': {
+        if (!d.valid) return 'OOB';
+        return `${(d.distance_cm ?? 0).toFixed(0)} cm`;
       }
       case 'ultrasonic': {
         if (!d.valid) return 'OOB';
@@ -105,6 +112,8 @@
       case 'ultrasonic':
         return 'M8 12a4 4 0 0 0 4 4M8 12a4 4 0 0 1 4-4M8 12H4M19 12a7 7 0 0 1-7 7M19 12a7 7 0 0 0-7-7';
       case 'vl53l0x':
+      case 'tfluna':
+      case 'tfmini':
         return 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5';
       case 'ir_distance':
         return 'M12 19V5M5 12l7-7 7 7M3 19h18';
@@ -130,6 +139,8 @@
       case 'encoder':    return 'text-violet-400 border-violet-500/30 bg-violet-500/10';
       case 'ultrasonic': return 'text-cyan-400   border-cyan-500/30   bg-cyan-500/10';
       case 'vl53l0x':     return 'text-teal-400   border-teal-500/30   bg-teal-500/10';
+      case 'tfluna':
+      case 'tfmini':      return 'text-sky-400    border-sky-500/30    bg-sky-500/10';
       case 'ir_distance': return 'text-rose-400   border-rose-500/30   bg-rose-500/10';
       case 'bno085':
       case 'bno055':      return 'text-indigo-400 border-indigo-500/30 bg-indigo-500/10';
@@ -213,6 +224,8 @@
                 {isMotor(data.type)          ? 'bg-blue-400'   :
                  data.type === 'encoder'     ? 'bg-violet-400' :
                  data.type === 'ultrasonic'  ? 'bg-cyan-400'   :
+                 data.type === 'tfluna' ||
+                 data.type === 'tfmini'      ? 'bg-sky-400'    :
                  data.type === 'servo'       ? 'bg-amber-400'  :
                  isGpio(data.type)           ? 'bg-green-400'  : 'bg-slate-600'}">
     </div>
