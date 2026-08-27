@@ -23,6 +23,10 @@ log = logging.getLogger(__name__)
 BOUNDARY = b"--frame"
 MJPEG_CONTENT_TYPE = "multipart/x-mixed-replace; boundary=frame"
 
+# Sentinel file entrypoint-daemon.sh watches to know when to switch its USB-bus
+# device-node mirror into fast (100ms) polling — see _do_flash_firmware below.
+FLASHING_FLAG_PATH = "/tmp/redwing_flashing"
+
 
 def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None) -> FastAPI:
     app = FastAPI(title="Redwing Dashboard")
@@ -521,6 +525,11 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
         Ansible a real pass/fail result instead of a fire-and-forget request.
         """
         flash_state["running"] = True
+        # Signal entrypoint-daemon.sh's USB-bus watcher to switch into its fast
+        # (100ms) polling mode — it only needs to win picotool's sub-second
+        # BOOTSEL-reenumeration race during an actual flash, not for the
+        # entire life of the container. See entrypoint-daemon.sh.
+        open(FLASHING_FLAG_PATH, "w").close()
         try:
             await _broadcast_flash_status(clients, "running", "Flashing firmware...")
             await _flash_log("info", "[Dashboard] Flashing firmware...")
@@ -560,6 +569,10 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
             return False, str(exc)
         finally:
             flash_state["running"] = False
+            try:
+                os.remove(FLASHING_FLAG_PATH)
+            except FileNotFoundError:
+                pass
 
     async def _broadcast_map():
         """Stream new map points to all dashboard clients at ~10 Hz."""

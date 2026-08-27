@@ -70,8 +70,6 @@ _refresh_devices() {
     for i in 0 1 2 3 4 5; do
         _mknod_if_present "i2c-${i}"
     done
-
-    _refresh_usb_bus
 }
 
 # Raw USB bus devices — picotool (via libusb) uses these to reset the RP2040
@@ -81,9 +79,10 @@ _refresh_devices() {
 # ttyACM/video, so unlike the lookups above this mirrors every node currently
 # on the host bus rather than one well-known path — this does widen the
 # container's USB access beyond just the Pico. Kept as its own function (and
-# polled separately, much faster, below) because picotool's own "wait for the
-# device to come back in BOOTSEL mode" patience window is well under a
-# second — the general 1 s device watcher was too slow to win that race.
+# polled separately below, briefly much faster during an active flash)
+# because picotool's own "wait for the device to come back in BOOTSEL mode"
+# patience window is well under a second — the general watcher's interval is
+# too slow to win that race.
 _refresh_usb_bus() {
     for busdir in /host-dev/bus/usb/*/; do
         [ -d "$busdir" ] || continue
@@ -97,27 +96,40 @@ _refresh_usb_bus() {
 
 # Initial scan at startup
 _refresh_devices
+_refresh_usb_bus
 
-# Background watcher: re-scan every 1 s to pick up hot-plugged devices
+# Background watcher: re-scan every 5 s to pick up hot-plugged devices
 # (camera, ttyACM/ttyUSB, I2C). Fine for these — nothing here needs to react
 # faster than human hot-plug speed.
 # After exec below, this process is reparented to PID 1 (the daemon) and runs
 # until the container stops.
 _device_watcher() {
     while true; do
-        sleep 1
+        sleep 5
         _refresh_devices
     done
 }
 _device_watcher &
 
-# Dedicated fast poller just for the USB bus mirroring — see comment on
-# _refresh_usb_bus above for why this needs a much tighter interval than the
-# general watcher. The fast path (device already mirrored) is a cheap `[ -e ]`
-# test with no forked processes, so polling this often costs very little.
+# Dedicated poller for the USB bus mirroring (see _refresh_usb_bus above).
+# _mknod_if_present's stale-node check forks stat on every path it's given,
+# every cycle, by design (that's the fix for the Pico-cycling-through-BOOTSEL
+# bug) — so unlike the old create-if-missing version, this is never free, and
+# polling the *entire* USB bus this way many times a second, for the whole
+# life of the container, showed up on hardware as a large, continuous CPU/
+# thermal cost (measured: ~470 forks/sec, ~35pp of container CPU) even though
+# nothing was actually flashing. The sub-second reaction time only matters for
+# picotool's own BOOTSEL-reenumeration window *during* an actual flash — the
+# daemon touches FLASHING_FLAG_PATH (daemon/api.py, _do_flash_firmware) around
+# the picotool calls, so fast polling only runs then; otherwise this idles at
+# the same cadence as the general watcher above.
 _usb_bus_watcher() {
     while true; do
-        sleep 0.1
+        if [ -e /tmp/redwing_flashing ]; then
+            sleep 0.1
+        else
+            sleep 5
+        fi
         _refresh_usb_bus
     done
 }
