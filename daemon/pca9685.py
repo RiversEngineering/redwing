@@ -43,6 +43,12 @@ class PCA9685:
         self._present  = False
         # Last commanded pulse width per channel (for re-apply after calibration)
         self._channel_pulse_us: list[float | None] = [None] * 16
+        # Last commanded fixed digital level per channel (True=full-on,
+        # False=full-off), for channels driven via set_channel_level rather
+        # than a PWM pulse — e.g. a paired sign-magnitude motor's direction
+        # line. Mutually exclusive with _channel_pulse_us; both setters clear
+        # the other so calibration re-apply (below) knows which one is live.
+        self._channel_level: list[bool | None] = [None] * 16
 
     # ------------------------------------------------------------------
     # Detection
@@ -159,12 +165,29 @@ class PCA9685:
         on, off = self._pulse_us_to_counts(pulse_us)
         self._rp.enqueue(proto.cmd_pca_set_ch(channel, on, off))
         self._channel_pulse_us[channel] = pulse_us
+        self._channel_level[channel] = None
 
     def set_channel_off(self, channel: int):
         """Disable a channel (no pulse output)."""
         if not self._present:
             return
         self._rp.enqueue(proto.cmd_pca_ch_off(channel))
+        self._channel_pulse_us[channel] = None
+        self._channel_level[channel] = None
+
+    def set_channel_level(self, channel: int, level: bool):
+        """Drive a channel to a fixed 0% or 100% duty digital level via the
+        PCA9685's full-on/full-off register bits — for a paired
+        sign-magnitude motor's direction line, which needs a clean high/low
+        level rather than an RC-style pulse within the 50 Hz frame.
+        """
+        if not self._present:
+            return
+        if level:
+            self._rp.enqueue(proto.cmd_pca_ch_on(channel))
+        else:
+            self._rp.enqueue(proto.cmd_pca_ch_off(channel))
+        self._channel_level[channel] = level
         self._channel_pulse_us[channel] = None
 
     def configure_channel(self, channel: int, port_type: str):
@@ -242,10 +265,15 @@ class PCA9685:
         if not ok:
             return {"ok": False, "error": "PCA9685 not responding after calibration"}
 
-        # Step 7: re-apply all channels that were previously set
-        for ch, pulse_us in enumerate(self._channel_pulse_us):
-            if pulse_us is not None:
-                self.set_channel_pulse_us(ch, pulse_us)
+        # Step 7: re-apply all channels that were previously set. A fixed
+        # digital level (direction line) doesn't depend on prescale at all,
+        # but is re-sent anyway for simplicity and to keep the two tracking
+        # lists authoritative for what's actually live on each channel.
+        for ch in range(16):
+            if self._channel_level[ch] is not None:
+                self.set_channel_level(ch, self._channel_level[ch])
+            elif self._channel_pulse_us[ch] is not None:
+                self.set_channel_pulse_us(ch, self._channel_pulse_us[ch])
             else:
                 self.set_channel_off(ch)
 

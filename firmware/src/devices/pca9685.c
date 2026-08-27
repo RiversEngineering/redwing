@@ -55,3 +55,11 @@ bool pca9685_channel_off(uint8_t addr, uint8_t channel) {
     };
     return i2c_write_blocking(i2c0, addr, buf, 5, false) == 5;
 }
+
+bool pca9685_channel_on(uint8_t addr, uint8_t channel) {
+    uint8_t buf[5] = {
+        (uint8_t)(LED0_ON_L + 4u * channel),
+        0x00, 0x10, 0x00, 0x00  // FULL_ON bit in ON_H
+    };
+    return i2c_write_blocking(i2c0, addr, buf, 5, false) == 5;
+}

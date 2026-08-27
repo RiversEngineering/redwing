@@ -325,6 +325,17 @@ static void handle_command(uint8_t type, const uint8_t *payload, uint8_t len) {
             break;  // fire-and-forget; no ACK
         }
 
+        case CMD_PCA_CH_ON: {
+            if (len < sizeof(CmdPcaChOn)) goto bad_len;
+            const CmdPcaChOn *cmd = (const CmdPcaChOn *)payload;
+            if (cmd->ch > 15) {
+                usb_comm_send_error(ERR_BAD_PORT, "PCA9685 ch must be 0-15");
+                break;
+            }
+            pca9685_channel_on(0x40, cmd->ch);
+            break;  // fire-and-forget; no ACK
+        }
+
         case CMD_GOBILDA_MODE: {
             if (len < sizeof(CmdGoBildaMode)) goto bad_len;
             const CmdGoBildaMode *cmd = (const CmdGoBildaMode *)payload;

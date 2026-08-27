@@ -422,7 +422,7 @@
               </span>
               {#if selectedPcaData.type === 'motor_sm_pair'}
                 <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-900/30 text-blue-400">
-                  paired · dir P{selectedPcaData.partner}
+                  PWM · DIR on P{selectedPcaData.partner}
                 </span>
               {/if}
               <span class="text-xs text-slate-600">PCA9685 channel {rightSelectedPcaChannel}</span>
@@ -471,16 +471,17 @@
                       on:click={() => pcaPairPicking = true}
                     >
                       <span class="text-xs font-semibold leading-tight">Motor (Paired)</span>
-                      <span class="text-[10px] text-slate-600 leading-tight mt-0.5">2 channels, sign-magnitude</span>
+                      <span class="text-[10px] text-slate-600 leading-tight mt-0.5">PWM channel + DIR channel</span>
                     </button>
                   </div>
                 {:else}
                   <div>
-                    <p class="text-sm font-semibold text-slate-300 mb-1">Pick the direction channel</p>
+                    <p class="text-sm font-semibold text-slate-300 mb-1">Pick the DIR channel</p>
                     <p class="text-xs text-slate-600">
-                      P{rightSelectedPcaChannel} will carry the magnitude (PWM) signal — wire it to
-                      your driver's PWM input. The channel you pick here carries direction (a fixed
-                      high/low level) — wire it to your driver's DIR input.
+                      P{rightSelectedPcaChannel} becomes the <span class="text-slate-400 font-semibold">PWM</span> channel
+                      — a signal proportional to |speed| — wire it to your driver's PWM/magnitude input.
+                      The channel you pick here becomes the <span class="text-slate-400 font-semibold">DIR</span> channel
+                      — a fixed HIGH/LOW level, not a PWM signal — wire it to your driver's DIR input.
                     </p>
                   </div>
                   <div class="grid grid-cols-4 gap-1.5">
@@ -545,10 +546,18 @@
                   </div>
                 </div>
                 {#if selectedPcaData.type === 'motor_sm_pair'}
+                  <div class="flex items-center gap-2 text-xs">
+                    <span class="text-slate-500">DIR (P{selectedPcaData.partner}):</span>
+                    <span class="font-mono font-semibold px-1.5 py-0.5 rounded
+                                 {pcaMotorSpeed >= 0 ? 'text-blue-400 bg-blue-900/20' : 'text-red-400 bg-red-900/20'}">
+                      {pcaMotorSpeed >= 0 ? 'HIGH (forward)' : 'LOW (reverse)'}
+                    </span>
+                  </div>
                   <p class="text-[11px] text-slate-600">
-                    Sign-magnitude pair: P{rightSelectedPcaChannel} outputs 1500–1900 µs proportional
-                    to |speed| — wire to your driver's PWM/magnitude input. P{selectedPcaData.partner}
-                    outputs a fixed 1100 µs or 1900 µs level for direction — wire to your driver's DIR input.
+                    Sign-magnitude pair: P{rightSelectedPcaChannel} (PWM) outputs 1500–1900 µs proportional
+                    to |speed| — wire to your driver's PWM/magnitude input. P{selectedPcaData.partner} (DIR)
+                    outputs a fixed HIGH or LOW level — not a pulse — via the PCA9685's full-on/full-off
+                    mode. Wire it to your driver's DIR input.
                   </p>
                 {:else}
                   <p class="text-[11px] text-slate-600">RC ESC protocol: 1500 µs = stop, 1100 µs = full reverse, 1900 µs = full forward.</p>
@@ -798,11 +807,11 @@
             {#if isPairDir}
               <div
                 class="w-full flex flex-row-reverse items-center gap-2 px-2 py-1.5 rounded mb-px opacity-40 cursor-not-allowed"
-                title="{ch.label} is paired with P{chData.partner} as a sign-magnitude motor's direction line — see P{chData.partner}"
+                title="{ch.label} is the DIR (direction) channel of a sign-magnitude pair — see P{chData.partner}, the PWM channel"
               >
                 <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
                              bg-purple-900/40 text-purple-400">{ch.label}</span>
-                <span class="text-[11px] text-slate-600 italic truncate">paired → P{chData.partner}</span>
+                <span class="text-[11px] text-slate-600 italic truncate">DIR → P{chData.partner}</span>
               </div>
             {:else}
               <button
@@ -816,7 +825,9 @@
                              bg-purple-900/40 text-purple-400">{ch.label}</span>
                 {#if chData?.type}
                   <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {isMotor(chData.type) ? 'bg-blue-400' : 'bg-amber-400'}"></span>
-                  <span class="text-[11px] text-slate-300 truncate">{isMotor(chData.type) ? 'Motor' : 'Servo'}</span>
+                  <span class="text-[11px] text-slate-300 truncate">
+                    {chData.type === 'motor_sm_pair' ? 'Motor · PWM' : (isMotor(chData.type) ? 'Motor' : 'Servo')}
+                  </span>
                 {:else}
                   <span class="text-[11px] text-slate-700 italic">empty</span>
                 {/if}

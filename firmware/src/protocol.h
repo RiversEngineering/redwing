@@ -30,6 +30,7 @@
 #define CMD_SET_POS_OPTIONS  0x15  // position PID options; payload: CmdSetPosOptions
 #define CMD_INVERT_ENCODER   0x16  // flip encoder count/velocity sign; payload: CmdInvertEncoder
 #define CMD_GOBILDA_MODE     0x17  // switch GoBilda dual-mode servo; payload: [port_id:u8][mode:u8] (0=positional 1=continuous)
+#define CMD_PCA_CH_ON        0x18  // full-on channel (100% duty, not a PWM pulse); payload: [ch:u8] (no ACK)
 
 // ─── RP2040 → Pi response types ──────────────────────────────────────────────
 #define RESP_STATE         0x81
@@ -178,6 +179,7 @@ typedef struct { uint8_t port_id; }                                    CmdMeasur
 typedef struct { uint8_t prescale; }                                   CmdPcaInit;
 typedef struct { uint8_t ch; uint16_t on; uint16_t off; }             CmdPcaSetCh;
 typedef struct { uint8_t ch; }                                         CmdPcaChOff;
+typedef struct { uint8_t ch; }                                         CmdPcaChOn;
 typedef struct { uint8_t port_id; int32_t target; uint16_t speed_limit; }           CmdSetPosition;
 typedef struct { uint8_t port_id; int32_t target; uint16_t speed_limit; uint8_t flags; } CmdSetPositionFull;
 typedef struct { uint8_t port_id; float deadband; float output_floor; float ramp_rate; float d_alpha; float approach_factor; } CmdSetPosOptions;

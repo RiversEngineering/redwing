@@ -14,3 +14,9 @@ bool pca9685_set_channel(uint8_t addr, uint8_t channel, uint16_t on, uint16_t of
 
 // Disable a channel (FULL_OFF — output stays LOW regardless of count).
 bool pca9685_channel_off(uint8_t addr, uint8_t channel);
+
+// Force a channel fully HIGH (FULL_ON — output stays HIGH regardless of
+// count). Paired with pca9685_channel_off() to drive a clean 0%/100% duty
+// digital level — e.g. a paired sign-magnitude motor's direction line —
+// rather than an RC-style pulse within the 50 Hz frame.
+bool pca9685_channel_on(uint8_t addr, uint8_t channel);

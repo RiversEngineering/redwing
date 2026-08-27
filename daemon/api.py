@@ -219,13 +219,12 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                 # motor, mirroring the D-port motor_sm scheme in software:
                 # channel_a carries a PWM pulse proportional to |speed| (a
                 # driver's PWM/magnitude input, 0% -> stopped), channel_b is
-                # driven to one of two fixed pulse extremes as a steady
-                # logic-level DIR signal. The PCA9685 has no plain digital
-                # output — both ride the same pulse-width mechanism used for
-                # servos/ESCs on this chip, but held at the extremes a
-                # driver's DIR input reads as a static high/low level.
-                channel_a = int(msg["channel_a"])  # magnitude
-                channel_b = int(msg["channel_b"])  # direction
+                # held at a fixed 0% or 100% duty level via the PCA9685's
+                # full-on/full-off register bits (pca.set_channel_level) — a
+                # true static high/low level, not an RC-style pulse — for a
+                # driver's DIR input.
+                channel_a = int(msg["channel_a"])  # magnitude / PWM
+                channel_b = int(msg["channel_b"])  # direction / DIR
                 if channel_a == channel_b or not (0 <= channel_a < 16 and 0 <= channel_b < 16):
                     async with state.lock:
                         state.add_log("error", "[Dashboard] Invalid PCA channel pair")
@@ -239,7 +238,7 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                         state.add_log("warning", "[Dashboard] PCA9685 not detected")
                     return
                 pca.set_channel_pulse_us(channel_a, 1500)  # 0% magnitude — stopped
-                pca.set_channel_pulse_us(channel_b, 1900)  # arbitrary default direction
+                pca.set_channel_level(channel_b, True)     # arbitrary default direction
                 async with state.lock:
                     state.pca9685_channels[channel_a] = {
                         "type": "motor_sm_pair", "role": "magnitude", "partner": channel_b,
@@ -247,7 +246,7 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                     }
                     state.pca9685_channels[channel_b] = {
                         "type": "motor_sm_pair", "role": "direction", "partner": channel_a,
-                        "pulse_us": 1900,
+                        "level": True,
                     }
                     state.add_log("info", f"[Dashboard] PCA P{channel_a}+P{channel_b} paired as sign-magnitude motor")
 
@@ -265,15 +264,15 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                     partner = cd["partner"]
                 if pca and pca.present:
                     mag_pulse = 1500 + (abs(val_x100) * 400) // 10000
-                    dir_pulse = 1900 if val_x100 >= 0 else 1100
+                    dir_level = val_x100 >= 0
                     pca.set_channel_pulse_us(channel, mag_pulse)
-                    pca.set_channel_pulse_us(partner, dir_pulse)
+                    pca.set_channel_level(partner, dir_level)
                     async with state.lock:
                         cd = state.pca9685_channels.setdefault(channel, {})
                         cd["pulse_us"] = mag_pulse
                         cd["value"] = val_x100
                         pd = state.pca9685_channels.setdefault(partner, {})
-                        pd["pulse_us"] = dir_pulse
+                        pd["level"] = dir_level
 
             elif cmd == "set_servo_range":
                 port   = int(msg["port"])
