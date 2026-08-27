@@ -106,25 +106,37 @@
   }
 
   function applyServoRange() {
+    // Continuous-mode servos only accept a 900–2100 µs pulse (1500 = stop);
+    // clamp so the manual range editor can't push a positional-style pulse
+    // into a servo that's currently wired up as continuous, or vice versa.
+    const continuous = selectedData?.gobilda_mode === 'continuous';
+    const [loA, hiA] = continuous ? [-100, 100]  : [0, 300];
+    const [loP, hiP] = continuous ? [900, 2100]  : [500, 2500];
+    const minAngle = Math.max(loA, Math.min(hiA, srMinAngle));
+    const maxAngle = Math.max(loA, Math.min(hiA, srMaxAngle));
+    const minPulse = Math.max(loP, Math.min(hiP, srMinPulse));
+    const maxPulse = Math.max(loP, Math.min(hiP, srMaxPulse));
     send({ cmd: 'set_servo_range', port: portId,
-           min_angle: srMinAngle, max_angle: srMaxAngle,
-           min_pulse_us: srMinPulse, max_pulse_us: srMaxPulse });
-    servoAngle = (srMinAngle + srMaxAngle) / 2;
+           min_angle: minAngle, max_angle: maxAngle,
+           min_pulse_us: minPulse, max_pulse_us: maxPulse });
+    servoAngle = (minAngle + maxAngle) / 2;
     servoRangeEditing = false;
   }
 
   // ── GoBilda mode switch ────────────────────────────────────────────────────────
+  // Program does exactly one thing: tell the RP2040 to reprogram the servo's
+  // internal mode over its serial line. No motion command is sent here — the
+  // Positional/Continuous buttons already chose what the interface (units,
+  // slider range) looks like and what mode this will program; Program just
+  // commits that choice to the servo.
   function sendGobildaMode(mode) {
     gobildaSwitching = true;
     send({ cmd: 'gobilda_set_mode', port: portId, mode });
     setTimeout(() => {
       gobildaSwitching = false;
+      // Local display only, so the readout doesn't keep showing a stale
+      // positional-degree value once the unit switches to % (or vice versa).
       servoAngle = mode === 'continuous' ? 0 : 150;
-      if (mode === 'continuous') {
-        // Send an explicit stop so the servo doesn't run at the last positional pulse.
-        // angle_deg 0 maps to 1500 µs (center of 900–2100 µs range) = stopped.
-        send({ cmd: 'set_servo', port: portId, angle_deg: 0 });
-      }
     }, 700);
   }
 
@@ -443,28 +455,41 @@
 
           {#if servoRangeEditing}
           <div class="border border-amber-500/30 rounded-lg p-4 space-y-3 bg-amber-900/10">
+            <p class="text-[10px] text-slate-500">
+              {selectedData?.gobilda_mode === 'continuous'
+                ? 'Continuous mode — clamped to −100–100% / 900–2100 µs.'
+                : 'Positional mode — clamped to 0–300° / 500–2500 µs.'}
+            </p>
             <div class="grid grid-cols-2 gap-3">
               <label class="space-y-1">
-                <span class="text-[10px] text-slate-500 uppercase tracking-wider">Min angle (°)</span>
+                <span class="text-[10px] text-slate-500 uppercase tracking-wider">Min angle ({servoUnit})</span>
                 <input type="number" bind:value={srMinAngle} step="1"
+                  min={selectedData?.gobilda_mode === 'continuous' ? -100 : 0}
+                  max={selectedData?.gobilda_mode === 'continuous' ? 100 : 300}
                   class="w-full bg-[#1e2129] border border-[#2e3340] rounded px-2 py-1
                          text-xs text-slate-200 focus:outline-none focus:border-amber-500/60"/>
               </label>
               <label class="space-y-1">
-                <span class="text-[10px] text-slate-500 uppercase tracking-wider">Max angle (°)</span>
+                <span class="text-[10px] text-slate-500 uppercase tracking-wider">Max angle ({servoUnit})</span>
                 <input type="number" bind:value={srMaxAngle} step="1"
+                  min={selectedData?.gobilda_mode === 'continuous' ? -100 : 0}
+                  max={selectedData?.gobilda_mode === 'continuous' ? 100 : 300}
                   class="w-full bg-[#1e2129] border border-[#2e3340] rounded px-2 py-1
                          text-xs text-slate-200 focus:outline-none focus:border-amber-500/60"/>
               </label>
               <label class="space-y-1">
                 <span class="text-[10px] text-slate-500 uppercase tracking-wider">Min pulse (µs)</span>
                 <input type="number" bind:value={srMinPulse} step="1"
+                  min={selectedData?.gobilda_mode === 'continuous' ? 900 : 500}
+                  max={selectedData?.gobilda_mode === 'continuous' ? 2100 : 2500}
                   class="w-full bg-[#1e2129] border border-[#2e3340] rounded px-2 py-1
                          text-xs text-slate-200 focus:outline-none focus:border-amber-500/60"/>
               </label>
               <label class="space-y-1">
                 <span class="text-[10px] text-slate-500 uppercase tracking-wider">Max pulse (µs)</span>
                 <input type="number" bind:value={srMaxPulse} step="1"
+                  min={selectedData?.gobilda_mode === 'continuous' ? 900 : 500}
+                  max={selectedData?.gobilda_mode === 'continuous' ? 2100 : 2500}
                   class="w-full bg-[#1e2129] border border-[#2e3340] rounded px-2 py-1
                          text-xs text-slate-200 focus:outline-none focus:border-amber-500/60"/>
               </label>

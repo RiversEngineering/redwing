@@ -159,12 +159,14 @@
       return `${((d.velocity ?? 0) / 10).toFixed(1)} ticks/s`;
     if (isMotor(d.type))
       return d.type === 'motor_sm' ? 'sign-mag' : d.type === 'motor_lap' ? 'locked AP' : 'servo sig';
+    if (d.type === 'tfluna' || d.type === 'tfmini')
+      return `signal ${d.strength ?? '—'}`;
     return null;
   }
 </script>
 
 <div
-  class="relative flex flex-col rounded-lg border transition-all duration-200 overflow-hidden
+  class="relative flex flex-col h-full rounded-lg border transition-all duration-200 overflow-hidden
          {data
            ? `${accentColor} bg-[#1e2129]`
            : 'text-slate-700 border-slate-800/50 bg-[#191c23]'}"

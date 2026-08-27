@@ -66,8 +66,6 @@
   let pcaServoAngle = 150;
   let pcaRangeEditing = false;
   let pcaSrMinAngle = 0, pcaSrMaxAngle = 300, pcaSrMinPulse = 500, pcaSrMaxPulse = 2500;
-  let pcaGobildaSwitching = false;
-  let pendingPcaGobildaMode = 'positional';
 
   $: pcaState = $robotState?.pca9685 ?? { present: false, channels: {} };
   $: selectedPcaData = rightSelectedPcaChannel !== null
@@ -75,8 +73,6 @@
     : null;
   $: pcaSr = servoRangeOf(selectedPcaData);
   $: pcaServoUnit = selectedPcaData?.gobilda_mode === 'continuous' ? '%' : '°';
-  $: pcaCommittedGobildaMode = selectedPcaData?.gobilda_mode ?? 'positional';
-  $: pcaGobildaDirty = pendingPcaGobildaMode !== pcaCommittedGobildaMode;
 
   // Detect calibration completion: daemon clears last_calibration before starting,
   // then sets it to the result dict when done. Watching for non-null is reliable.
@@ -88,9 +84,7 @@
     rightSelectedId = null;
     rightSelectedPcaChannel = ch;
     pcaCalibrating = false;
-    pcaGobildaSwitching = false;
     const d = pcaState.channels?.[String(ch)];
-    pendingPcaGobildaMode = d?.gobilda_mode ?? 'positional';
     if (d?.type && isMotor(d.type)) pcaMotorSpeed = 0;
     if (d?.type === 'servo') {
       const r = servoRangeOf(d);
@@ -126,17 +120,16 @@
     send({ cmd: 'pca_set_servo', channel: rightSelectedPcaChannel, angle_deg: pcaServoAngle });
   }
 
+  // Unlike gobilda_set_mode on an S-port, there's no serial line from a PCA9685
+  // channel back to the servo — this only updates the daemon's bookkeeping
+  // (which units/range to use, and whether Stop All should neutral-pulse it).
+  // No physical reprogram happens, so there's nothing to stage behind a
+  // separate "Program" action — the toggle takes effect immediately.
   function sendPcaGobildaMode(mode) {
-    pcaGobildaSwitching = true;
     send({ cmd: 'pca_set_gobilda_mode', channel: rightSelectedPcaChannel, mode });
-    setTimeout(() => {
-      pcaGobildaSwitching = false;
-      pcaServoAngle = mode === 'continuous' ? 0 : 150;
-      if (mode === 'continuous') {
-        // Neutral pulse so the servo doesn't run at its last positional pulse.
-        send({ cmd: 'pca_set_servo', channel: rightSelectedPcaChannel, angle_deg: 0 });
-      }
-    }, 700);
+    // Local display only, so the readout doesn't keep showing a stale
+    // positional-degree value once the unit switches to % (or vice versa).
+    pcaServoAngle = mode === 'continuous' ? 0 : 150;
   }
 
   function openPcaRange() {
@@ -146,10 +139,20 @@
   }
 
   function applyPcaRange() {
+    // Continuous-mode servos only accept a 900–2100 µs pulse (1500 = stop);
+    // clamp so the manual range editor can't push a positional-style pulse
+    // into a channel that's currently wired up as continuous, or vice versa.
+    const continuous = selectedPcaData?.gobilda_mode === 'continuous';
+    const [loA, hiA] = continuous ? [-100, 100] : [0, 300];
+    const [loP, hiP] = continuous ? [900, 2100] : [500, 2500];
+    const minAngle = Math.max(loA, Math.min(hiA, pcaSrMinAngle));
+    const maxAngle = Math.max(loA, Math.min(hiA, pcaSrMaxAngle));
+    const minPulse = Math.max(loP, Math.min(hiP, pcaSrMinPulse));
+    const maxPulse = Math.max(loP, Math.min(hiP, pcaSrMaxPulse));
     send({ cmd: 'set_pca_servo_range', channel: rightSelectedPcaChannel,
-           min_angle: pcaSrMinAngle, max_angle: pcaSrMaxAngle,
-           min_pulse_us: pcaSrMinPulse, max_pulse_us: pcaSrMaxPulse });
-    pcaServoAngle = (pcaSrMinAngle + pcaSrMaxAngle) / 2;
+           min_angle: minAngle, max_angle: maxAngle,
+           min_pulse_us: minPulse, max_pulse_us: maxPulse });
+    pcaServoAngle = (minAngle + maxAngle) / 2;
     pcaRangeEditing = false;
   }
 </script>
@@ -511,28 +514,41 @@
 
                   {#if pcaRangeEditing}
                   <div class="border border-amber-500/30 rounded-lg p-4 space-y-3 bg-amber-900/10">
+                    <p class="text-[10px] text-slate-500">
+                      {selectedPcaData?.gobilda_mode === 'continuous'
+                        ? 'Continuous mode — clamped to −100–100% / 900–2100 µs.'
+                        : 'Positional mode — clamped to 0–300° / 500–2500 µs.'}
+                    </p>
                     <div class="grid grid-cols-2 gap-3">
                       <label class="space-y-1">
-                        <span class="text-[10px] text-slate-500 uppercase tracking-wider">Min angle (°)</span>
+                        <span class="text-[10px] text-slate-500 uppercase tracking-wider">Min angle ({pcaServoUnit})</span>
                         <input type="number" bind:value={pcaSrMinAngle} step="1"
+                          min={selectedPcaData?.gobilda_mode === 'continuous' ? -100 : 0}
+                          max={selectedPcaData?.gobilda_mode === 'continuous' ? 100 : 300}
                           class="w-full bg-[#1e2129] border border-[#2e3340] rounded px-2 py-1
                                  text-xs text-slate-200 focus:outline-none focus:border-amber-500/60"/>
                       </label>
                       <label class="space-y-1">
-                        <span class="text-[10px] text-slate-500 uppercase tracking-wider">Max angle (°)</span>
+                        <span class="text-[10px] text-slate-500 uppercase tracking-wider">Max angle ({pcaServoUnit})</span>
                         <input type="number" bind:value={pcaSrMaxAngle} step="1"
+                          min={selectedPcaData?.gobilda_mode === 'continuous' ? -100 : 0}
+                          max={selectedPcaData?.gobilda_mode === 'continuous' ? 100 : 300}
                           class="w-full bg-[#1e2129] border border-[#2e3340] rounded px-2 py-1
                                  text-xs text-slate-200 focus:outline-none focus:border-amber-500/60"/>
                       </label>
                       <label class="space-y-1">
                         <span class="text-[10px] text-slate-500 uppercase tracking-wider">Min pulse (µs)</span>
                         <input type="number" bind:value={pcaSrMinPulse} step="1"
+                          min={selectedPcaData?.gobilda_mode === 'continuous' ? 900 : 500}
+                          max={selectedPcaData?.gobilda_mode === 'continuous' ? 2100 : 2500}
                           class="w-full bg-[#1e2129] border border-[#2e3340] rounded px-2 py-1
                                  text-xs text-slate-200 focus:outline-none focus:border-amber-500/60"/>
                       </label>
                       <label class="space-y-1">
                         <span class="text-[10px] text-slate-500 uppercase tracking-wider">Max pulse (µs)</span>
                         <input type="number" bind:value={pcaSrMaxPulse} step="1"
+                          min={selectedPcaData?.gobilda_mode === 'continuous' ? 900 : 500}
+                          max={selectedPcaData?.gobilda_mode === 'continuous' ? 2100 : 2500}
                           class="w-full bg-[#1e2129] border border-[#2e3340] rounded px-2 py-1
                                  text-xs text-slate-200 focus:outline-none focus:border-amber-500/60"/>
                       </label>
@@ -564,37 +580,22 @@
                       </span>
                     {/if}
                   </div>
-                  {#if pcaGobildaSwitching}
-                    <div class="flex items-center gap-2 text-xs text-amber-400">
-                      <span class="animate-spin inline-block w-3 h-3 border-2 border-amber-400/30 border-t-amber-400 rounded-full"></span>
-                      Programming…
-                    </div>
-                  {:else}
-                    <div class="flex items-center gap-2">
-                      <button
-                        class="px-3 py-1.5 rounded text-xs font-semibold transition-all border
-                               {pendingPcaGobildaMode === 'positional'
-                                 ? 'bg-amber-600/20 border-amber-500/50 text-amber-300'
-                                 : 'bg-[#161920] border-[#2e3340] text-slate-500 hover:border-slate-500 hover:text-slate-300'}"
-                        on:click={() => pendingPcaGobildaMode = 'positional'}
-                      >Positional</button>
-                      <button
-                        class="px-3 py-1.5 rounded text-xs font-semibold transition-all border
-                               {pendingPcaGobildaMode === 'continuous'
-                                 ? 'bg-blue-600/20 border-blue-500/50 text-blue-300'
-                                 : 'bg-[#161920] border-[#2e3340] text-slate-500 hover:border-slate-500 hover:text-slate-300'}"
-                        on:click={() => pendingPcaGobildaMode = 'continuous'}
-                      >Continuous</button>
-                      <button
-                        disabled={!pcaGobildaDirty}
-                        class="ml-auto px-3 py-1.5 rounded text-xs font-semibold transition-all border
-                               {pcaGobildaDirty
-                                 ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/30 cursor-pointer'
-                                 : 'bg-[#161920] border-[#2e3340] text-slate-700 cursor-not-allowed'}"
-                        on:click={() => sendPcaGobildaMode(pendingPcaGobildaMode)}
-                      >Program</button>
-                    </div>
-                  {/if}
+                  <div class="flex items-center gap-2">
+                    <button
+                      class="px-3 py-1.5 rounded text-xs font-semibold transition-all border
+                             {(selectedPcaData?.gobilda_mode ?? 'positional') === 'positional'
+                               ? 'bg-amber-600/20 border-amber-500/50 text-amber-300'
+                               : 'bg-[#161920] border-[#2e3340] text-slate-500 hover:border-slate-500 hover:text-slate-300'}"
+                      on:click={() => sendPcaGobildaMode('positional')}
+                    >Positional</button>
+                    <button
+                      class="px-3 py-1.5 rounded text-xs font-semibold transition-all border
+                             {selectedPcaData?.gobilda_mode === 'continuous'
+                               ? 'bg-blue-600/20 border-blue-500/50 text-blue-300'
+                               : 'bg-[#161920] border-[#2e3340] text-slate-500 hover:border-slate-500 hover:text-slate-300'}"
+                      on:click={() => sendPcaGobildaMode('continuous')}
+                    >Continuous</button>
+                  </div>
                 </div>
               </div>
             {/if}

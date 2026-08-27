@@ -87,11 +87,11 @@
   {#if hasI2cSensor || $ports[17] || pcaState.present}
     <div class="px-2 pt-2 pb-2">
       <div class="text-[9px] text-slate-600 uppercase tracking-widest mb-1 px-0.5">I²C</div>
-      <div class="flex flex-wrap gap-1.5">
+      <div class="flex flex-wrap items-stretch gap-1.5">
         {#if hasI2cSensor}
           <!-- svelte-ignore a11y-no-static-element-interactions -->
           <div
-            class="cursor-pointer rounded-md transition-all duration-100
+            class="cursor-pointer rounded-lg transition-all duration-100 w-[calc(12.5%-6px)]
                    hover:ring-1 hover:ring-teal-500/50 hover:brightness-125"
             role="button"
             tabindex="0"
@@ -99,14 +99,14 @@
             on:click={() => openPort(16)}
             on:keydown={(e) => e.key === 'Enter' && openPort(16)}
           >
-            <MiniPortCard label="I²C" data={$ports[16]} />
+            <PortCard portId={16} portLabel="I²C" isDual={true} data={$ports[16]} />
           </div>
         {/if}
 
         {#if $ports[17]}
           <!-- svelte-ignore a11y-no-static-element-interactions -->
           <div
-            class="cursor-pointer rounded-md transition-all duration-100
+            class="cursor-pointer rounded-lg transition-all duration-100 w-[calc(12.5%-6px)]
                    hover:ring-1 hover:ring-indigo-500/50 hover:brightness-125"
             role="button"
             tabindex="0"
@@ -114,7 +114,7 @@
             on:click={() => openPort(17)}
             on:keydown={(e) => e.key === 'Enter' && openPort(17)}
           >
-            <MiniPortCard label="IMU" data={$ports[17]} />
+            <PortCard portId={17} portLabel="IMU" isDual={true} data={$ports[17]} />
           </div>
         {/if}
 
