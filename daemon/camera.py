@@ -36,40 +36,72 @@ def _make_placeholder() -> bytes:
     return bytes(buf)
 
 
+def _try_open(idx: int, fourcc: int, width: int, height: int) -> cv2.VideoCapture | None:
+    """Open one camera index and request a specific capture size. Returns the
+    opened capture (positioned after a successful warm-up read) or None."""
+    cap = cv2.VideoCapture(idx, cv2.CAP_V4L2)
+    if not cap.isOpened():
+        return None
+
+    # Request MJPEG format before anything else.  Many USB cameras (e.g.
+    # Arducam UC-844) default to YUYV, which hangs in select() at anything
+    # above 640×480 because the USB bandwidth isn't enough. MJPEG delivers
+    # compressed frames at any supported resolution.
+    cap.set(cv2.CAP_PROP_FOURCC,       fourcc)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH,  width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+    cap.set(cv2.CAP_PROP_FPS,          CAMERA_FPS)
+
+    # Try up to 5 reads — camera may need a moment after format change.
+    for _ in range(5):
+        ok, _ = cap.read()
+        if ok:
+            return cap
+
+    cap.release()
+    return None
+
+
 def _open_camera() -> cv2.VideoCapture | None:
-    """Try to open a camera. Scans indices if CAMERA_INDEX == -1."""
+    """Try to open a camera. Scans indices if CAMERA_INDEX == -1.
+
+    Requests the target resolution directly first — decoding and re-encoding
+    a full native-resolution MJPEG frame every cycle just to throw most of it
+    away in a software resize is expensive (measured: ~80-90% of a Pi core,
+    continuously). V4L2 never fabricates an arbitrary size; it always snaps
+    to one of the camera's own discrete supported modes, so if the negotiated
+    size comes back an exact match, that's proof the camera genuinely
+    supports it (not a crop) and the resize in the capture loop below can be
+    skipped entirely. If it doesn't match, fall back to the old behavior —
+    request max resolution and resize in software — which is always correct
+    for a camera whose modes we can't assume, just costlier.
+    """
     candidates = [CAMERA_INDEX] if CAMERA_INDEX >= 0 else _SCAN_INDICES
     MJPEG = cv2.VideoWriter_fourcc(*'MJPG')
 
     for idx in candidates:
-        cap = cv2.VideoCapture(idx, cv2.CAP_V4L2)
-        if not cap.isOpened():
-            continue
+        cap = _try_open(idx, MJPEG, CAMERA_WIDTH, CAMERA_HEIGHT)
+        if cap is not None:
+            actual_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            if actual_w == CAMERA_WIDTH and actual_h == CAMERA_HEIGHT:
+                log.info(f"Camera opened at index {idx} — native "
+                         f"{CAMERA_WIDTH}×{CAMERA_HEIGHT} mode, no software resize needed")
+                return cap
+            # Didn't get an exact match — this camera doesn't offer our
+            # target size as a discrete mode (requesting it further down
+            # could have cropped instead of scaled). Reopen fresh rather than
+            # re-negotiate format on an already-streaming capture.
+            cap.release()
 
-        # Request MJPEG format before anything else.  Many USB cameras
-        # (e.g. Arducam UC-844) default to YUYV, which hangs in select()
-        # at anything above 640×480 because the USB bandwidth isn't enough.
-        # MJPEG delivers compressed frames at any supported resolution.
-        cap.set(cv2.CAP_PROP_FOURCC,       MJPEG)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH,  9999)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 9999)
-        cap.set(cv2.CAP_PROP_FPS,          CAMERA_FPS)
-
-        # Try up to 5 reads — camera may need a moment after format change.
-        ok = False
-        for _ in range(5):
-            ok, _ = cap.read()
-            if ok:
-                break
-
-        if ok:
+        cap = _try_open(idx, MJPEG, 9999, 9999)
+        if cap is not None:
             actual_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
             log.info(f"Camera opened at index {idx} — native {actual_w}×{actual_h}"
                      f", resized to {CAMERA_WIDTH}×{CAMERA_HEIGHT} in software")
             return cap
 
-        cap.release()
     return None
 
 
