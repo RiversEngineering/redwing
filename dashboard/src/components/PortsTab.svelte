@@ -30,6 +30,7 @@
     rightSelectedId = id;
     rightSelectedPcaChannel = null;
     pcaCalibrating = false;
+    pcaPairPicking = false;
   }
 
   // Auto-select a port when navigating here from the overview port grid.
@@ -83,6 +84,7 @@
   let pcaMotorSpeed = 0;
   let pcaServoAngle = 150;
   let pcaRangeEditing = false;
+  let pcaPairPicking = false;   // choosing the direction-channel partner for a new pair
   let pcaSrMinAngle = 0, pcaSrMaxAngle = 300, pcaSrMinPulse = 500, pcaSrMaxPulse = 2500;
 
   $: pcaState = $robotState?.pca9685 ?? { present: false, channels: {} };
@@ -102,6 +104,7 @@
     rightSelectedId = null;
     rightSelectedPcaChannel = ch;
     pcaCalibrating = false;
+    pcaPairPicking = false;
     const d = pcaState.channels?.[String(ch)];
     if (d?.type && isMotor(d.type)) pcaMotorSpeed = 0;
     if (d?.type === 'servo') {
@@ -109,6 +112,11 @@
       pcaServoAngle = +pulseToAngle(d.pulse_us ?? 1500, r).toFixed(1);
       pcaServoAngle = Math.max(r.minAngle, Math.min(r.maxAngle, pcaServoAngle));
     }
+  }
+
+  function resetPcaChannel() {
+    if (rightSelectedPcaChannel === null) return;
+    send({ cmd: 'pca_reset_channel', channel: rightSelectedPcaChannel });
   }
 
   function openCalibration() {
@@ -127,9 +135,18 @@
     send({ cmd: 'pca_configure', channel: rightSelectedPcaChannel, type });
   }
 
+  // Binds this channel (as the magnitude/PWM line) to another unconfigured
+  // channel (as the direction line) — see pca_pair_channels in daemon/api.py.
+  function pairPcaChannel(partnerId) {
+    if (rightSelectedPcaChannel === null) return;
+    send({ cmd: 'pca_pair_channels', channel_a: rightSelectedPcaChannel, channel_b: partnerId });
+    pcaPairPicking = false;
+  }
+
   function sendPcaMotor(pct) {
     pcaMotorSpeed = Math.max(-100, Math.min(100, pct));
-    send({ cmd: 'pca_set_motor', channel: rightSelectedPcaChannel, value_pct: pcaMotorSpeed });
+    const cmd = selectedPcaData?.type === 'motor_sm_pair' ? 'pca_set_pair_motor' : 'pca_set_motor';
+    send({ cmd, channel: rightSelectedPcaChannel, value_pct: pcaMotorSpeed });
   }
 
   function sendPcaServo(deg) {
@@ -403,15 +420,27 @@
               <span class="text-sm font-semibold {isMotor(selectedPcaData.type) ? 'text-blue-400' : 'text-amber-400'}">
                 {isMotor(selectedPcaData.type) ? 'Motor' : 'Servo'}
               </span>
+              {#if selectedPcaData.type === 'motor_sm_pair'}
+                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-900/30 text-blue-400">
+                  paired · dir P{selectedPcaData.partner}
+                </span>
+              {/if}
               <span class="text-xs text-slate-600">PCA9685 channel {rightSelectedPcaChannel}</span>
             {:else}
               <span class="text-sm text-slate-600 italic">not configured</span>
             {/if}
-            <div class="ml-auto">
+            <div class="ml-auto flex items-center gap-2">
+              {#if selectedPcaData}
+                <button
+                  class="px-3 py-1 rounded text-xs font-semibold bg-[#1e2129] text-slate-400
+                         border border-[#2e3340] hover:border-red-600/40 hover:text-red-400 transition-colors"
+                  on:click={resetPcaChannel}
+                >Reset</button>
+              {/if}
               <button
                 class="px-3 py-1 rounded text-xs font-semibold bg-red-600/20 text-red-400
                        border border-red-600/30 hover:bg-red-600/40 transition-colors"
-                on:click={() => { send({ cmd: 'pca_set_motor', channel: rightSelectedPcaChannel, value_pct: 0 }); pcaMotorSpeed = 0; }}
+                on:click={() => sendPcaMotor(0)}
               >Stop</button>
             </div>
           </div>
@@ -420,22 +449,54 @@
             {#if !selectedPcaData}
               <!-- Unconfigured PCA channel -->
               <div class="max-w-sm space-y-5">
-                <div>
-                  <p class="text-sm font-semibold text-slate-300 mb-1">Choose a device type</p>
-                  <p class="text-xs text-slate-600">PCA9685 only supports 50 Hz outputs (servo / RC ESC).</p>
-                </div>
-                <div class="flex gap-2">
-                  {#each [['motor_servo_signal', 'Motor', 'RC ESC / servo signal'], ['servo', 'Servo', 'Standard servo']] as [id, label, sub]}
+                {#if !pcaPairPicking}
+                  <div>
+                    <p class="text-sm font-semibold text-slate-300 mb-1">Choose a device type</p>
+                    <p class="text-xs text-slate-600">PCA9685 only supports 50 Hz outputs (servo / RC ESC).</p>
+                  </div>
+                  <div class="flex gap-2 flex-wrap">
+                    {#each [['motor_servo_signal', 'Motor', 'RC ESC / servo signal'], ['servo', 'Servo', 'Standard servo']] as [id, label, sub]}
+                      <button
+                        class="flex flex-col items-start px-3 py-2 rounded-lg border transition-all text-left
+                               bg-[#1e2129] border-[#2e3340] text-slate-400 hover:border-blue-500/60 hover:text-blue-300"
+                        on:click={() => configurePcaChannel(id)}
+                      >
+                        <span class="text-xs font-semibold leading-tight">{label}</span>
+                        <span class="text-[10px] text-slate-600 leading-tight mt-0.5">{sub}</span>
+                      </button>
+                    {/each}
                     <button
                       class="flex flex-col items-start px-3 py-2 rounded-lg border transition-all text-left
                              bg-[#1e2129] border-[#2e3340] text-slate-400 hover:border-blue-500/60 hover:text-blue-300"
-                      on:click={() => configurePcaChannel(id)}
+                      on:click={() => pcaPairPicking = true}
                     >
-                      <span class="text-xs font-semibold leading-tight">{label}</span>
-                      <span class="text-[10px] text-slate-600 leading-tight mt-0.5">{sub}</span>
+                      <span class="text-xs font-semibold leading-tight">Motor (Paired)</span>
+                      <span class="text-[10px] text-slate-600 leading-tight mt-0.5">2 channels, sign-magnitude</span>
                     </button>
-                  {/each}
-                </div>
+                  </div>
+                {:else}
+                  <div>
+                    <p class="text-sm font-semibold text-slate-300 mb-1">Pick the direction channel</p>
+                    <p class="text-xs text-slate-600">
+                      P{rightSelectedPcaChannel} will carry the magnitude (PWM) signal — wire it to
+                      your driver's PWM input. The channel you pick here carries direction (a fixed
+                      high/low level) — wire it to your driver's DIR input.
+                    </p>
+                  </div>
+                  <div class="grid grid-cols-4 gap-1.5">
+                    {#each PCA_CHANNELS.filter((c) => c.id !== rightSelectedPcaChannel && !pcaState.channels?.[String(c.id)]) as c}
+                      <button
+                        class="px-2 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
+                               text-slate-400 hover:border-blue-500/60 hover:text-blue-300 transition-colors"
+                        on:click={() => pairPcaChannel(c.id)}
+                      >{c.label}</button>
+                    {/each}
+                  </div>
+                  <button
+                    class="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                    on:click={() => pcaPairPicking = false}
+                  >← Back</button>
+                {/if}
               </div>
 
             {:else if isMotor(selectedPcaData.type)}
@@ -483,7 +544,15 @@
                     </div>
                   </div>
                 </div>
-                <p class="text-[11px] text-slate-600">RC ESC protocol: 1500 µs = stop, 1100 µs = full reverse, 1900 µs = full forward.</p>
+                {#if selectedPcaData.type === 'motor_sm_pair'}
+                  <p class="text-[11px] text-slate-600">
+                    Sign-magnitude pair: P{rightSelectedPcaChannel} outputs 1500–1900 µs proportional
+                    to |speed| — wire to your driver's PWM/magnitude input. P{selectedPcaData.partner}
+                    outputs a fixed 1100 µs or 1900 µs level for direction — wire to your driver's DIR input.
+                  </p>
+                {:else}
+                  <p class="text-[11px] text-slate-600">RC ESC protocol: 1500 µs = stop, 1100 µs = full reverse, 1900 µs = full forward.</p>
+                {/if}
               </div>
 
             {:else if selectedPcaData.type === 'servo'}
@@ -725,22 +794,34 @@
           </div>
           {#each PCA_CHANNELS as ch}
             {@const chData = pcaState.channels?.[String(ch.id)]}
-            <button
-              class="w-full flex flex-row-reverse items-center gap-2 px-2 py-1.5 rounded text-right transition-colors mb-px
-                     {rightSelectedPcaChannel === ch.id
-                       ? 'bg-[#252932] ring-1 ring-[#3e4455]'
-                       : 'hover:bg-[#1e2129]'}"
-              on:click={() => selectPcaChannel(ch.id)}
-            >
-              <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
-                           bg-purple-900/40 text-purple-400">{ch.label}</span>
-              {#if chData?.type}
-                <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {isMotor(chData.type) ? 'bg-blue-400' : 'bg-amber-400'}"></span>
-                <span class="text-[11px] text-slate-300 truncate">{isMotor(chData.type) ? 'Motor' : 'Servo'}</span>
-              {:else}
-                <span class="text-[11px] text-slate-700 italic">empty</span>
-              {/if}
-            </button>
+            {@const isPairDir = chData?.type === 'motor_sm_pair' && chData?.role === 'direction'}
+            {#if isPairDir}
+              <div
+                class="w-full flex flex-row-reverse items-center gap-2 px-2 py-1.5 rounded mb-px opacity-40 cursor-not-allowed"
+                title="{ch.label} is paired with P{chData.partner} as a sign-magnitude motor's direction line — see P{chData.partner}"
+              >
+                <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
+                             bg-purple-900/40 text-purple-400">{ch.label}</span>
+                <span class="text-[11px] text-slate-600 italic truncate">paired → P{chData.partner}</span>
+              </div>
+            {:else}
+              <button
+                class="w-full flex flex-row-reverse items-center gap-2 px-2 py-1.5 rounded text-right transition-colors mb-px
+                       {rightSelectedPcaChannel === ch.id
+                         ? 'bg-[#252932] ring-1 ring-[#3e4455]'
+                         : 'hover:bg-[#1e2129]'}"
+                on:click={() => selectPcaChannel(ch.id)}
+              >
+                <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
+                             bg-purple-900/40 text-purple-400">{ch.label}</span>
+                {#if chData?.type}
+                  <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {isMotor(chData.type) ? 'bg-blue-400' : 'bg-amber-400'}"></span>
+                  <span class="text-[11px] text-slate-300 truncate">{isMotor(chData.type) ? 'Motor' : 'Servo'}</span>
+                {:else}
+                  <span class="text-[11px] text-slate-700 italic">empty</span>
+                {/if}
+              </button>
+            {/if}
           {/each}
           {#if !pcaState.calibrated}
             <button

@@ -40,9 +40,6 @@
     return true;
   });
 
-  // reconfiguring: true when the user wants to change an already-configured port
-  let reconfiguring = false;
-
   // ── IMU mount rotation ────────────────────────────────────────────────────────
   $: imuMount       = $robotState?.imu_mount ?? { yaw: 0, pitch: 0, roll: 0, code_set: false };
   $: imuMountLocked = imuMount.code_set;
@@ -76,7 +73,6 @@
   let _prevPortId;
   $: if (portId !== _prevPortId) {
     _prevPortId = portId;
-    reconfiguring = false;
     gobildaSwitching = false;
     const d = portId !== null ? $ports[portId] : null;
     if (d) {
@@ -174,13 +170,13 @@
   }
 
   /**
-   * Change the type of an already-configured port.
+   * Reset just this one port back to unconfigured.
    * Because the firmware has no per-port reset, we must reset all ports,
-   * then re-apply the saved configs for every OTHER port, then apply the new
-   * type for this port. The daemon processes commands in order, so no delay
-   * is needed — each message is fully handled before the next is read.
+   * then re-apply the saved configs for every OTHER port — leaving this one
+   * unconfigured. The daemon processes commands in order, so no delay is
+   * needed — each message is fully handled before the next is read.
    */
-  function doReconfigure(type) {
+  function resetThisPort() {
     if (portId === null) return;
 
     const savedConfigs = ALL_PORTS
@@ -188,12 +184,9 @@
       .map((p) => ({ port: p.id, type: $ports[p.id].type }));
 
     send({ cmd: 'reset_ports' });
-    for (const { port, type: t } of savedConfigs) {
-      send({ cmd: 'configure_port', port, type: t });
+    for (const { port, type } of savedConfigs) {
+      send({ cmd: 'configure_port', port, type });
     }
-    send({ cmd: 'configure_port', port: portId, type });
-
-    reconfiguring = false;
   }
 </script>
 
@@ -294,49 +287,6 @@
           {/each}
         </div>
       {/if}
-
-    {:else if reconfiguring}
-      <!-- ── Reconfigure: pick a new type (triggers full reset + re-apply) ── -->
-      <div class="max-w-md space-y-5">
-        <div>
-          <p class="text-sm font-semibold text-slate-300 mb-1">Choose a new device type</p>
-          <p class="text-xs text-slate-500">
-            Changing the type of <strong>{selectedPort?.label}</strong> requires resetting all
-            ports. Other configured ports will be re-applied automatically.
-          </p>
-        </div>
-
-        {#each ['Motor', 'Servo', 'Sensor', 'GPIO', 'Bus'] as group}
-          {@const groupTypes = availableTypes.filter((t) => t.group === group)}
-          {#if groupTypes.length > 0}
-            <div>
-              <div class="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-1.5">{group}</div>
-              <div class="flex flex-wrap gap-1.5">
-                {#each groupTypes as t}
-                  <button
-                    class="flex flex-col items-start px-3 py-2 rounded-lg border transition-all text-left
-                           bg-[#1e2129] border-[#2e3340] text-slate-400 hover:border-blue-500/60 hover:text-blue-300"
-                    on:click={() => doReconfigure(t.id)}
-                  >
-                    <span class="text-xs font-semibold leading-tight">{t.label}</span>
-                    {#if t.sub}
-                      <span class="text-[10px] text-slate-600 leading-tight mt-0.5">{t.sub}</span>
-                    {/if}
-                  </button>
-                {/each}
-              </div>
-            </div>
-          {/if}
-        {/each}
-
-        <div class="pt-1">
-          <button
-            class="px-4 py-2 rounded-lg text-sm text-slate-500 border border-[#2e3340]
-                   hover:text-slate-300 hover:border-slate-500 transition-colors"
-            on:click={() => { reconfiguring = false; }}
-          >Cancel</button>
-        </div>
-      </div>
 
     {:else if isMotor(selectedData.type)}
       <!-- ── Motor control ── -->
@@ -934,15 +884,15 @@
       </div>
     {/if}
 
-    <!-- Change Type footer — not shown for dedicated ports (I²C/IMU — auto-detected) -->
-    {#if selectedData && !configFinalized && !reconfiguring && portId !== 16 && portId !== 17}
+    <!-- Reset footer — not shown for dedicated ports (I²C/IMU — auto-detected) -->
+    {#if selectedData && !configFinalized && portId !== 16 && portId !== 17}
       <div class="mt-6 pt-4 border-t border-[#2e3340]">
         <p class="text-[11px] text-slate-600 mb-2">Need a different device type for this port?</p>
         <button
-          class="px-3 py-1.5 rounded text-xs font-semibold bg-[#1e2129] border border-[#2e3340]
-                 text-slate-400 hover:border-slate-500 hover:text-slate-300 transition-colors"
-          on:click={() => reconfiguring = true}
-        >Change Type…</button>
+          class="px-3 py-1.5 rounded text-xs font-semibold bg-[#1e2129] border border-red-900/40
+                 text-red-400 hover:bg-red-900/20 hover:border-red-600/40 transition-colors"
+          on:click={resetThisPort}
+        >Reset</button>
       </div>
     {/if}
 

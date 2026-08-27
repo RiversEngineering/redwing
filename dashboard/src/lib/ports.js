@@ -16,7 +16,6 @@ export const isUartCapable = (id) => id === 14 || id === 15; // D6, D7
 export const TYPE_DEFS = [
   { id: 'motor_sm',           label: 'Motor',       sub: 'Sign-Magnitude',    group: 'Motor',  dualOnly: true,  singleOnly: false, d7Only: false },
   { id: 'motor_servo_signal', label: 'Motor',       sub: 'Servo Signal',      group: 'Motor',  dualOnly: false, singleOnly: true,  d7Only: false },
-  { id: 'motor_lap',          label: 'Motor',       sub: 'Locked Anti-Phase', group: 'Motor',  dualOnly: false, singleOnly: true,  d7Only: false },
   { id: 'servo',              label: 'Servo',       sub: null,                group: 'Servo',  dualOnly: false, singleOnly: true,  d7Only: false },
   { id: 'encoder',            label: 'Encoder',     sub: null,                group: 'Sensor', dualOnly: true,  singleOnly: false, d7Only: false },
   { id: 'ultrasonic',         label: 'Ultrasonic',  sub: null,                group: 'Sensor', dualOnly: true,  singleOnly: false, d7Only: false },
@@ -28,7 +27,15 @@ export const TYPE_DEFS = [
 ];
 
 // ── Type helpers ─────────────────────────────────────────────────────────────
-export const isMotor = (t) => t === 'motor_sm' || t === 'motor_lap' || t === 'motor_servo_signal';
+// motor_lap (locked anti-phase) is no longer offered in the type picker, but
+// existing ports/state may still carry it — kept recognized here so they
+// still display correctly.
+// motor_sm_pair is PCA9685-only: two channels bound as one sign-magnitude
+// motor (see pca_pair_channels in daemon/api.py). Its "direction" role
+// channel is rendered specially wherever it's shown (see PortsTab.svelte's
+// PCA sidebar and MiniPortCard.svelte) rather than through these generic
+// helpers, since it isn't a live-value readout.
+export const isMotor = (t) => t === 'motor_sm' || t === 'motor_lap' || t === 'motor_servo_signal' || t === 'motor_sm_pair';
 
 export function deviceLabel(type) {
   if (isMotor(type)) return 'Motor';

@@ -128,19 +128,22 @@
           <!-- next to I²C/IMU instead of wrapping into a row of their own.    -->
           <div class="flex-1 grid grid-cols-8 grid-rows-2 gap-1">
             {#each PCA_CHANNELS as ch}
+              {@const chData = pcaState.channels?.[String(ch.id)]}
+              {@const isPairDir = chData?.type === 'motor_sm_pair' && chData?.role === 'direction'}
               <!-- svelte-ignore a11y-no-static-element-interactions -->
+              <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
               <div
-                class="cursor-pointer rounded-md transition-all duration-100
-                       hover:ring-1 hover:ring-purple-500/50 hover:brightness-125"
-                role="button"
-                tabindex="0"
-                title="Open {ch.label} in Ports tab"
-                on:click={() => openPcaChannel(ch.id)}
-                on:keydown={(e) => e.key === 'Enter' && openPcaChannel(ch.id)}
+                class="rounded-md transition-all duration-100
+                       {isPairDir ? '' : 'cursor-pointer hover:ring-1 hover:ring-purple-500/50 hover:brightness-125'}"
+                role={isPairDir ? undefined : 'button'}
+                tabindex={isPairDir ? undefined : 0}
+                title={isPairDir ? undefined : `Open ${ch.label} in Ports tab`}
+                on:click={() => !isPairDir && openPcaChannel(ch.id)}
+                on:keydown={(e) => !isPairDir && e.key === 'Enter' && openPcaChannel(ch.id)}
               >
                 <MiniPortCard
                   label={ch.label}
-                  data={pcaState.channels?.[String(ch.id)]}
+                  data={chData}
                   badgeClass="bg-purple-900/40 text-purple-400"
                 />
               </div>
