@@ -436,20 +436,26 @@
                     <div class="absolute top-0 left-1/2 w-px h-2 bg-slate-600 -translate-y-2"></div>
                   </div>
                 </div>
-                <div class="flex gap-2">
-                  {#each [[-100,'−100%'],[-75,'−75%'],[-50,'−50%'],[-25,'−25%']] as [v, label]}
-                    <button class="px-3 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
-                                   text-red-400 hover:bg-red-900/20 hover:border-red-600/40 transition-colors"
-                      on:click={() => sendPcaMotor(v)}>{label}</button>
-                  {/each}
-                  <button class="px-4 py-1.5 rounded text-xs font-bold bg-slate-700 border border-slate-600
-                                 text-slate-200 hover:bg-slate-600 transition-colors"
-                    on:click={() => sendPcaMotor(0)}>STOP</button>
-                  {#each [[25,'+25%'],[50,'+50%'],[75,'+75%'],[100,'+100%']] as [v, label]}
-                    <button class="px-3 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
-                                   text-blue-400 hover:bg-blue-900/20 hover:border-blue-600/40 transition-colors"
-                      on:click={() => sendPcaMotor(v)}>{label}</button>
-                  {/each}
+                <div class="flex justify-center">
+                  <div class="flex flex-col items-center gap-2 w-full max-w-[15rem]">
+                    <button
+                      class="w-full py-2.5 rounded text-sm font-bold bg-slate-700 border border-slate-600
+                             text-slate-200 hover:bg-slate-600 transition-colors"
+                      on:click={() => sendPcaMotor(0)}>STOP</button>
+
+                    <div class="grid grid-cols-2 gap-x-3 gap-y-2 w-full">
+                      {#each [25, 50, 75, 100] as mag}
+                        <button
+                          class="py-2.5 rounded text-sm font-mono bg-[#1e2129] border border-[#2e3340]
+                                 text-red-400 hover:bg-red-900/20 hover:border-red-600/40 transition-colors"
+                          on:click={() => sendPcaMotor(-mag)}>−{mag}%</button>
+                        <button
+                          class="py-2.5 rounded text-sm font-mono bg-[#1e2129] border border-[#2e3340]
+                                 text-blue-400 hover:bg-blue-900/20 hover:border-blue-600/40 transition-colors"
+                          on:click={() => sendPcaMotor(mag)}>+{mag}%</button>
+                      {/each}
+                    </div>
+                  </div>
                 </div>
                 <p class="text-[11px] text-slate-600">RC ESC protocol: 1500 µs = stop, 1100 µs = full reverse, 1900 µs = full forward.</p>
               </div>
@@ -475,16 +481,31 @@
                     on:input={(e) => sendPcaServo(Number(e.target.value))}
                   />
                 </div>
-                <div class="flex gap-2 flex-wrap">
+                <div class="flex gap-1.5 flex-wrap justify-center">
                   {#each servoPresets(pcaSr) as [v, label]}
-                    <button class="px-3 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
+                    <button class="px-2 py-1 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
                                    text-amber-400 hover:bg-amber-900/20 hover:border-amber-600/40 transition-colors"
                       on:click={() => sendPcaServo(v)}>{label}</button>
                   {/each}
                 </div>
-                {#if pcaRangeEditing}
+                <div class="space-y-2">
+                  <button
+                    class="w-full flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors
+                           {pcaRangeEditing
+                             ? 'bg-amber-900/10 border-amber-500/30 text-amber-400'
+                             : 'bg-[#1e2129] border-[#2e3340] text-slate-400 hover:border-amber-500/40 hover:text-amber-400'}"
+                    on:click={() => pcaRangeEditing ? (pcaRangeEditing = false) : openPcaRange()}
+                  >
+                    <svg class="w-3 h-3 flex-shrink-0 transition-transform {pcaRangeEditing ? 'rotate-90' : ''}"
+                         viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M6 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="text-xs font-semibold">Range</span>
+                    <span class="text-xs text-slate-500">{pcaSr.minAngle}° – {pcaSr.maxAngle}° · {pcaSr.minPulse}–{pcaSr.maxPulse} µs</span>
+                  </button>
+
+                  {#if pcaRangeEditing}
                   <div class="border border-amber-500/30 rounded-lg p-4 space-y-3 bg-amber-900/10">
-                    <p class="text-xs font-semibold text-amber-400">Set servo range</p>
                     <div class="grid grid-cols-2 gap-3">
                       <label class="space-y-1">
                         <span class="text-[10px] text-slate-500 uppercase tracking-wider">Min angle (°)</span>
@@ -520,12 +541,8 @@
                         on:click={() => pcaRangeEditing = false}>Cancel</button>
                     </div>
                   </div>
-                {:else}
-                  <button class="text-[10px] text-slate-600 hover:text-amber-500 transition-colors"
-                    on:click={openPcaRange}>
-                    ⚙ Range: {pcaSr.minAngle}° – {pcaSr.maxAngle}° ({pcaSr.minPulse}–{pcaSr.maxPulse} µs)
-                  </button>
-                {/if}
+                  {/if}
+                </div>
               </div>
             {/if}
           </div>
