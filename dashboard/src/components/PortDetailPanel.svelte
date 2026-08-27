@@ -14,6 +14,19 @@
   export let portId = null;
   export let emptyMessage = 'Select a port from the list';
 
+  /**
+   * Called by PortsTab when Stop All Motors is clicked. CMD_STOP_ALL only
+   * covers firmware motor ports — a servo in continuous mode is stopped by
+   * an explicit neutral pulse the daemon sends separately, but that doesn't
+   * touch this component's local slider position, so without this the
+   * slider would keep showing whatever throttle it was at.
+   */
+  export function resetContinuousServoDisplay() {
+    if (selectedData?.type === 'servo' && selectedData?.gobilda_mode === 'continuous') {
+      servoAngle = 0;
+    }
+  }
+
   $: selectedData = portId !== null ? $ports[portId] : null;
   $: selectedPort = portId !== null ? ALL_PORTS.find((p) => p.id === portId) : null;
 

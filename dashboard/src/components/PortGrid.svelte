@@ -126,7 +126,7 @@
         {#if pcaState.present}
           <!-- Two rows of 8, filling column-by-column, so all 16 channels sit -->
           <!-- next to I²C/IMU instead of wrapping into a row of their own.    -->
-          <div class="grid grid-rows-2 grid-flow-col auto-cols-[3.75rem] gap-1">
+          <div class="flex-1 grid grid-cols-8 grid-rows-2 gap-1">
             {#each PCA_CHANNELS as ch}
               <!-- svelte-ignore a11y-no-static-element-interactions -->
               <div

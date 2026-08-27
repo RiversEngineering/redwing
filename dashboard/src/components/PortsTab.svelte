@@ -61,8 +61,18 @@
     confirmReset = false;
   }
 
+  let leftPanel, rightPanel;
+
   function stopAll() {
     send({ cmd: 'stop_all' });
+    // The daemon stops continuous-mode servos with an explicit neutral pulse,
+    // but that doesn't touch any of these components' local slider state —
+    // reset them here so the sliders visibly reflect the stop.
+    leftPanel?.resetContinuousServoDisplay?.();
+    rightPanel?.resetContinuousServoDisplay?.();
+    if (selectedPcaData?.type === 'servo' && selectedPcaData?.gobilda_mode === 'continuous') {
+      pcaServoAngle = 0;
+    }
   }
 
   // ── PCA9685 expansion channels ────────────────────────────────────────────────
@@ -292,7 +302,7 @@
 
       <!-- Left half — driven by the S/D sidebar -->
       <div class="flex-1 min-w-0 flex flex-col overflow-hidden border-r border-[#2e3340]">
-        <PortDetailPanel portId={leftSelectedId} emptyMessage="Select an S or D port" />
+        <PortDetailPanel bind:this={leftPanel} portId={leftSelectedId} emptyMessage="Select an S or D port" />
       </div>
 
       <!-- Right half — driven by the I²C / UART / PCA9685 sidebar -->
@@ -610,7 +620,7 @@
           </div>
 
         {:else}
-          <PortDetailPanel portId={rightSelectedId} emptyMessage="Select an I²C, UART, or PCA9685 device" />
+          <PortDetailPanel bind:this={rightPanel} portId={rightSelectedId} emptyMessage="Select an I²C, UART, or PCA9685 device" />
         {/if}
       </div>
     </div>
