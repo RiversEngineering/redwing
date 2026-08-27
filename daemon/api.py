@@ -69,6 +69,28 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
 
             elif cmd == "stop_all":
                 rp.enqueue(proto.cmd_stop_all())
+                # CMD_STOP_ALL only cuts motor-type ports — firmware leaves servos
+                # at their last commanded pulse. A servo in goBILDA continuous
+                # mode is really acting as a motor though, so give it an explicit
+                # neutral (stop) pulse here, on both physical ports and PCA9685
+                # channels (which CMD_STOP_ALL never reaches at all).
+                async with state.lock:
+                    continuous_ports = [
+                        int(pid) for pid, pd in state.ports.items()
+                        if pd.get("type") == "servo" and pd.get("gobilda_mode") == "continuous"
+                    ]
+                for port in continuous_ports:
+                    rp.enqueue(proto.cmd_set_servo(port, 1500))
+                if pca and pca.present:
+                    async with state.lock:
+                        continuous_channels = [
+                            ch for ch, cd in state.pca9685_channels.items()
+                            if cd.get("type") == "servo" and cd.get("gobilda_mode") == "continuous"
+                        ]
+                    for ch in continuous_channels:
+                        pca.set_channel_pulse_us(ch, 1500)
+                        async with state.lock:
+                            state.pca9685_channels.setdefault(ch, {})["pulse_us"] = 1500
 
             elif cmd == "configure_port":
                 port = int(msg["port"])
@@ -192,6 +214,27 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                     cd["max_angle"]    = max_a
                     cd["min_pulse_us"] = min_us
                     cd["max_pulse_us"] = max_us
+
+            elif cmd == "pca_set_gobilda_mode":
+                # Software-only equivalent of gobilda_set_mode: PCA9685 channels
+                # are plain PWM outputs with no serial line back to the servo,
+                # so there's no physical mode reprogram to send — this just
+                # tells the daemon (and Stop All) how to interpret this
+                # channel's pulses, matching the S-port continuous convention.
+                ch   = int(msg["channel"])
+                mode = str(msg.get("mode", "positional"))
+                async with state.lock:
+                    cd = state.pca9685_channels.get(ch)
+                    if not cd or cd.get("type") != "servo":
+                        state.add_log("error", f"[Dashboard] PCA P{ch} must be configured as Servo before setting continuous mode")
+                        return
+                    cd["gobilda_mode"] = "continuous" if mode == "continuous" else "positional"
+                    if mode == "continuous":
+                        cd["min_angle"] = -100.0; cd["max_angle"] = 100.0
+                        cd["min_pulse_us"] = 900; cd["max_pulse_us"] = 2100
+                    else:
+                        cd["min_angle"] = 0.0; cd["max_angle"] = 300.0
+                        cd["min_pulse_us"] = 500; cd["max_pulse_us"] = 2500
 
             elif cmd == "pca_set_servo":
                 channel  = int(msg["channel"])

@@ -22,14 +22,10 @@
 
   $: availableTypes = TYPE_DEFS.filter((t) => {
     if (t.d7Only     && portId !== 14 && portId !== 15) return false;
-    if (t.adcOnly    && ![5, 6, 7].includes(portId))    return false;
     if (t.dualOnly   && !(selectedPort?.dual))  return false;
     if (t.singleOnly &&   selectedPort?.dual)   return false;
     return true;
   });
-
-  // pendingType: the type the user has selected in the picker but not yet sent
-  let pendingType = null;
 
   // reconfiguring: true when the user wants to change an already-configured port
   let reconfiguring = false;
@@ -62,15 +58,16 @@
   let servoRangeEditing = false;
   let srMinAngle = 0, srMaxAngle = 300, srMinPulse = 500, srMaxPulse = 2500;
   let gobildaSwitching = false;
+  let pendingGobildaMode = 'positional';
 
   // Re-initialize local UI state whenever the selected port actually changes.
   let _prevPortId;
   $: if (portId !== _prevPortId) {
     _prevPortId = portId;
-    pendingType = null;
     reconfiguring = false;
     gobildaSwitching = false;
     const d = portId !== null ? $ports[portId] : null;
+    pendingGobildaMode = d?.gobilda_mode ?? 'positional';
     if (d) {
       if (isMotor(d.type)) motorSpeed = +(d.value / 100).toFixed(1);
       if (d.type === 'servo') {
@@ -142,10 +139,9 @@
   }
 
   // ── Port configure ────────────────────────────────────────────────────────────
-  function configurePort() {
-    if (!pendingType || portId === null) return;
-    send({ cmd: 'configure_port', port: portId, type: pendingType });
-    pendingType = null;
+  function configurePort(type) {
+    if (portId === null) return;
+    send({ cmd: 'configure_port', port: portId, type });
   }
 
   /**
@@ -155,21 +151,20 @@
    * type for this port. The daemon processes commands in order, so no delay
    * is needed — each message is fully handled before the next is read.
    */
-  function doReconfigure() {
-    if (!pendingType || portId === null) return;
+  function doReconfigure(type) {
+    if (portId === null) return;
 
     const savedConfigs = ALL_PORTS
       .filter((p) => p.id !== portId && $ports[p.id]?.type)
       .map((p) => ({ port: p.id, type: $ports[p.id].type }));
 
     send({ cmd: 'reset_ports' });
-    for (const { port, type } of savedConfigs) {
-      send({ cmd: 'configure_port', port, type });
+    for (const { port, type: t } of savedConfigs) {
+      send({ cmd: 'configure_port', port, type: t });
     }
-    send({ cmd: 'configure_port', port: portId, type: pendingType });
+    send({ cmd: 'configure_port', port: portId, type });
 
     reconfiguring = false;
-    pendingType = null;
   }
 </script>
 
@@ -245,7 +240,7 @@
             </p>
           </div>
 
-          <!-- Type cards grouped by category -->
+          <!-- Type cards grouped by category — click configures immediately -->
           {#each ['Motor', 'Servo', 'Sensor', 'GPIO', 'Bus'] as group}
             {@const groupTypes = availableTypes.filter((t) => t.group === group)}
             {#if groupTypes.length > 0}
@@ -255,14 +250,12 @@
                   {#each groupTypes as t}
                     <button
                       class="flex flex-col items-start px-3 py-2 rounded-lg border transition-all text-left
-                             {pendingType === t.id
-                               ? 'bg-blue-600/20 border-blue-500/60 text-blue-300'
-                               : 'bg-[#1e2129] border-[#2e3340] text-slate-400 hover:border-slate-500 hover:text-slate-300'}"
-                      on:click={() => pendingType = t.id}
+                             bg-[#1e2129] border-[#2e3340] text-slate-400 hover:border-blue-500/60 hover:text-blue-300"
+                      on:click={() => configurePort(t.id)}
                     >
                       <span class="text-xs font-semibold leading-tight">{t.label}</span>
                       {#if t.sub}
-                        <span class="text-[10px] {pendingType === t.id ? 'text-blue-400/70' : 'text-slate-600'} leading-tight mt-0.5">{t.sub}</span>
+                        <span class="text-[10px] text-slate-600 leading-tight mt-0.5">{t.sub}</span>
                       {/if}
                     </button>
                   {/each}
@@ -270,22 +263,6 @@
               </div>
             {/if}
           {/each}
-
-          <!-- Configure button -->
-          <div class="pt-1">
-            <button
-              disabled={!pendingType}
-              class="px-5 py-2 rounded-lg text-sm font-semibold transition-all
-                     {pendingType
-                       ? 'bg-blue-600/30 border border-blue-500/50 text-blue-300 hover:bg-blue-600/50 cursor-pointer'
-                       : 'bg-[#1e2129] border border-[#2e3340] text-slate-700 cursor-not-allowed'}"
-              on:click={configurePort}
-            >
-              {pendingType
-                ? `Configure ${selectedPort?.label} as ${TYPE_DEFS.find(t => t.id === pendingType)?.label}${TYPE_DEFS.find(t => t.id === pendingType)?.sub ? ' (' + TYPE_DEFS.find(t => t.id === pendingType)?.sub + ')' : ''}`
-                : 'Select a type above'}
-            </button>
-          </div>
         </div>
       {/if}
 
@@ -309,14 +286,12 @@
                 {#each groupTypes as t}
                   <button
                     class="flex flex-col items-start px-3 py-2 rounded-lg border transition-all text-left
-                           {pendingType === t.id
-                             ? 'bg-blue-600/20 border-blue-500/60 text-blue-300'
-                             : 'bg-[#1e2129] border-[#2e3340] text-slate-400 hover:border-slate-500 hover:text-slate-300'}"
-                    on:click={() => pendingType = t.id}
+                           bg-[#1e2129] border-[#2e3340] text-slate-400 hover:border-blue-500/60 hover:text-blue-300"
+                    on:click={() => doReconfigure(t.id)}
                   >
                     <span class="text-xs font-semibold leading-tight">{t.label}</span>
                     {#if t.sub}
-                      <span class="text-[10px] {pendingType === t.id ? 'text-blue-400/70' : 'text-slate-600'} leading-tight mt-0.5">{t.sub}</span>
+                      <span class="text-[10px] text-slate-600 leading-tight mt-0.5">{t.sub}</span>
                     {/if}
                   </button>
                 {/each}
@@ -325,23 +300,11 @@
           {/if}
         {/each}
 
-        <div class="flex gap-2 pt-1">
-          <button
-            disabled={!pendingType}
-            class="px-5 py-2 rounded-lg text-sm font-semibold transition-all
-                   {pendingType
-                     ? 'bg-blue-600/30 border border-blue-500/50 text-blue-300 hover:bg-blue-600/50 cursor-pointer'
-                     : 'bg-[#1e2129] border border-[#2e3340] text-slate-700 cursor-not-allowed'}"
-            on:click={doReconfigure}
-          >
-            {pendingType
-              ? `Apply — reset & reconfigure as ${TYPE_DEFS.find(t => t.id === pendingType)?.label}${TYPE_DEFS.find(t => t.id === pendingType)?.sub ? ' (' + TYPE_DEFS.find(t => t.id === pendingType)?.sub + ')' : ''}`
-              : 'Select a type above'}
-          </button>
+        <div class="pt-1">
           <button
             class="px-4 py-2 rounded-lg text-sm text-slate-500 border border-[#2e3340]
                    hover:text-slate-300 hover:border-slate-500 transition-colors"
-            on:click={() => { reconfiguring = false; pendingType = null; }}
+            on:click={() => { reconfiguring = false; }}
           >Cancel</button>
         </div>
       </div>
@@ -520,6 +483,8 @@
 
         <!-- GoBilda dual-mode switch (S-port servos only) -->
         {#if portId !== null && portId < 8}
+          {@const committedMode = selectedData?.gobilda_mode ?? 'positional'}
+          {@const dirty = pendingGobildaMode !== committedMode}
           <div class="border border-slate-700/40 rounded-lg p-3 space-y-2 bg-[#1a1d26]">
             <div class="flex items-center gap-2">
               <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">GoBilda Mode</span>
@@ -534,24 +499,32 @@
             {#if gobildaSwitching}
               <div class="flex items-center gap-2 text-xs text-amber-400">
                 <span class="animate-spin inline-block w-3 h-3 border-2 border-amber-400/30 border-t-amber-400 rounded-full"></span>
-                Switching mode… (~500 ms)
+                Programming… (~500 ms)
               </div>
             {:else}
-              <div class="flex gap-2">
+              <div class="flex items-center gap-2">
                 <button
                   class="px-3 py-1.5 rounded text-xs font-semibold transition-all border
-                         {selectedData?.gobilda_mode === 'positional'
+                         {pendingGobildaMode === 'positional'
                            ? 'bg-amber-600/20 border-amber-500/50 text-amber-300'
                            : 'bg-[#161920] border-[#2e3340] text-slate-500 hover:border-slate-500 hover:text-slate-300'}"
-                  on:click={() => sendGobildaMode('positional')}
+                  on:click={() => pendingGobildaMode = 'positional'}
                 >Positional</button>
                 <button
                   class="px-3 py-1.5 rounded text-xs font-semibold transition-all border
-                         {selectedData?.gobilda_mode === 'continuous'
+                         {pendingGobildaMode === 'continuous'
                            ? 'bg-blue-600/20 border-blue-500/50 text-blue-300'
                            : 'bg-[#161920] border-[#2e3340] text-slate-500 hover:border-slate-500 hover:text-slate-300'}"
-                  on:click={() => sendGobildaMode('continuous')}
+                  on:click={() => pendingGobildaMode = 'continuous'}
                 >Continuous</button>
+                <button
+                  disabled={!dirty}
+                  class="ml-auto px-3 py-1.5 rounded text-xs font-semibold transition-all border
+                         {dirty
+                           ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/30 cursor-pointer'
+                           : 'bg-[#161920] border-[#2e3340] text-slate-700 cursor-not-allowed'}"
+                  on:click={() => sendGobildaMode(pendingGobildaMode)}
+                >Program</button>
               </div>
             {/if}
           </div>

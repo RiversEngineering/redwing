@@ -23,9 +23,8 @@ export const TYPE_DEFS = [
   { id: 'gpio_in',            label: 'Digital In',  sub: null,                group: 'GPIO',   dualOnly: false, singleOnly: false, d7Only: false },
   { id: 'gpio_out',           label: 'Digital Out', sub: null,                group: 'GPIO',   dualOnly: false, singleOnly: false, d7Only: false },
   { id: 'uart',               label: 'UART Serial', sub: 'D6 or D7 only',     group: 'Bus',    dualOnly: true,  singleOnly: false, d7Only: true  },
-  { id: 'tfluna',             label: 'TF-Luna',     sub: 'D6 or D7 only',     group: 'Sensor', dualOnly: true,  singleOnly: false, d7Only: true,  adcOnly: false },
-  { id: 'tfmini',             label: 'TF-Mini',     sub: 'D6 or D7 only',     group: 'Sensor', dualOnly: true,  singleOnly: false, d7Only: true,  adcOnly: false },
-  { id: 'ir_distance',        label: 'IR Distance', sub: 'S5/S6/S7 only',     group: 'Sensor', dualOnly: false, singleOnly: true,  d7Only: false, adcOnly: true  },
+  { id: 'tfluna',             label: 'TF-Luna',     sub: 'D6 or D7 only',     group: 'Sensor', dualOnly: true,  singleOnly: false, d7Only: true  },
+  { id: 'tfmini',             label: 'TF-Mini',     sub: 'D6 or D7 only',     group: 'Sensor', dualOnly: true,  singleOnly: false, d7Only: true  },
 ];
 
 // ── Type helpers ─────────────────────────────────────────────────────────────

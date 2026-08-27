@@ -62,17 +62,21 @@
 
   let pcaCalibratePort = 0;     // which S-port (0–7) is wired to PCA channel 0
   let pcaCalibRunning = false;
-  let pcaPendingType = null;
   let pcaMotorSpeed = 0;
   let pcaServoAngle = 150;
   let pcaRangeEditing = false;
   let pcaSrMinAngle = 0, pcaSrMaxAngle = 300, pcaSrMinPulse = 500, pcaSrMaxPulse = 2500;
+  let pcaGobildaSwitching = false;
+  let pendingPcaGobildaMode = 'positional';
 
   $: pcaState = $robotState?.pca9685 ?? { present: false, channels: {} };
   $: selectedPcaData = rightSelectedPcaChannel !== null
     ? (pcaState.channels?.[String(rightSelectedPcaChannel)] ?? null)
     : null;
   $: pcaSr = servoRangeOf(selectedPcaData);
+  $: pcaServoUnit = selectedPcaData?.gobilda_mode === 'continuous' ? '%' : '°';
+  $: pcaCommittedGobildaMode = selectedPcaData?.gobilda_mode ?? 'positional';
+  $: pcaGobildaDirty = pendingPcaGobildaMode !== pcaCommittedGobildaMode;
 
   // Detect calibration completion: daemon clears last_calibration before starting,
   // then sets it to the result dict when done. Watching for non-null is reliable.
@@ -84,8 +88,9 @@
     rightSelectedId = null;
     rightSelectedPcaChannel = ch;
     pcaCalibrating = false;
-    pcaPendingType = null;
+    pcaGobildaSwitching = false;
     const d = pcaState.channels?.[String(ch)];
+    pendingPcaGobildaMode = d?.gobilda_mode ?? 'positional';
     if (d?.type && isMotor(d.type)) pcaMotorSpeed = 0;
     if (d?.type === 'servo') {
       const r = servoRangeOf(d);
@@ -105,10 +110,9 @@
     send({ cmd: 'pca_calibrate', pico_port: pcaCalibratePort });
   }
 
-  function configurePcaChannel() {
-    if (!pcaPendingType || rightSelectedPcaChannel === null) return;
-    send({ cmd: 'pca_configure', channel: rightSelectedPcaChannel, type: pcaPendingType });
-    pcaPendingType = null;
+  function configurePcaChannel(type) {
+    if (rightSelectedPcaChannel === null) return;
+    send({ cmd: 'pca_configure', channel: rightSelectedPcaChannel, type });
   }
 
   function sendPcaMotor(pct) {
@@ -120,6 +124,19 @@
     const lo = Math.min(pcaSr.minAngle, pcaSr.maxAngle), hi = Math.max(pcaSr.minAngle, pcaSr.maxAngle);
     pcaServoAngle = Math.max(lo, Math.min(hi, deg));
     send({ cmd: 'pca_set_servo', channel: rightSelectedPcaChannel, angle_deg: pcaServoAngle });
+  }
+
+  function sendPcaGobildaMode(mode) {
+    pcaGobildaSwitching = true;
+    send({ cmd: 'pca_set_gobilda_mode', channel: rightSelectedPcaChannel, mode });
+    setTimeout(() => {
+      pcaGobildaSwitching = false;
+      pcaServoAngle = mode === 'continuous' ? 0 : 150;
+      if (mode === 'continuous') {
+        // Neutral pulse so the servo doesn't run at its last positional pulse.
+        send({ cmd: 'pca_set_servo', channel: rightSelectedPcaChannel, angle_deg: 0 });
+      }
+    }, 700);
   }
 
   function openPcaRange() {
@@ -390,26 +407,14 @@
                   {#each [['motor_servo_signal', 'Motor', 'RC ESC / servo signal'], ['servo', 'Servo', 'Standard servo']] as [id, label, sub]}
                     <button
                       class="flex flex-col items-start px-3 py-2 rounded-lg border transition-all text-left
-                             {pcaPendingType === id
-                               ? 'bg-blue-600/20 border-blue-500/60 text-blue-300'
-                               : 'bg-[#1e2129] border-[#2e3340] text-slate-400 hover:border-slate-500 hover:text-slate-300'}"
-                      on:click={() => pcaPendingType = id}
+                             bg-[#1e2129] border-[#2e3340] text-slate-400 hover:border-blue-500/60 hover:text-blue-300"
+                      on:click={() => configurePcaChannel(id)}
                     >
                       <span class="text-xs font-semibold leading-tight">{label}</span>
-                      <span class="text-[10px] {pcaPendingType === id ? 'text-blue-400/70' : 'text-slate-600'} leading-tight mt-0.5">{sub}</span>
+                      <span class="text-[10px] text-slate-600 leading-tight mt-0.5">{sub}</span>
                     </button>
                   {/each}
                 </div>
-                <button
-                  disabled={!pcaPendingType}
-                  class="px-5 py-2 rounded-lg text-sm font-semibold transition-all
-                         {pcaPendingType
-                           ? 'bg-blue-600/30 border border-blue-500/50 text-blue-300 hover:bg-blue-600/50 cursor-pointer'
-                           : 'bg-[#1e2129] border border-[#2e3340] text-slate-700 cursor-not-allowed'}"
-                  on:click={configurePcaChannel}
-                >
-                  {pcaPendingType ? `Configure P${rightSelectedPcaChannel} as ${pcaPendingType === 'servo' ? 'Servo' : 'Motor'}` : 'Select a type above'}
-                </button>
               </div>
 
             {:else if isMotor(selectedPcaData.type)}
@@ -464,14 +469,14 @@
               <!-- PCA servo control -->
               <div class="max-w-lg space-y-6">
                 <div class="flex items-baseline gap-3">
-                  <span class="text-4xl font-bold tabular-nums text-amber-400">{pcaServoAngle.toFixed(1)}°</span>
-                  <span class="text-sm text-slate-500">angle</span>
+                  <span class="text-4xl font-bold tabular-nums text-amber-400">{pcaServoAngle.toFixed(1)}{pcaServoUnit}</span>
+                  <span class="text-sm text-slate-500">{pcaServoUnit === '%' ? 'power' : 'angle'}</span>
                 </div>
                 <div class="space-y-2">
                   <div class="flex justify-between text-xs text-slate-500">
-                    <span>{pcaSr.minAngle}°</span>
-                    <span class="font-semibold text-slate-300 tabular-nums">{pcaServoAngle.toFixed(1)}°</span>
-                    <span>{pcaSr.maxAngle}°</span>
+                    <span>{pcaSr.minAngle}{pcaServoUnit}</span>
+                    <span class="font-semibold text-slate-300 tabular-nums">{pcaServoAngle.toFixed(1)}{pcaServoUnit}</span>
+                    <span>{pcaSr.maxAngle}{pcaServoUnit}</span>
                   </div>
                   <input
                     type="range" min={Math.min(pcaSr.minAngle, pcaSr.maxAngle)} max={Math.max(pcaSr.minAngle, pcaSr.maxAngle)} step="0.5"
@@ -482,7 +487,7 @@
                   />
                 </div>
                 <div class="flex gap-1.5 flex-wrap justify-center">
-                  {#each servoPresets(pcaSr) as [v, label]}
+                  {#each servoPresets(pcaSr, pcaServoUnit) as [v, label]}
                     <button class="px-2 py-1 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
                                    text-amber-400 hover:bg-amber-900/20 hover:border-amber-600/40 transition-colors"
                       on:click={() => sendPcaServo(v)}>{label}</button>
@@ -501,7 +506,7 @@
                       <path d="M6 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                     <span class="text-xs font-semibold">Range</span>
-                    <span class="text-xs text-slate-500">{pcaSr.minAngle}° – {pcaSr.maxAngle}° · {pcaSr.minPulse}–{pcaSr.maxPulse} µs</span>
+                    <span class="text-xs text-slate-500">{pcaSr.minAngle}{pcaServoUnit} – {pcaSr.maxAngle}{pcaServoUnit} · {pcaSr.minPulse}–{pcaSr.maxPulse} µs</span>
                   </button>
 
                   {#if pcaRangeEditing}
@@ -541,6 +546,54 @@
                         on:click={() => pcaRangeEditing = false}>Cancel</button>
                     </div>
                   </div>
+                  {/if}
+                </div>
+
+                <!-- Continuous-mode flag (software only — PCA9685 has no serial link -->
+                <!-- back to the servo, so this doesn't reprogram it; the servo    -->
+                <!-- must already be in continuous mode). Lets Stop All Motors and -->
+                <!-- the throttle-style display know to treat this channel as one.-->
+                <div class="border border-slate-700/40 rounded-lg p-3 space-y-2 bg-[#1a1d26]">
+                  <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">GoBilda Mode</span>
+                    <span class="text-[10px] text-slate-700">· continuous servos wired to this channel only</span>
+                    {#if selectedPcaData?.gobilda_mode}
+                      <span class="ml-auto text-[10px] font-mono
+                                   {selectedPcaData.gobilda_mode === 'continuous' ? 'text-blue-400' : 'text-amber-400'}">
+                        {selectedPcaData.gobilda_mode}
+                      </span>
+                    {/if}
+                  </div>
+                  {#if pcaGobildaSwitching}
+                    <div class="flex items-center gap-2 text-xs text-amber-400">
+                      <span class="animate-spin inline-block w-3 h-3 border-2 border-amber-400/30 border-t-amber-400 rounded-full"></span>
+                      Programming…
+                    </div>
+                  {:else}
+                    <div class="flex items-center gap-2">
+                      <button
+                        class="px-3 py-1.5 rounded text-xs font-semibold transition-all border
+                               {pendingPcaGobildaMode === 'positional'
+                                 ? 'bg-amber-600/20 border-amber-500/50 text-amber-300'
+                                 : 'bg-[#161920] border-[#2e3340] text-slate-500 hover:border-slate-500 hover:text-slate-300'}"
+                        on:click={() => pendingPcaGobildaMode = 'positional'}
+                      >Positional</button>
+                      <button
+                        class="px-3 py-1.5 rounded text-xs font-semibold transition-all border
+                               {pendingPcaGobildaMode === 'continuous'
+                                 ? 'bg-blue-600/20 border-blue-500/50 text-blue-300'
+                                 : 'bg-[#161920] border-[#2e3340] text-slate-500 hover:border-slate-500 hover:text-slate-300'}"
+                        on:click={() => pendingPcaGobildaMode = 'continuous'}
+                      >Continuous</button>
+                      <button
+                        disabled={!pcaGobildaDirty}
+                        class="ml-auto px-3 py-1.5 rounded text-xs font-semibold transition-all border
+                               {pcaGobildaDirty
+                                 ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/30 cursor-pointer'
+                                 : 'bg-[#161920] border-[#2e3340] text-slate-700 cursor-not-allowed'}"
+                        on:click={() => sendPcaGobildaMode(pendingPcaGobildaMode)}
+                      >Program</button>
+                    </div>
                   {/if}
                 </div>
               </div>
