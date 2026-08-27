@@ -6,7 +6,7 @@
    * UART mode), and PCA9685 expansion channels. The center is split into two
    * independent detail panels, one driven by each sidebar's selection.
    */
-  import { ports, robotState, selectedPortId } from '../lib/stores.js';
+  import { ports, robotState, selectedPortId, selectedPcaChannelId } from '../lib/stores.js';
   import { send } from '../lib/ws.js';
   import PortDetailPanel from './PortDetailPanel.svelte';
   import {
@@ -43,6 +43,14 @@
       selectLeft(id);
     }
     selectedPortId.set(null);
+  }
+
+  // Auto-select a PCA9685 channel when navigating here from the overview grid.
+  let _lastHandledPca = null;
+  $: if ($selectedPcaChannelId !== null && $selectedPcaChannelId !== _lastHandledPca) {
+    _lastHandledPca = $selectedPcaChannelId;
+    selectPcaChannel($selectedPcaChannelId);
+    selectedPcaChannelId.set(null);
   }
 
   // ── Global reset / stop ────────────────────────────────────────────────────────

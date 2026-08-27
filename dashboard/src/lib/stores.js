@@ -43,6 +43,12 @@ export const activeTab = persistedTab('redwing_active_tab', 'overview');
  */
 export const selectedPortId = writable(null);
 
+/**
+ * PCA9685 channel id (0–15) to auto-select when the Ports tab opens.
+ * Set by PortGrid when a user clicks a PCA channel card; consumed by PortsTab.
+ */
+export const selectedPcaChannelId = writable(null);
+
 // ── Connection ────────────────────────────────────────────────────────────────
 /** @type {import('svelte/store').Writable<boolean>} */
 export const connected = writable(false);

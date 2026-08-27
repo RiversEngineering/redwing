@@ -58,7 +58,6 @@
   let servoRangeEditing = false;
   let srMinAngle = 0, srMaxAngle = 300, srMinPulse = 500, srMaxPulse = 2500;
   let gobildaSwitching = false;
-  let pendingGobildaMode = 'positional';
 
   // Re-initialize local UI state whenever the selected port actually changes.
   let _prevPortId;
@@ -67,7 +66,6 @@
     reconfiguring = false;
     gobildaSwitching = false;
     const d = portId !== null ? $ports[portId] : null;
-    pendingGobildaMode = d?.gobilda_mode ?? 'positional';
     if (d) {
       if (isMotor(d.type)) motorSpeed = +(d.value / 100).toFixed(1);
       if (d.type === 'servo') {
@@ -124,19 +122,25 @@
   }
 
   // ── GoBilda mode switch ────────────────────────────────────────────────────────
+  // Positional/Continuous: switches the interface (units, slider/preset range,
+  // and therefore the pulse a subsequent set_servo computes) immediately —
+  // independent of whether the servo has actually been reprogrammed yet.
+  function setServoGobildaInterface(mode) {
+    send({ cmd: 'set_servo_gobilda_interface', port: portId, mode });
+    // Local display only, so the readout doesn't keep showing a stale
+    // positional-degree value once the unit switches to % (or vice versa).
+    servoAngle = mode === 'continuous' ? 0 : 150;
+  }
+
   // Program does exactly one thing: tell the RP2040 to reprogram the servo's
   // internal mode over its serial line. No motion command is sent here — the
-  // Positional/Continuous buttons already chose what the interface (units,
-  // slider range) looks like and what mode this will program; Program just
-  // commits that choice to the servo.
+  // interface already switched separately, above; Program just commits the
+  // currently-selected mode to the servo itself.
   function sendGobildaMode(mode) {
     gobildaSwitching = true;
     send({ cmd: 'gobilda_set_mode', port: portId, mode });
     setTimeout(() => {
       gobildaSwitching = false;
-      // Local display only, so the readout doesn't keep showing a stale
-      // positional-degree value once the unit switches to % (or vice versa).
-      servoAngle = mode === 'continuous' ? 0 : 150;
     }, 700);
   }
 
@@ -508,18 +512,17 @@
 
         <!-- GoBilda dual-mode switch (S-port servos only) -->
         {#if portId !== null && portId < 8}
-          {@const committedMode = selectedData?.gobilda_mode ?? 'positional'}
-          {@const dirty = pendingGobildaMode !== committedMode}
+          {@const interfaceMode = selectedData?.gobilda_mode ?? 'positional'}
+          {@const programmedMode = selectedData?.gobilda_programmed_mode ?? 'positional'}
+          {@const dirty = interfaceMode !== programmedMode}
           <div class="border border-slate-700/40 rounded-lg p-3 space-y-2 bg-[#1a1d26]">
             <div class="flex items-center gap-2">
               <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">GoBilda Mode</span>
               <span class="text-[10px] text-slate-700">· gray dual-mode servos only</span>
-              {#if selectedData?.gobilda_mode}
-                <span class="ml-auto text-[10px] font-mono
-                             {selectedData.gobilda_mode === 'continuous' ? 'text-blue-400' : 'text-amber-400'}">
-                  {selectedData.gobilda_mode}
-                </span>
-              {/if}
+              <span class="ml-auto text-[10px] font-mono
+                           {programmedMode === 'continuous' ? 'text-blue-400' : 'text-amber-400'}">
+                {programmedMode} on servo
+              </span>
             </div>
             {#if gobildaSwitching}
               <div class="flex items-center gap-2 text-xs text-amber-400">
@@ -530,17 +533,17 @@
               <div class="flex items-center gap-2">
                 <button
                   class="px-3 py-1.5 rounded text-xs font-semibold transition-all border
-                         {pendingGobildaMode === 'positional'
+                         {interfaceMode === 'positional'
                            ? 'bg-amber-600/20 border-amber-500/50 text-amber-300'
                            : 'bg-[#161920] border-[#2e3340] text-slate-500 hover:border-slate-500 hover:text-slate-300'}"
-                  on:click={() => pendingGobildaMode = 'positional'}
+                  on:click={() => setServoGobildaInterface('positional')}
                 >Positional</button>
                 <button
                   class="px-3 py-1.5 rounded text-xs font-semibold transition-all border
-                         {pendingGobildaMode === 'continuous'
+                         {interfaceMode === 'continuous'
                            ? 'bg-blue-600/20 border-blue-500/50 text-blue-300'
                            : 'bg-[#161920] border-[#2e3340] text-slate-500 hover:border-slate-500 hover:text-slate-300'}"
-                  on:click={() => pendingGobildaMode = 'continuous'}
+                  on:click={() => setServoGobildaInterface('continuous')}
                 >Continuous</button>
                 <button
                   disabled={!dirty}
@@ -548,7 +551,7 @@
                          {dirty
                            ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/30 cursor-pointer'
                            : 'bg-[#161920] border-[#2e3340] text-slate-700 cursor-not-allowed'}"
-                  on:click={() => sendGobildaMode(pendingGobildaMode)}
+                  on:click={() => sendGobildaMode(interfaceMode)}
                 >Program</button>
               </div>
             {/if}

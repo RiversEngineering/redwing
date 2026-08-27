@@ -1,5 +1,5 @@
 <script>
-  import { ports, robotState, activeTab, selectedPortId } from '../lib/stores.js';
+  import { ports, robotState, activeTab, selectedPortId, selectedPcaChannelId } from '../lib/stores.js';
   import PortCard from './PortCard.svelte';
   import MiniPortCard from './MiniPortCard.svelte';
 
@@ -9,6 +9,11 @@
 
   function openPort(id) {
     $selectedPortId = id;
+    $activeTab = 'ports';
+  }
+
+  function openPcaChannel(id) {
+    $selectedPcaChannelId = id;
     $activeTab = 'ports';
   }
 
@@ -119,13 +124,28 @@
         {/if}
 
         {#if pcaState.present}
-          {#each PCA_CHANNELS as ch}
-            <MiniPortCard
-              label={ch.label}
-              data={pcaState.channels?.[String(ch.id)]}
-              badgeClass="bg-purple-900/40 text-purple-400"
-            />
-          {/each}
+          <!-- Two rows of 8, filling column-by-column, so all 16 channels sit -->
+          <!-- next to I²C/IMU instead of wrapping into a row of their own.    -->
+          <div class="grid grid-rows-2 grid-flow-col auto-cols-[3.75rem] gap-1">
+            {#each PCA_CHANNELS as ch}
+              <!-- svelte-ignore a11y-no-static-element-interactions -->
+              <div
+                class="cursor-pointer rounded-md transition-all duration-100
+                       hover:ring-1 hover:ring-purple-500/50 hover:brightness-125"
+                role="button"
+                tabindex="0"
+                title="Open {ch.label} in Ports tab"
+                on:click={() => openPcaChannel(ch.id)}
+                on:keydown={(e) => e.key === 'Enter' && openPcaChannel(ch.id)}
+              >
+                <MiniPortCard
+                  label={ch.label}
+                  data={pcaState.channels?.[String(ch.id)]}
+                  badgeClass="bg-purple-900/40 text-purple-400"
+                />
+              </div>
+            {/each}
+          </div>
         {/if}
       </div>
     </div>

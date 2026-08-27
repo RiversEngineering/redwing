@@ -188,19 +188,37 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                     pd["min_pulse_us"] = min_us
                     pd["max_pulse_us"] = max_us
 
-            elif cmd == "gobilda_set_mode":
+            elif cmd == "set_servo_gobilda_interface":
+                # Switches how the dashboard (and subsequent set_servo commands)
+                # interpret this port — units, slider range, and pulse mapping —
+                # independent of whether the physical servo has actually been
+                # reprogrammed. Positional/Continuous call this immediately;
+                # only Program (gobilda_set_mode, below) touches real hardware.
                 port = int(msg["port"])
-                mode = 1 if str(msg.get("mode", "positional")) == "continuous" else 0
-                rp.enqueue(proto.cmd_gobilda_mode(port, mode))
+                mode = str(msg.get("mode", "positional"))
                 async with state.lock:
                     pd = state.ports.setdefault(str(port), {})
-                    pd["gobilda_mode"] = "continuous" if mode == 1 else "positional"
-                    if mode == 1:
+                    pd["gobilda_mode"] = "continuous" if mode == "continuous" else "positional"
+                    if mode == "continuous":
                         pd["min_angle"] = -100.0; pd["max_angle"] = 100.0
                         pd["min_pulse_us"] = 900; pd["max_pulse_us"] = 2100
                     else:
                         pd["min_angle"] = 0.0; pd["max_angle"] = 300.0
                         pd["min_pulse_us"] = 500; pd["max_pulse_us"] = 2500
+
+            elif cmd == "gobilda_set_mode":
+                # Program: the ONLY thing this does is reprogram the servo's
+                # internal mode over its serial line. The interface (units,
+                # range) already switched separately via
+                # set_servo_gobilda_interface — this just records what mode
+                # was actually sent to hardware, for the Program button's own
+                # enabled/disabled state.
+                port = int(msg["port"])
+                mode = str(msg.get("mode", "positional"))
+                rp.enqueue(proto.cmd_gobilda_mode(port, 1 if mode == "continuous" else 0))
+                async with state.lock:
+                    pd = state.ports.setdefault(str(port), {})
+                    pd["gobilda_programmed_mode"] = mode
 
             elif cmd == "set_pca_servo_range":
                 ch     = int(msg["channel"])
