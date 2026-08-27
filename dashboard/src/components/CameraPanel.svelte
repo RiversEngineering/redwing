@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { connected, cameraFrame } from '../lib/stores.js';
+  import { connected, cameraFrame, activeTab } from '../lib/stores.js';
 
   let canvas;
   let wrapper;
@@ -67,7 +67,13 @@
   }
 
   function handleClick(e) {
-    if (!pickerMode || !canvas) return;
+    // Outside colour-picker mode, the feed is just a shortcut to the full
+    // Controller view — only actually sample a colour while picking.
+    if (!pickerMode) {
+      $activeTab = 'controller';
+      return;
+    }
+    if (!canvas) return;
     const ctx  = canvas.getContext('2d');
     const data = ctx.getImageData(e.offsetX, e.offsetY, 1, 1).data;
     const [r, g, b] = [data[0], data[1], data[2]];
@@ -188,8 +194,9 @@
 
       <canvas
         bind:this={canvas}
-        class="w-full h-full block {pickerMode ? 'cursor-crosshair' : ''}"
+        class="w-full h-full block {pickerMode ? 'cursor-crosshair' : 'cursor-pointer'}"
         on:click={handleClick}
+        title={pickerMode ? '' : 'Open Controller tab'}
       />
 
       <!-- Pick-mode hint bar -->
@@ -254,8 +261,16 @@
       {/if}
 
     {:else}
+      <!-- svelte-ignore a11y-no-static-element-interactions -->
       <!-- No signal placeholder -->
-      <div class="flex flex-col items-center justify-center h-full gap-3 text-slate-600">
+      <div
+        class="flex flex-col items-center justify-center h-full gap-3 text-slate-600 cursor-pointer hover:text-slate-500 transition-colors"
+        role="button"
+        tabindex="0"
+        title="Open Controller tab"
+        on:click={() => $activeTab = 'controller'}
+        on:keydown={(e) => e.key === 'Enter' && ($activeTab = 'controller')}
+      >
         <svg class="w-12 h-12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="2" y="4" width="20" height="15" rx="2" stroke="currentColor" stroke-width="1.5"/>
           <path d="M8 19v2M16 19v2M5 21h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>

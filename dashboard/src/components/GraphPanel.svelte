@@ -8,7 +8,7 @@
    *   - motor speed %      (per motor port)
    */
   import { onDestroy } from 'svelte';
-  import { robotState } from '../lib/stores.js';
+  import { robotState, activeTab } from '../lib/stores.js';
   import GraphSeries from './GraphSeries.svelte';
 
   const WINDOW_S   = 30;       // rolling window in seconds
@@ -110,7 +110,16 @@
   });
 </script>
 
-<div class="flex flex-col h-full bg-[#1e2129] rounded-lg border border-[#2e3340] overflow-hidden">
+<!-- svelte-ignore a11y-no-static-element-interactions -->
+<div
+  class="flex flex-col h-full bg-[#1e2129] rounded-lg border border-[#2e3340] overflow-hidden cursor-pointer
+         hover:ring-1 hover:ring-blue-500/30 transition-all duration-100"
+  role="button"
+  tabindex="0"
+  title="Open Data tab"
+  on:click={() => $activeTab = 'data'}
+  on:keydown={(e) => e.key === 'Enter' && ($activeTab = 'data')}
+>
   <!-- Header -->
   <div class="flex items-center gap-2 px-3 py-2 border-b border-[#2e3340] flex-shrink-0">
     <svg class="w-4 h-4 text-slate-400" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
