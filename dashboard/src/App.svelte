@@ -2,7 +2,7 @@
   import { onDestroy } from 'svelte';
   import { subscribe, onStatus, send } from './lib/ws.js';
   import { connected, robotState, pushLog, cameraFrame, activeTab, pushPlot,
-            addMapPoints, clearMap, mapPose, flashStatus } from './lib/stores.js';
+            addMapPoints, clearMap, mapPose, flashStatus, mapTabEnabled } from './lib/stores.js';
 
   import TopBar        from './components/TopBar.svelte';
   import CameraPanel   from './components/CameraPanel.svelte';
@@ -56,14 +56,23 @@
     unsubWs();
   });
 
-  const tabs = [
+  // Map is an advanced, opt-in feature (toggled from the System tab) — it
+  // does nothing until student code calls the mapping API, which would
+  // otherwise just look broken/empty to most students.
+  $: tabs = [
     { id: 'overview',    label: 'Overview' },
     { id: 'ports',       label: 'Ports' },
     { id: 'data',        label: 'Data' },
     { id: 'controller',  label: 'Controller' },
-    { id: 'map',         label: 'Map' },
+    ...($mapTabEnabled ? [{ id: 'map', label: 'Map' }] : []),
     { id: 'system',      label: 'System' },
   ];
+
+  // If Map gets disabled while it's the active tab, don't strand the user on
+  // a tab with no button to get back to it.
+  $: if (!$mapTabEnabled && $activeTab === 'map') {
+    $activeTab = 'overview';
+  }
 </script>
 
 <div class="flex flex-col h-screen bg-[#161920] text-slate-200 overflow-hidden">

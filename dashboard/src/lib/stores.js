@@ -37,6 +37,21 @@ function persistedTab(key, fallback) {
 }
 export const activeTab = persistedTab('redwing_active_tab', 'overview');
 
+function persistedBool(key, fallback) {
+    let initial = fallback;
+    try { const v = localStorage.getItem(key); if (v !== null) initial = v === 'true'; } catch {}
+    const store = writable(initial);
+    store.subscribe(val => { try { localStorage.setItem(key, String(val)); } catch {} });
+    return store;
+}
+/**
+ * Whether the Map tab is shown at all. Off by default — it's an advanced
+ * feature (student code has to call the mapping API for it to show
+ * anything) that would otherwise just look broken/empty to most students.
+ * Toggled from the System tab.
+ */
+export const mapTabEnabled = persistedBool('redwing_map_tab_enabled', false);
+
 /**
  * Port id to auto-select when the Ports tab opens.
  * Set by PortGrid when a user clicks a port card; consumed by PortsTab.
