@@ -308,34 +308,31 @@
   <div class="flex-1 min-w-0 flex flex-col overflow-hidden bg-[#161920]">
 
     <!-- Shared toolbar -->
-    <div class="flex items-center gap-2 px-5 py-2 border-b border-[#2e3340] flex-shrink-0 bg-[#1a1d26]">
-      <span class="text-[10px] font-bold uppercase tracking-widest text-slate-600">Ports</span>
-      <div class="ml-auto flex items-center gap-2">
-        {#if confirmReset}
-          <span class="text-xs text-amber-400">Reset all ports?</span>
-          <button
-            class="px-3 py-1 rounded text-xs font-semibold bg-amber-600/20 text-amber-400
-                   border border-amber-600/40 hover:bg-amber-600/40 transition-colors"
-            on:click={doResetPorts}
-          >Confirm</button>
-          <button
-            class="px-3 py-1 rounded text-xs text-slate-500 border border-[#2e3340]
-                   hover:text-slate-300 transition-colors"
-            on:click={() => confirmReset = false}
-          >Cancel</button>
-        {:else}
-          <button
-            class="px-3 py-1 rounded text-xs font-semibold bg-slate-700/40 text-slate-400
-                   border border-[#2e3340] hover:bg-slate-600/40 hover:text-slate-300 transition-colors"
-            on:click={() => confirmReset = true}
-          >Reset All Ports</button>
-          <button
-            class="px-3 py-1 rounded text-xs font-semibold bg-red-600/20 text-red-400
-                   border border-red-600/30 hover:bg-red-600/40 transition-colors"
-            on:click={stopAll}
-          >Stop All Motors</button>
-        {/if}
-      </div>
+    <div class="flex items-center justify-center gap-2 px-3 py-2 border-b border-[#2e3340] flex-shrink-0 bg-[#1a1d26]">
+      {#if confirmReset}
+        <span class="text-xs text-amber-400">Reset all ports?</span>
+        <button
+          class="px-3 py-1 rounded text-xs font-semibold bg-amber-600/20 text-amber-400
+                 border border-amber-600/40 hover:bg-amber-600/40 transition-colors"
+          on:click={doResetPorts}
+        >Confirm</button>
+        <button
+          class="px-3 py-1 rounded text-xs text-slate-500 border border-[#2e3340]
+                 hover:text-slate-300 transition-colors"
+          on:click={() => confirmReset = false}
+        >Cancel</button>
+      {:else}
+        <button
+          class="px-3 py-1 rounded text-xs font-semibold bg-slate-700/40 text-slate-400
+                 border border-[#2e3340] hover:bg-slate-600/40 hover:text-slate-300 transition-colors"
+          on:click={() => confirmReset = true}
+        >Reset All Ports</button>
+        <button
+          class="px-3 py-1 rounded text-xs font-semibold bg-red-600/20 text-red-400
+                 border border-red-600/30 hover:bg-red-600/40 transition-colors"
+          on:click={stopAll}
+        >Stop All Motors</button>
+      {/if}
     </div>
 
     <!-- Split body -->
@@ -530,19 +527,25 @@
                 {#if !pcaPairPicking}
                   <div>
                     <p class="text-sm font-semibold text-slate-300 mb-1">Choose a device type</p>
-                    <p class="text-xs text-slate-600">PCA9685 only supports 50 Hz outputs (servo / RC ESC).</p>
+                    <p class="text-xs text-slate-600">
+                      {pcaState.mode === 'motor'
+                        ? 'Motor mode is on (~1 kHz) — RC servo/ESC signals need 50 Hz, so only the paired sign-magnitude motor is available. Switch to Servo mode for RC motor/servo signals.'
+                        : 'PCA9685 only supports 50 Hz outputs (servo / RC ESC).'}
+                    </p>
                   </div>
                   <div class="flex gap-2 flex-wrap">
-                    {#each [['motor_servo_signal', 'Motor', 'RC ESC / servo signal'], ['servo', 'Servo', 'Standard servo']] as [id, label, sub]}
-                      <button
-                        class="flex flex-col items-start px-3 py-2 rounded-lg border transition-all text-left
-                               bg-[#1e2129] border-[#2e3340] text-slate-400 hover:border-blue-500/60 hover:text-blue-300"
-                        on:click={() => configurePcaChannel(id)}
-                      >
-                        <span class="text-xs font-semibold leading-tight">{label}</span>
-                        <span class="text-[10px] text-slate-600 leading-tight mt-0.5">{sub}</span>
-                      </button>
-                    {/each}
+                    {#if pcaState.mode !== 'motor'}
+                      {#each [['motor_servo_signal', 'Motor', 'RC ESC / servo signal'], ['servo', 'Servo', 'Standard servo']] as [id, label, sub]}
+                        <button
+                          class="flex flex-col items-start px-3 py-2 rounded-lg border transition-all text-left
+                                 bg-[#1e2129] border-[#2e3340] text-slate-400 hover:border-blue-500/60 hover:text-blue-300"
+                          on:click={() => configurePcaChannel(id)}
+                        >
+                          <span class="text-xs font-semibold leading-tight">{label}</span>
+                          <span class="text-[10px] text-slate-600 leading-tight mt-0.5">{sub}</span>
+                        </button>
+                      {/each}
+                    {/if}
                     <button
                       class="flex flex-col items-start px-3 py-2 rounded-lg border transition-all text-left
                              bg-[#1e2129] border-[#2e3340] text-slate-400 hover:border-blue-500/60 hover:text-blue-300"

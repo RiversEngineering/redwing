@@ -174,6 +174,14 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                     async with state.lock:
                         state.add_log("error", f"[Dashboard] PCA channel type must be motor_servo_signal or servo")
                     return
+                if pca and pca.mode == "motor":
+                    # Both types are RC servo/ESC signals (500-2500 us pulses)
+                    # and need a 50 Hz frame to fit in — motor mode runs the
+                    # whole chip at ~1 kHz (a 1000 us period), which can't
+                    # represent them at all.
+                    async with state.lock:
+                        state.add_log("error", f"[Dashboard] PCA9685 is in motor mode (~1 kHz) — RC servo/ESC signals need Servo mode")
+                    return
                 async with state.lock:
                     if state.pca9685_channels.get(channel, {}).get("type") == "motor_sm_pair":
                         state.add_log("error", f"[Dashboard] PCA P{channel} is part of a paired motor — Reset it first")

@@ -222,6 +222,15 @@
     {:else}
       <span class="text-sm text-slate-600 italic">not configured</span>
     {/if}
+    {#if selectedData && !configFinalized && portId !== 16 && portId !== 17}
+      <div class="ml-auto flex items-center gap-2">
+        <button
+          class="px-3 py-1 rounded text-xs font-semibold bg-[#1e2129] border border-red-900/40
+                 text-red-400 hover:bg-red-900/20 hover:border-red-600/40 transition-colors"
+          on:click={resetThisPort}
+        >Reset Port</button>
+      </div>
+    {/if}
   </div>
 
   <!-- Control body -->
@@ -881,18 +890,6 @@
       <!-- Fallback for uart / other -->
       <div class="flex flex-col gap-2 text-slate-600">
         <span class="text-sm">No controls available for this port type.</span>
-      </div>
-    {/if}
-
-    <!-- Reset footer — not shown for dedicated ports (I²C/IMU — auto-detected) -->
-    {#if selectedData && !configFinalized && portId !== 16 && portId !== 17}
-      <div class="mt-6 pt-4 border-t border-[#2e3340]">
-        <p class="text-[11px] text-slate-600 mb-2">Need a different device type for this port?</p>
-        <button
-          class="px-3 py-1.5 rounded text-xs font-semibold bg-[#1e2129] border border-red-900/40
-                 text-red-400 hover:bg-red-900/20 hover:border-red-600/40 transition-colors"
-          on:click={resetThisPort}
-        >Reset Port</button>
       </div>
     {/if}
 
