@@ -892,7 +892,7 @@
           class="px-3 py-1.5 rounded text-xs font-semibold bg-[#1e2129] border border-red-900/40
                  text-red-400 hover:bg-red-900/20 hover:border-red-600/40 transition-colors"
           on:click={resetThisPort}
-        >Reset</button>
+        >Reset Port</button>
       </div>
     {/if}
 

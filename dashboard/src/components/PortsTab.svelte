@@ -513,7 +513,7 @@
                   class="px-3 py-1 rounded text-xs font-semibold bg-[#1e2129] text-slate-400
                          border border-[#2e3340] hover:border-red-600/40 hover:text-red-400 transition-colors"
                   on:click={resetPcaChannel}
-                >Reset</button>
+                >Reset Port</button>
               {/if}
               <button
                 class="px-3 py-1 rounded text-xs font-semibold bg-red-600/20 text-red-400
