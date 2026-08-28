@@ -86,8 +86,9 @@
   let pcaRangeEditing = false;
   let pcaPairPicking = false;   // choosing the direction-channel partner for a new pair
   let pcaSrMinAngle = 0, pcaSrMaxAngle = 300, pcaSrMinPulse = 500, pcaSrMaxPulse = 2500;
+  let pcaModePending = null;    // mode staged for confirmation ('servo'|'motor'), or null
 
-  $: pcaState = $robotState?.pca9685 ?? { present: false, channels: {} };
+  $: pcaState = $robotState?.pca9685 ?? { present: false, channels: {}, mode: 'servo' };
   $: selectedPcaData = rightSelectedPcaChannel !== null
     ? (pcaState.channels?.[String(rightSelectedPcaChannel)] ?? null)
     : null;
@@ -123,11 +124,34 @@
     rightSelectedId = null;
     rightSelectedPcaChannel = null;
     pcaCalibrating = true;
+    pcaModePending = null;
   }
 
   function runCalibration() {
     pcaCalibRunning = true;
     send({ cmd: 'pca_calibrate', pico_port: pcaCalibratePort });
+  }
+
+  // Frequency is chip-wide on the PCA9685 (no per-channel rate), so a mode
+  // switch resets every configured channel — stage it behind a confirm step
+  // whenever there's something to lose, skip the extra click otherwise.
+  function requestPcaMode(mode) {
+    if (mode === pcaState.mode) return;
+    const hasChannels = Object.keys(pcaState.channels ?? {}).length > 0;
+    if (hasChannels) {
+      pcaModePending = mode;
+    } else {
+      send({ cmd: 'pca_set_mode', mode });
+    }
+  }
+
+  function confirmPcaMode() {
+    send({ cmd: 'pca_set_mode', mode: pcaModePending });
+    pcaModePending = null;
+  }
+
+  function cancelPcaMode() {
+    pcaModePending = null;
   }
 
   function configurePcaChannel(type) {
@@ -330,12 +354,66 @@
             <div class="max-w-md space-y-6">
               <div>
                 <div class="flex items-center gap-3 mb-1">
-                  <span class="text-sm font-bold text-purple-300">PCA9685 Oscillator Calibration</span>
+                  <span class="text-sm font-bold text-purple-300">PCA9685 Settings</span>
                   <button
                     class="ml-auto text-xs text-slate-500 hover:text-slate-300 transition-colors"
                     on:click={() => pcaCalibrating = false}
                   >✕ Close</button>
                 </div>
+              </div>
+
+              <div class="space-y-3">
+                <div>
+                  <p class="text-[11px] text-slate-400 font-semibold">PWM Mode</p>
+                  <p class="text-xs text-slate-500 leading-relaxed">
+                    All 16 channels share one PWM frequency — there's no per-channel rate on this
+                    chip. <span class="text-slate-400">Servo mode</span> (50 Hz) is the RC servo/ESC
+                    standard. <span class="text-slate-400">Motor mode</span> (~1 kHz) is for a plain
+                    PWM+DIR driver (e.g. a paired sign-magnitude motor) — a student needing an RC
+                    servo can still use an S-port instead.
+                  </p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    class="px-3 py-1.5 rounded text-xs font-semibold transition-all border
+                           {pcaState.mode !== 'motor'
+                             ? 'bg-amber-600/20 border-amber-500/50 text-amber-300'
+                             : 'bg-[#161920] border-[#2e3340] text-slate-500 hover:border-slate-500 hover:text-slate-300'}"
+                    on:click={() => requestPcaMode('servo')}
+                  >Servo Mode · 50 Hz</button>
+                  <button
+                    class="px-3 py-1.5 rounded text-xs font-semibold transition-all border
+                           {pcaState.mode === 'motor'
+                             ? 'bg-blue-600/20 border-blue-500/50 text-blue-300'
+                             : 'bg-[#161920] border-[#2e3340] text-slate-500 hover:border-slate-500 hover:text-slate-300'}"
+                    on:click={() => requestPcaMode('motor')}
+                  >Motor Mode · ~1 kHz</button>
+                </div>
+                {#if pcaModePending}
+                  <div class="border border-amber-500/30 rounded-lg p-3 bg-amber-900/10 space-y-2">
+                    <p class="text-xs text-amber-300">
+                      Switching to {pcaModePending === 'motor' ? 'Motor' : 'Servo'} mode resets every
+                      configured PCA9685 channel (P0–P15) — frequency is chip-wide, so existing
+                      channels' programming won't mean the same thing afterward.
+                    </p>
+                    <div class="flex gap-2">
+                      <button
+                        class="px-3 py-1.5 rounded text-xs font-semibold bg-amber-600/30 border
+                               border-amber-500/50 text-amber-300 hover:bg-amber-600/50 transition-colors"
+                        on:click={confirmPcaMode}
+                      >Confirm</button>
+                      <button
+                        class="px-3 py-1.5 rounded text-xs text-slate-500 border border-[#2e3340]
+                               hover:text-slate-300 transition-colors"
+                        on:click={cancelPcaMode}
+                      >Cancel</button>
+                    </div>
+                  </div>
+                {/if}
+              </div>
+
+              <div>
+                <p class="text-sm font-bold text-purple-300 mb-1">Oscillator Calibration</p>
                 <p class="text-xs text-slate-500 leading-relaxed">
                   Wires PCA channel 0 to a Pico S-port. The Pico measures the actual pulse width
                   and adjusts the PCA prescale so 1500 µs commands are accurate.
@@ -485,12 +563,31 @@
                     </p>
                   </div>
                   <div class="grid grid-cols-4 gap-1.5">
-                    {#each PCA_CHANNELS.filter((c) => c.id !== rightSelectedPcaChannel && !pcaState.channels?.[String(c.id)]) as c}
-                      <button
-                        class="px-2 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
-                               text-slate-400 hover:border-blue-500/60 hover:text-blue-300 transition-colors"
-                        on:click={() => pairPcaChannel(c.id)}
-                      >{c.label}</button>
+                    {#each PCA_CHANNELS as c}
+                      {@const isSelf = c.id === rightSelectedPcaChannel}
+                      {@const isOccupied = !isSelf && !!pcaState.channels?.[String(c.id)]}
+                      {#if isSelf}
+                        <div
+                          class="px-2 py-1.5 rounded text-xs font-mono border border-blue-500/40
+                                 bg-blue-900/20 text-blue-400 text-center cursor-not-allowed leading-tight"
+                          title="P{c.id} is already selected as the PWM channel — pick a different one for DIR"
+                        >
+                          {c.label}
+                          <span class="block text-[8px] text-blue-500/70">PWM · selected</span>
+                        </div>
+                      {:else if isOccupied}
+                        <div
+                          class="px-2 py-1.5 rounded text-xs font-mono border border-[#2e3340]
+                                 bg-[#161920] text-slate-700 text-center cursor-not-allowed opacity-60"
+                          title="P{c.id} is already configured — reset it first to use it here"
+                        >{c.label}</div>
+                      {:else}
+                        <button
+                          class="px-2 py-1.5 rounded text-xs font-mono bg-[#1e2129] border border-[#2e3340]
+                                 text-slate-400 hover:border-blue-500/60 hover:text-blue-300 transition-colors"
+                          on:click={() => pairPcaChannel(c.id)}
+                        >{c.label}</button>
+                      {/if}
                     {/each}
                   </div>
                   <button
@@ -793,14 +890,22 @@
         <div class="px-2 pb-1">
           <div class="flex flex-row-reverse items-center px-1 mb-1">
             <div class="text-[9px] text-slate-700 uppercase tracking-widest">PCA9685  P0–P15</div>
-            {#if pcaState.calibrated}
-              <span class="mr-auto text-[8px] text-green-600 font-semibold">calibrated</span>
-            {:else}
+            <div class="mr-auto flex items-center gap-1.5">
               <button
-                class="mr-auto text-[8px] text-amber-600 hover:text-amber-400 transition-colors cursor-pointer"
+                class="text-[8px] transition-colors cursor-pointer hover:brightness-125
+                       {pcaState.mode === 'motor' ? 'text-blue-500' : 'text-amber-600/80'}"
+                title="Click to change PWM mode"
                 on:click={openCalibration}
-              >calibrate…</button>
-            {/if}
+              >{pcaState.mode === 'motor' ? 'motor mode' : 'servo mode'}</button>
+              {#if pcaState.calibrated}
+                <span class="text-[8px] text-green-600 font-semibold">calibrated</span>
+              {:else}
+                <button
+                  class="text-[8px] text-amber-600 hover:text-amber-400 transition-colors cursor-pointer"
+                  on:click={openCalibration}
+                >calibrate…</button>
+              {/if}
+            </div>
           </div>
           {#each PCA_CHANNELS as ch}
             {@const chData = pcaState.channels?.[String(ch.id)]}

@@ -388,6 +388,30 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                         else:
                             state.add_log("error", f"[Dashboard] PCA calibration failed: {result['error']}")
 
+            elif cmd == "pca_set_mode":
+                # PWM frequency is chip-wide on the PCA9685 (no per-channel
+                # rate), so switching modes always resets every channel —
+                # each one's existing pulse/duty/level programming stops
+                # meaning what it used to the moment the frequency changes.
+                # The dashboard is expected to confirm this with the user
+                # first when channels are already configured.
+                mode = str(msg.get("mode", "servo"))
+                if mode not in ("servo", "motor"):
+                    async with state.lock:
+                        state.add_log("error", "[Dashboard] PCA mode must be servo or motor")
+                    return
+                if not pca or not pca.present:
+                    async with state.lock:
+                        state.add_log("warning", "[Dashboard] PCA9685 not detected")
+                    return
+                ok = await pca.set_mode(mode)
+                async with state.lock:
+                    if ok:
+                        state.pca9685_channels.clear()
+                        state.add_log("info", f"[Dashboard] PCA9685 switched to {mode} mode ({pca.target_hz:.0f} Hz) — all channels reset")
+                    else:
+                        state.add_log("error", "[Dashboard] PCA9685 mode switch failed (not responding)")
+
             elif cmd == "set_lidar_config":
                 async with state.lock:
                     # max_cm is a display preference — always user-adjustable

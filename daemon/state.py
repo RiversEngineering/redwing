@@ -141,6 +141,10 @@ class SharedState:
         self.pca9685_address: int = 0x40
         self.pca9685_calibrated: bool = False
         self.pca9685_osc_freq: int = 25_000_000
+        # "servo" (50 Hz, RC servo/ESC) or "motor" (~1 kHz, plain PWM+DIR
+        # drivers) — chip-wide, since the PCA9685 has one shared PWM
+        # frequency for all 16 channels. See PCA9685.set_mode.
+        self.pca9685_mode: str = "servo"
         self.pca9685_channels: dict[int, dict] = {}   # channel → {type, pulse_us}
         self.pca9685_last_calibration: dict | None = None  # result of last calibrate() call
 
@@ -233,6 +237,7 @@ class SharedState:
             "address":    self.pca9685_address,
             "calibrated": self.pca9685_calibrated,
             "osc_freq":   self.pca9685_osc_freq,
+            "mode":       self.pca9685_mode,
             "channels":          {str(k): v for k, v in self.pca9685_channels.items()},
             "last_calibration":  self.pca9685_last_calibration,
         }

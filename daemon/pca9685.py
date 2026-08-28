@@ -27,7 +27,14 @@ from .state import SharedState
 log = logging.getLogger(__name__)
 
 _DEFAULT_OSC_FREQ = 25_000_000   # 25 MHz nominal
-_TARGET_HZ        = 50           # all channels at 50 Hz (servo / RC ESC)
+_SERVO_HZ         = 50           # RC servo / ESC standard frequency
+# ~1 kHz — a plain PWM+DIR motor driver input reads duty cycle directly (see
+# set_channel_duty), so unlike servo mode there's no frame-timing constraint;
+# 1 kHz is picked for headroom above the audible/cogging range on a small DC
+# motor while staying safely below the PCA9685's hardware ceiling (~1.5 kHz
+# at the minimum legal prescale of 3, and calibrated oscillators have been
+# measured running a few % above nominal — see _calc_prescale's max(3, ...)).
+_MOTOR_HZ         = 1000
 _CAL_FILE         = "/workspace/.redwing_pca9685_cal.json"
 
 
@@ -46,7 +53,9 @@ class PCA9685:
         self._state = state
         self._rp = rp
         self._osc_freq = _DEFAULT_OSC_FREQ
-        self._prescale = _calc_prescale(_DEFAULT_OSC_FREQ, _TARGET_HZ)
+        self._mode = "servo"
+        self._target_hz = _SERVO_HZ
+        self._prescale = _calc_prescale(_DEFAULT_OSC_FREQ, _SERVO_HZ)
         self._present  = False
         # Last commanded pulse width per channel (for re-apply after calibration)
         self._channel_pulse_us: list[float | None] = [None] * 16
@@ -71,28 +80,37 @@ class PCA9685:
     # ------------------------------------------------------------------
 
     def _load_calibration(self) -> bool:
-        """Load saved calibration from disk. Returns True if loaded."""
+        """Load saved oscillator calibration and PWM mode from disk.
+
+        Prescale is always derived from (osc_freq, target_hz) rather than
+        stored directly — osc_freq is the hardware constant a calibration
+        run measures, mode/target_hz is a separate, independently-settable
+        preference (see set_mode), so a prescale from a previous session
+        could otherwise correspond to the wrong one of the two.
+        """
         try:
             with open(_CAL_FILE) as f:
                 data = json.load(f)
             self._osc_freq = int(data["osc_freq"])
-            self._prescale = int(data["prescale"])
+            self._mode = data.get("mode", "servo")
+            self._target_hz = _MOTOR_HZ if self._mode == "motor" else _SERVO_HZ
+            self._prescale = _calc_prescale(self._osc_freq, self._target_hz)
             log.info(
-                f"PCA9685: loaded saved calibration "
-                f"(osc={self._osc_freq} Hz, prescale={self._prescale})"
+                f"PCA9685: loaded saved settings "
+                f"(osc={self._osc_freq} Hz, mode={self._mode}, prescale={self._prescale})"
             )
             return True
         except (FileNotFoundError, KeyError, ValueError, OSError):
             return False
 
     def _save_calibration(self):
-        """Persist current osc_freq and prescale to disk."""
+        """Persist current osc_freq and PWM mode to disk (survives daemon restarts)."""
         try:
             parent = os.path.dirname(_CAL_FILE)
             if parent:
                 os.makedirs(parent, exist_ok=True)
             with open(_CAL_FILE, "w") as f:
-                json.dump({"osc_freq": self._osc_freq, "prescale": self._prescale}, f)
+                json.dump({"osc_freq": self._osc_freq, "mode": self._mode}, f)
         except OSError as e:
             log.warning(f"PCA9685: could not save calibration: {e}")
 
@@ -140,6 +158,7 @@ class PCA9685:
                             self._state.pca9685_address    = 0x40
                             self._state.pca9685_calibrated = calibrated
                             self._state.pca9685_osc_freq   = self._osc_freq
+                            self._state.pca9685_mode       = self._mode
                         log.info(
                             f"PCA9685 detected on Pico I²C "
                             f"(prescale={self._prescale}"
@@ -265,8 +284,12 @@ class PCA9685:
         async with self._state.lock:
             self._state.pca9685_last_calibration = None
 
-        # Step 1: reset to nominal prescale
-        nominal_prescale = _calc_prescale(_DEFAULT_OSC_FREQ, _TARGET_HZ)
+        # Step 1: reset to nominal prescale. Measurement always runs at the
+        # servo frequency regardless of the currently-selected mode — the
+        # 1500 µs nominal pulse needs a frame long enough to contain it, and
+        # this exact convention is what's tested — mode is restored after
+        # (step 6 uses self._target_hz, not _SERVO_HZ).
+        nominal_prescale = _calc_prescale(_DEFAULT_OSC_FREQ, _SERVO_HZ)
         self._prescale = nominal_prescale
         self._osc_freq = _DEFAULT_OSC_FREQ
         ok = await self._rp.pca_init(nominal_prescale)
@@ -301,9 +324,10 @@ class PCA9685:
             f"actual_osc={actual_osc} ({error_pct:+.2f}% vs nominal)"
         )
         self._osc_freq = actual_osc
-        self._prescale = _calc_prescale(actual_osc, _TARGET_HZ)
+        self._prescale = _calc_prescale(actual_osc, self._target_hz)
 
-        # Step 6: re-init with corrected prescale
+        # Step 6: re-init with corrected prescale, at whichever mode was
+        # already selected before calibration started.
         ok = await self._rp.pca_init(self._prescale)
         if not ok:
             return {"ok": False, "error": "PCA9685 not responding after calibration"}
@@ -335,6 +359,48 @@ class PCA9685:
             "prescale":    self._prescale,
             "measured_us": measured_us,
         }
+
+    # ------------------------------------------------------------------
+    # PWM mode (servo vs motor) — chip-wide frequency switch
+    # ------------------------------------------------------------------
+
+    async def set_mode(self, mode: str) -> bool:
+        """Switch the PCA9685's shared PWM frequency between "servo" (50 Hz,
+        RC servo/ESC) and "motor" (~1 kHz, plain PWM+DIR drivers).
+
+        Frequency is chip-wide — there is no per-channel rate on this part —
+        so every existing channel's programming stops meaning what it used
+        to the moment this changes. Callers are expected to have already
+        reset (or be about to reset) every channel; this only reinitializes
+        the chip and clears this driver's own per-channel tracking so a
+        stale duty/pulse/level value can't be silently re-applied under the
+        new frequency by calibrate()'s re-apply step. Returns True on success.
+        """
+        if mode not in ("servo", "motor"):
+            return False
+        target_hz = _MOTOR_HZ if mode == "motor" else _SERVO_HZ
+        prescale = _calc_prescale(self._osc_freq, target_hz)
+        ok = await self._rp.pca_init(prescale)
+        if not ok:
+            return False
+        self._mode = mode
+        self._target_hz = target_hz
+        self._prescale = prescale
+        self._channel_pulse_us = [None] * 16
+        self._channel_level    = [None] * 16
+        self._channel_duty     = [None] * 16
+        self._save_calibration()
+        async with self._state.lock:
+            self._state.pca9685_mode = self._mode
+        return True
+
+    @property
+    def mode(self) -> str:
+        return self._mode
+
+    @property
+    def target_hz(self) -> float:
+        return self._target_hz
 
     @property
     def present(self) -> bool:
