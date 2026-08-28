@@ -3,7 +3,9 @@
   import { connected, flashStatus, robotState } from '../lib/stores.js';
 
   // ── Camera resolution / frame rate (runtime-only — see daemon/camera.py) ──
-  const CAMERA_RESOLUTIONS = [[320, 240, '320×240'], [640, 480, '640×480']];
+  // Both are native discrete modes on this camera (confirmed via v4l2-ctl) —
+  // named by height, the standard "240p"/"480p" convention.
+  const CAMERA_RESOLUTIONS = [[320, 240, '240p', '320×240'], [640, 480, '480p', '640×480']];
   const CAMERA_FPS_OPTIONS = [30, 60];
 
   $: cameraConfig = $robotState?.camera?.config ?? { width: 640, height: 480, fps: 30, actual_width: null, actual_height: null };
@@ -182,16 +184,19 @@
               <div class="space-y-1.5">
                 <p class="text-[10px] text-slate-600 uppercase tracking-widest">Resolution</p>
                 <div class="flex gap-2">
-                  {#each CAMERA_RESOLUTIONS as [w, h, label]}
+                  {#each CAMERA_RESOLUTIONS as [w, h, label, dims]}
                     <button
                       disabled={!$connected}
-                      class="px-3 py-1.5 rounded text-xs font-semibold border transition-all
+                      class="flex flex-col items-center px-3 py-1.5 rounded text-xs font-semibold border transition-all leading-tight
                              {cameraConfig.width === w && cameraConfig.height === h
                                ? 'bg-blue-600/20 border-blue-500/50 text-blue-300'
                                : 'bg-[#161920] border-[#2e3340] text-slate-500 hover:border-slate-500 hover:text-slate-300'}
                              {!$connected ? 'opacity-50 cursor-not-allowed' : ''}"
                       on:click={() => setCameraResolution(w, h)}
-                    >{label}</button>
+                    >
+                      <span>{label}</span>
+                      <span class="text-[9px] font-normal opacity-70">{dims}</span>
+                    </button>
                   {/each}
                 </div>
               </div>
