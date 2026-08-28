@@ -126,7 +126,11 @@
         {#if pcaState.present}
           <!-- Two rows of 8, filling column-by-column, so all 16 channels sit -->
           <!-- next to I²C/IMU instead of wrapping into a row of their own.    -->
-          <div class="flex-1 grid grid-cols-8 grid-rows-2 gap-1">
+          <!-- min-h is a floor for when this is the row's only member (no    -->
+          <!-- I²C sensor/IMU connected) — items-stretch has nothing to       -->
+          <!-- stretch against then, so the chips would otherwise shrink to   -->
+          <!-- their own tiny content height instead of a normal card size.   -->
+          <div class="flex-1 grid grid-cols-8 grid-rows-2 gap-1 min-h-[100px]">
             {#each PCA_CHANNELS as ch}
               {@const chData = pcaState.channels?.[String(ch.id)]}
               {@const isPairDir = chData?.type === 'motor_sm_pair' && chData?.role === 'direction'}

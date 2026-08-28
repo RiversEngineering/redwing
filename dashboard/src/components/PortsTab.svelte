@@ -2,23 +2,23 @@
   /**
    * PortsTab – port list + manual override / live readout panel.
    *
-   * Left sidebar: S/D physical ports. Right sidebar: I²C, UART (D6/D7 in
-   * UART mode), and PCA9685 expansion channels. The center is split into two
-   * independent detail panels, one driven by each sidebar's selection.
+   * Left sidebar: S/D physical ports, including D6/D7 (marked with a small
+   * "UART" badge — they're the only dual-pin ports that can be configured
+   * for a UART-based protocol). Right sidebar: I²C/IMU and PCA9685
+   * expansion channels. The center is split into two independent detail
+   * panels, one driven by each sidebar's selection.
    */
   import { ports, robotState, selectedPortId, selectedPcaChannelId } from '../lib/stores.js';
   import { send } from '../lib/ws.js';
   import PortDetailPanel from './PortDetailPanel.svelte';
   import {
-    SINGLE, DUAL, UART_TYPES, isUartCapable,
+    SINGLE, DUAL, isUartCapable,
     isMotor, deviceLabel, dotColor, liveValue, servoRangeOf, pulseToAngle, servoPresets,
   } from '../lib/ports.js';
 
-  $: dualRight = DUAL.filter((p) => isUartCapable(p.id) && UART_TYPES.has($ports[p.id]?.type));
-
   // ── Independent left/right selections ─────────────────────────────────────────
-  let leftSelectedId = null;   // S/D ports (excluding D6/D7 while in UART mode)
-  let rightSelectedId = null;  // I²C (16), IMU (17), or D6/D7 while in UART mode
+  let leftSelectedId = null;   // S/D ports, including D6/D7
+  let rightSelectedId = null;  // I²C (16) or IMU (17)
   let rightSelectedPcaChannel = null;
   let pcaCalibrating = false;
 
@@ -38,7 +38,7 @@
   $: if ($selectedPortId !== null && $selectedPortId !== _lastHandled) {
     _lastHandled = $selectedPortId;
     const id = $selectedPortId;
-    if (id === 16 || id === 17 || (isUartCapable(id) && UART_TYPES.has($ports[id]?.type))) {
+    if (id === 16 || id === 17) {
       selectRight(id);
     } else {
       selectLeft(id);
@@ -263,42 +263,36 @@
         <div class="text-[9px] text-slate-700 uppercase tracking-widest px-1 mb-1">Dual-pin D0–D7</div>
         {#each DUAL as p}
           {@const d = $ports[p.id]}
-          {@const isUartElsewhere = isUartCapable(p.id) && UART_TYPES.has(d?.type)}
-          {#if isUartElsewhere}
-            <div
-              class="w-full flex items-center gap-2 px-2 py-1.5 rounded mb-px opacity-40 cursor-not-allowed"
-              title="{p.label} is configured as {deviceLabel(d.type)} — see the I²C & UART panel"
-            >
-              <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
-                           bg-slate-700/60 text-slate-400">{p.label}</span>
-              <span class="text-[11px] text-slate-600 italic truncate">UART → right panel</span>
-            </div>
-          {:else}
-            <button
-              class="w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors mb-px
-                     {leftSelectedId === p.id
-                       ? 'bg-[#252932] ring-1 ring-[#3e4455]'
-                       : 'hover:bg-[#1e2129]'}"
-              on:click={() => selectLeft(p.id)}
-            >
-              <!-- Port label badge -->
-              <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
-                           bg-slate-700/60 text-slate-400">{p.label}</span>
+          <button
+            class="w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors mb-px
+                   {leftSelectedId === p.id
+                     ? 'bg-[#252932] ring-1 ring-[#3e4455]'
+                     : 'hover:bg-[#1e2129]'}"
+            on:click={() => selectLeft(p.id)}
+          >
+            <!-- Port label badge -->
+            <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
+                         bg-slate-700/60 text-slate-400">{p.label}</span>
+            {#if isUartCapable(p.id)}
+              <span
+                class="text-[8px] font-semibold px-1 py-0.5 rounded flex-shrink-0 bg-sky-900/40 text-sky-500"
+                title="{p.label} can be configured for a UART-based protocol"
+              >UART</span>
+            {/if}
 
-              {#if d}
-                <!-- Color dot -->
-                <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {dotColor(d.type)}"></span>
-                <span class="text-[11px] text-slate-300 truncate">{deviceLabel(d.type)}</span>
-                {#if liveValue(d)}
-                  <span class="text-[10px] font-mono text-slate-500 ml-auto flex-shrink-0">
-                    {liveValue(d)}
-                  </span>
-                {/if}
-              {:else}
-                <span class="text-[11px] text-slate-700 italic">empty</span>
+            {#if d}
+              <!-- Color dot -->
+              <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {dotColor(d.type)}"></span>
+              <span class="text-[11px] text-slate-300 truncate">{deviceLabel(d.type)}</span>
+              {#if liveValue(d)}
+                <span class="text-[10px] font-mono text-slate-500 ml-auto flex-shrink-0">
+                  {liveValue(d)}
+                </span>
               {/if}
-            </button>
-          {/if}
+            {:else}
+              <span class="text-[11px] text-slate-700 italic">empty</span>
+            {/if}
+          </button>
         {/each}
       </div>
     </div>
@@ -799,7 +793,7 @@
           </div>
 
         {:else}
-          <PortDetailPanel bind:this={rightPanel} portId={rightSelectedId} emptyMessage="Select an I²C, UART, or PCA9685 device" />
+          <PortDetailPanel bind:this={rightPanel} portId={rightSelectedId} emptyMessage="Select an I²C or PCA9685 device" />
         {/if}
       </div>
     </div>
@@ -808,7 +802,7 @@
   <!-- ── Bus / expansion device list (right column) — mirror image of the port list ── -->
   <div class="w-52 flex-shrink-0 flex flex-col border-l border-[#2e3340] bg-[#1a1d26] overflow-hidden">
     <div class="h-10 flex items-center justify-end px-3 border-b border-[#2e3340] flex-shrink-0">
-      <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500">I²C &amp; UART</span>
+      <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500">I²C</span>
     </div>
 
     <div class="flex-1 overflow-y-auto min-h-0">
@@ -852,33 +846,6 @@
           </button>
         </div>
         <div class="border-t border-[#2e3340] mx-2 my-1"></div>
-      {/if}
-
-      <!-- UART section — D6/D7 when configured for a UART-based protocol; hidden entirely when none are -->
-      {#if dualRight.length > 0}
-        <div class="px-2 pt-2 pb-1">
-          <div class="text-[9px] text-slate-700 uppercase tracking-widest px-1 mb-1 text-right">UART D6–D7</div>
-          {#each dualRight as p}
-            {@const d = $ports[p.id]}
-            <button
-              class="w-full flex flex-row-reverse items-center gap-2 px-2 py-1.5 rounded text-right transition-colors mb-px
-                     {rightSelectedId === p.id
-                       ? 'bg-[#252932] ring-1 ring-[#3e4455]'
-                       : 'hover:bg-[#1e2129]'}"
-              on:click={() => selectRight(p.id)}
-            >
-              <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded flex-shrink-0
-                           bg-slate-700/60 text-slate-400">{p.label}</span>
-              <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {dotColor(d.type)}"></span>
-              <span class="text-[11px] text-slate-300 truncate">{deviceLabel(d.type)}</span>
-              {#if liveValue(d)}
-                <span class="text-[10px] font-mono text-slate-500 mr-auto flex-shrink-0">
-                  {liveValue(d)}
-                </span>
-              {/if}
-            </button>
-          {/each}
-        </div>
       {/if}
 
       <!-- PCA9685 expansion channels (P0–P15) -->
