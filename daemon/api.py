@@ -155,6 +155,21 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                     log.warning("Firmware flash requested from dashboard")
                     asyncio.create_task(_do_flash_firmware(ws_clients))
 
+            elif cmd == "set_camera_config":
+                # Runtime-only (not persisted) — lets the dashboard's System
+                # tab A/B test resolution vs. frame rate; resets to config.py
+                # defaults on daemon restart. See CameraCapture.request_config.
+                width  = int(msg.get("width", 640))
+                height = int(msg.get("height", 480))
+                fps    = int(msg.get("fps", 30))
+                if not (160 <= width <= 1920 and 120 <= height <= 1200 and 1 <= fps <= 120):
+                    async with state.lock:
+                        state.add_log("error", "[Dashboard] Invalid camera config")
+                    return
+                camera.request_config(width, height, fps)
+                async with state.lock:
+                    state.add_log("info", f"[Dashboard] Camera reconfiguring to {width}×{height} @ {fps} fps")
+
             elif cmd == "clear_map":
                 async with state.lock:
                     state.clear_map()

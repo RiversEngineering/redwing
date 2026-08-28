@@ -26,19 +26,19 @@ _JPEG_PARAMS = [cv2.IMWRITE_JPEG_QUALITY, MJPEG_QUALITY]
 _SCAN_INDICES = list(range(4))
 
 
-def _make_placeholder() -> bytes:
-    img = np.zeros((CAMERA_HEIGHT, CAMERA_WIDTH, 3), dtype=np.uint8)
+def _make_placeholder(width: int, height: int) -> bytes:
+    img = np.zeros((height, width, 3), dtype=np.uint8)
     cv2.putText(
-        img, "No Camera", (CAMERA_WIDTH // 2 - 90, CAMERA_HEIGHT // 2),
+        img, "No Camera", (width // 2 - 90, height // 2),
         cv2.FONT_HERSHEY_SIMPLEX, 1.2, (100, 100, 100), 2
     )
     _, buf = cv2.imencode(".jpg", img, _JPEG_PARAMS)
     return bytes(buf)
 
 
-def _try_open(idx: int, fourcc: int, width: int, height: int) -> cv2.VideoCapture | None:
-    """Open one camera index and request a specific capture size. Returns the
-    opened capture (positioned after a successful warm-up read) or None."""
+def _try_open(idx: int, fourcc: int, width: int, height: int, fps: int) -> cv2.VideoCapture | None:
+    """Open one camera index and request a specific capture size/rate. Returns
+    the opened capture (positioned after a successful warm-up read) or None."""
     cap = cv2.VideoCapture(idx, cv2.CAP_V4L2)
     if not cap.isOpened():
         return None
@@ -50,7 +50,7 @@ def _try_open(idx: int, fourcc: int, width: int, height: int) -> cv2.VideoCaptur
     cap.set(cv2.CAP_PROP_FOURCC,       fourcc)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH,  width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-    cap.set(cv2.CAP_PROP_FPS,          CAMERA_FPS)
+    cap.set(cv2.CAP_PROP_FPS,          fps)
 
     # Try up to 5 reads — camera may need a moment after format change.
     for _ in range(5):
@@ -62,8 +62,9 @@ def _try_open(idx: int, fourcc: int, width: int, height: int) -> cv2.VideoCaptur
     return None
 
 
-def _open_camera() -> cv2.VideoCapture | None:
-    """Try to open a camera. Scans indices if CAMERA_INDEX == -1.
+def _open_camera(width: int, height: int, fps: int) -> tuple[cv2.VideoCapture, int, int] | None:
+    """Try to open a camera at the requested width/height/fps. Scans indices
+    if CAMERA_INDEX == -1. Returns (cap, actual_width, actual_height) or None.
 
     Requests the target resolution directly first — decoding and re-encoding
     a full native-resolution MJPEG frame every cycle just to throw most of it
@@ -80,27 +81,27 @@ def _open_camera() -> cv2.VideoCapture | None:
     MJPEG = cv2.VideoWriter_fourcc(*'MJPG')
 
     for idx in candidates:
-        cap = _try_open(idx, MJPEG, CAMERA_WIDTH, CAMERA_HEIGHT)
+        cap = _try_open(idx, MJPEG, width, height, fps)
         if cap is not None:
             actual_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            if actual_w == CAMERA_WIDTH and actual_h == CAMERA_HEIGHT:
+            if actual_w == width and actual_h == height:
                 log.info(f"Camera opened at index {idx} — native "
-                         f"{CAMERA_WIDTH}×{CAMERA_HEIGHT} mode, no software resize needed")
-                return cap
+                         f"{width}×{height} mode @ {fps} fps, no software resize needed")
+                return cap, actual_w, actual_h
             # Didn't get an exact match — this camera doesn't offer our
             # target size as a discrete mode (requesting it further down
             # could have cropped instead of scaled). Reopen fresh rather than
             # re-negotiate format on an already-streaming capture.
             cap.release()
 
-        cap = _try_open(idx, MJPEG, 9999, 9999)
+        cap = _try_open(idx, MJPEG, 9999, 9999, fps)
         if cap is not None:
             actual_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
             log.info(f"Camera opened at index {idx} — native {actual_w}×{actual_h}"
-                     f", resized to {CAMERA_WIDTH}×{CAMERA_HEIGHT} in software")
-            return cap
+                     f", resized to {width}×{height} in software @ {fps} fps requested")
+            return cap, actual_w, actual_h
 
     return None
 
@@ -108,8 +109,44 @@ def _open_camera() -> cv2.VideoCapture | None:
 class CameraCapture:
     def __init__(self, state: SharedState):
         self._state = state
+        # Requested capture settings — mutable at runtime via request_config()
+        # (dashboard System tab, for A/B testing resolution vs frame rate).
+        # Not behind state.lock: the capture loop runs in a plain OS thread
+        # (via run_in_executor below), and asyncio.Lock isn't meant to be
+        # acquired off the event loop. Simple attribute reads/writes are
+        # already atomic under the GIL — same reasoning as camera_frame
+        # further down, which has done this safely all along.
+        self._width  = CAMERA_WIDTH
+        self._height = CAMERA_HEIGHT
+        self._fps    = CAMERA_FPS
+        self._generation = 0   # bumped by request_config to force a reopen
+
         # Seed with placeholder so get_current_jpeg() never returns empty bytes.
-        self._state.camera_frame = _make_placeholder()
+        self._state.camera_frame = _make_placeholder(self._width, self._height)
+        self._state.camera_config = {
+            "width": self._width, "height": self._height, "fps": self._fps,
+            "actual_width": None, "actual_height": None,
+        }
+        self._state.camera_actual_fps = None
+
+    def request_config(self, width: int, height: int, fps: int):
+        """Change the requested capture resolution/frame rate. Takes effect
+        on the capture loop's next iteration (it reopens the camera fresh —
+        resolution and fps are negotiated together at open time, same as the
+        initial connect). Not persisted — resets to config.py defaults on
+        daemon restart, since this is meant for live A/B testing rather than
+        a permanent per-robot setting.
+        """
+        self._width  = width
+        self._height = height
+        self._fps    = fps
+        self._generation += 1
+        self._state.camera_frame = _make_placeholder(width, height)
+        self._state.camera_config = {
+            "width": width, "height": height, "fps": fps,
+            "actual_width": None, "actual_height": None,
+        }
+        self._state.camera_actual_fps = None
 
     async def run(self):
         """Run camera capture in a thread pool executor (OpenCV blocks)."""
@@ -117,17 +154,35 @@ class CameraCapture:
         await loop.run_in_executor(None, self._capture_loop)
 
     def _capture_loop(self):
-        interval = 1.0 / CAMERA_FPS
         cap = None
+        cap_generation = None
+        interval = 1.0 / self._fps
+        target_w = target_h = None
+        last_frame_time = None
+        fps_ema = None   # exponential moving average of measured capture fps
 
         while True:
-            # ── Connect (or reconnect) ────────────────────────────────────────
-            if cap is None:
-                cap = _open_camera()
-                if cap is None:
+            # ── Connect (or reconnect, or apply a new requested config) ──────
+            if cap is None or cap_generation != self._generation:
+                if cap is not None:
+                    cap.release()
+                cap_generation = self._generation
+                target_w, target_h, target_fps = self._width, self._height, self._fps
+                interval = 1.0 / target_fps
+                last_frame_time = None
+                fps_ema = None
+
+                result = _open_camera(target_w, target_h, target_fps)
+                if result is None:
+                    cap = None
                     log.warning("No camera found — will retry in 5 s")
                     time.sleep(5.0)
                     continue
+                cap, actual_w, actual_h = result
+                self._state.camera_config = {
+                    "width": target_w, "height": target_h, "fps": target_fps,
+                    "actual_width": actual_w, "actual_height": actual_h,
+                }
 
             # ── Capture frame ─────────────────────────────────────────────────
             t0 = time.monotonic()
@@ -146,9 +201,9 @@ class CameraCapture:
             # Crop to the target aspect ratio first so a wide-sensor camera
             # (e.g. 1920×1200 = 16:10) doesn't squish into a 4:3 output.
             h, w = frame.shape[:2]
-            if w != CAMERA_WIDTH or h != CAMERA_HEIGHT:
+            if w != target_w or h != target_h:
                 src_ar = w / h
-                dst_ar = CAMERA_WIDTH / CAMERA_HEIGHT
+                dst_ar = target_w / target_h
                 if src_ar > dst_ar:
                     # Source is wider — trim left and right equally
                     new_w = int(h * dst_ar)
@@ -159,7 +214,7 @@ class CameraCapture:
                     new_h = int(w / dst_ar)
                     y0 = (h - new_h) // 2
                     frame = frame[y0:y0 + new_h, :]
-                frame = cv2.resize(frame, (CAMERA_WIDTH, CAMERA_HEIGHT),
+                frame = cv2.resize(frame, (target_w, target_h),
                                    interpolation=cv2.INTER_AREA)
 
             _, buf = cv2.imencode(".jpg", frame, _JPEG_PARAMS)
@@ -170,7 +225,19 @@ class CameraCapture:
             self._state.camera_frame = jpeg_bytes
             self._state.camera_frame_b64 = base64.b64encode(jpeg_bytes).decode()
 
-            elapsed = time.monotonic() - t0
+            # Measured capture rate — lets the dashboard show what's actually
+            # being achieved, not just what was requested (camera/CPU limits
+            # may not deliver it), for A/B testing resolution vs frame rate.
+            now = time.monotonic()
+            if last_frame_time is not None:
+                dt = now - last_frame_time
+                if dt > 0:
+                    inst_fps = 1.0 / dt
+                    fps_ema = inst_fps if fps_ema is None else (fps_ema * 0.9 + inst_fps * 0.1)
+                    self._state.camera_actual_fps = round(fps_ema, 1)
+            last_frame_time = now
+
+            elapsed = now - t0
             time.sleep(max(0.0, interval - elapsed))
 
     def get_current_jpeg(self) -> bytes:

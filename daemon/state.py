@@ -117,6 +117,15 @@ class SharedState:
         self.camera_override: bytes | None = None
         self.show_raw: bool = True   # True = show live feed; False = show override
 
+        # Requested vs. actually-negotiated capture config (set by CameraCapture;
+        # see request_config there) — lets the dashboard's System tab offer
+        # resolution/fps choices and show what was really achieved.
+        self.camera_config: dict = {
+            "width": None, "height": None, "fps": None,
+            "actual_width": None, "actual_height": None,
+        }
+        self.camera_actual_fps: float | None = None
+
         # Battery (MAX17043/17048 or INA219 via Pi I²C — auto-detected)
         self.battery_present: bool  = False
         self.battery_voltage: float = 0.0    # pack voltage in V (cell_v × cell_count)
@@ -226,6 +235,10 @@ class SharedState:
         msg["port_invert"]        = dict(self.port_invert)
         msg["port_invert_locked"] = list(self.port_invert_code_set)
         msg["gamepad"] = self.gamepad.to_dict()
+        msg["camera"] = {
+            "config":     dict(self.camera_config),
+            "actual_fps": self.camera_actual_fps,
+        }
         if self.battery_present:
             msg["battery"] = {
                 "soc":     self.battery_soc,

@@ -1,6 +1,21 @@
 <script>
   import { send } from '../lib/ws.js';
-  import { connected, flashStatus } from '../lib/stores.js';
+  import { connected, flashStatus, robotState } from '../lib/stores.js';
+
+  // ── Camera resolution / frame rate (runtime-only — see daemon/camera.py) ──
+  const CAMERA_RESOLUTIONS = [[320, 240, '320×240'], [640, 480, '640×480']];
+  const CAMERA_FPS_OPTIONS = [30, 60];
+
+  $: cameraConfig = $robotState?.camera?.config ?? { width: 640, height: 480, fps: 30, actual_width: null, actual_height: null };
+  $: cameraActualFps = $robotState?.camera?.actual_fps ?? null;
+
+  function setCameraResolution(width, height) {
+    send({ cmd: 'set_camera_config', width, height, fps: cameraConfig.fps ?? 30 });
+  }
+
+  function setCameraFps(fps) {
+    send({ cmd: 'set_camera_config', width: cameraConfig.width ?? 640, height: cameraConfig.height ?? 480, fps });
+  }
 
   // Confirmation state — null | 'shutdown' | 'reboot'
   let confirming = null;
@@ -150,6 +165,59 @@
               Connect to the daemon before using power controls.
             </p>
           {/if}
+        </div>
+
+        <!-- Camera — runtime-only tuning, not persisted across restarts -->
+        <div class="space-y-3 pt-6 mt-6 border-t border-[#2e3340]">
+          <p class="text-xs text-slate-600 uppercase tracking-widest">Camera</p>
+          <div class="bg-[#1e2129] rounded-xl border border-[#2e3340] p-5 space-y-4">
+            <div>
+              <p class="text-sm font-semibold text-slate-200">Resolution &amp; Frame Rate</p>
+              <p class="text-xs text-slate-600 mt-0.5">
+                Runtime only — resets to the default on restart. Useful for testing whether a
+                lower resolution at a higher frame rate looks smoother than the default.
+              </p>
+            </div>
+            <div class="flex flex-wrap gap-6">
+              <div class="space-y-1.5">
+                <p class="text-[10px] text-slate-600 uppercase tracking-widest">Resolution</p>
+                <div class="flex gap-2">
+                  {#each CAMERA_RESOLUTIONS as [w, h, label]}
+                    <button
+                      disabled={!$connected}
+                      class="px-3 py-1.5 rounded text-xs font-semibold border transition-all
+                             {cameraConfig.width === w && cameraConfig.height === h
+                               ? 'bg-blue-600/20 border-blue-500/50 text-blue-300'
+                               : 'bg-[#161920] border-[#2e3340] text-slate-500 hover:border-slate-500 hover:text-slate-300'}
+                             {!$connected ? 'opacity-50 cursor-not-allowed' : ''}"
+                      on:click={() => setCameraResolution(w, h)}
+                    >{label}</button>
+                  {/each}
+                </div>
+              </div>
+              <div class="space-y-1.5">
+                <p class="text-[10px] text-slate-600 uppercase tracking-widest">Frame Rate</p>
+                <div class="flex gap-2">
+                  {#each CAMERA_FPS_OPTIONS as fps}
+                    <button
+                      disabled={!$connected}
+                      class="px-3 py-1.5 rounded text-xs font-semibold border transition-all
+                             {cameraConfig.fps === fps
+                               ? 'bg-blue-600/20 border-blue-500/50 text-blue-300'
+                               : 'bg-[#161920] border-[#2e3340] text-slate-500 hover:border-slate-500 hover:text-slate-300'}
+                             {!$connected ? 'opacity-50 cursor-not-allowed' : ''}"
+                      on:click={() => setCameraFps(fps)}
+                    >{fps} fps</button>
+                  {/each}
+                </div>
+              </div>
+            </div>
+            <div class="pt-3 border-t border-[#2e3340] flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-500">
+              <span>Requested: <span class="text-slate-300 font-mono">{cameraConfig.width}×{cameraConfig.height} @ {cameraConfig.fps} fps</span></span>
+              <span>Negotiated: <span class="text-slate-300 font-mono">{cameraConfig.actual_width ?? '—'}×{cameraConfig.actual_height ?? '—'}</span></span>
+              <span>Measured: <span class="text-slate-300 font-mono">{cameraActualFps ?? '—'} fps</span></span>
+            </div>
+          </div>
         </div>
 
         <!-- Firmware — kept at the bottom, out of the way of everyday controls -->
