@@ -896,7 +896,7 @@
               <div>PCA9685</div>
               <div>P0–P15</div>
             </div>
-            <div class="mr-auto flex items-center gap-3">
+            <div class="mr-auto flex items-center gap-4">
               <button
                 class="text-[8px] leading-tight text-right transition-colors cursor-pointer hover:brightness-125
                        {pcaState.mode === 'motor' ? 'text-blue-500' : 'text-amber-600/80'}"
