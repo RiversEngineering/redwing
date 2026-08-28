@@ -133,6 +133,11 @@ class SharedState:
         self.sys_cpu_temp_c:   float | None = None
         self.sys_disk_percent: float | None = None
 
+        # Network address and running-code version (see daemon/sysinfo.py) —
+        # computed once at startup, not polled (see that module's docstring).
+        self.network_info: dict = {"hostname": None, "ip": None}
+        self.version_info: dict = {"commit": None, "date": None}
+
         # Battery (MAX17043/17048 or INA219 via Pi I²C — auto-detected)
         self.battery_present: bool  = False
         self.battery_voltage: float = 0.0    # pack voltage in V (cell_v × cell_count)
@@ -252,6 +257,8 @@ class SharedState:
             "cpu_temp_c":   self.sys_cpu_temp_c,
             "disk_percent": self.sys_disk_percent,
         }
+        msg["network"] = dict(self.network_info)
+        msg["version"] = dict(self.version_info)
         if self.battery_present:
             msg["battery"] = {
                 "soc":     self.battery_soc,

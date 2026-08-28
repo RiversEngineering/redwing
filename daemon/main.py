@@ -30,6 +30,7 @@ from .lidar import LidarCapture
 from .pca9685 import PCA9685
 from .rp2040 import RP2040
 from .state import SharedState
+from .sysinfo import get_network_info, get_version_info
 from .sysmon import sysmon_task
 
 logging.basicConfig(
@@ -46,6 +47,9 @@ async def main():
         log.info(f"LIDAR: {LIDAR_PORT}")
 
     state  = SharedState()
+    state.network_info = get_network_info()
+    state.version_info  = get_version_info()
+    log.info(f"Network: {state.network_info}  Version: {state.version_info}")
     rp     = RP2040(state)
     camera = CameraCapture(state)
     pca    = PCA9685(state, rp)

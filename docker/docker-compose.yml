@@ -55,6 +55,10 @@ services:
       # opens/maps it in a mode that needs the mount to allow writes, even
       # though it never actually needs to modify this file).
       - ../firmware:/app/firmware
+      # Read-only repo mount (mirrors code-server's own mount below) so the
+      # System tab's Version card can read the actual checked-out commit via
+      # `git -C /opt/redwing` — see daemon/sysinfo.py.
+      - ..:/opt/redwing:ro
     environment:
       REDWING_SERIAL: /dev/rp2040
       REDWING_HOST:   "0.0.0.0"

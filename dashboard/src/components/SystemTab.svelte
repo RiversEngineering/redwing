@@ -22,6 +22,13 @@
   // ── System resource monitor (see daemon/sysmon.py) ────────────────────────
   $: sysStats = $robotState?.system ?? { cpu_percent: null, mem_percent: null, cpu_temp_c: null, disk_percent: null };
 
+  // ── Network / version — computed once at daemon startup (see daemon/sysinfo.py) ──
+  $: networkInfo = $robotState?.network ?? { hostname: null, ip: null };
+  $: versionInfo = $robotState?.version ?? { commit: null, date: null };
+  $: versionDateLabel = versionInfo.date
+    ? new Date(versionInfo.date).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+    : null;
+
   function pctColor(pct) {
     if (pct === null || pct === undefined) return 'text-slate-600';
     if (pct >= 85) return 'text-red-400';
@@ -207,6 +214,23 @@
                   <div class="h-full rounded-full transition-all duration-500 {pctBarColor(sysStats.disk_percent)}"
                        style="width: {sysStats.disk_percent ?? 0}%"></div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Network — hostname/IP, computed once at startup (daemon/sysinfo.py) -->
+        <div class="space-y-3">
+          <p class="text-xs text-slate-600 uppercase tracking-widest">Network</p>
+          <div class="bg-[#1e2129] rounded-xl border border-[#2e3340] p-5">
+            <div class="grid grid-cols-2 gap-4 text-xs">
+              <div>
+                <p class="text-slate-600">Hostname</p>
+                <p class="font-mono text-slate-200 mt-0.5">{networkInfo.hostname ?? '—'}</p>
+              </div>
+              <div>
+                <p class="text-slate-600">IP Address</p>
+                <p class="font-mono text-slate-200 mt-0.5">{networkInfo.ip ?? '—'}</p>
               </div>
             </div>
           </div>
@@ -433,6 +457,23 @@
               </p>
             {/if}
           {/if}
+        </div>
+
+        <!-- Version — what code is actually running, computed once at startup -->
+        <div class="space-y-3">
+          <p class="text-xs text-slate-600 uppercase tracking-widest">Version</p>
+          <div class="bg-[#1e2129] rounded-xl border border-[#2e3340] p-5">
+            <div class="grid grid-cols-2 gap-4 text-xs">
+              <div>
+                <p class="text-slate-600">Commit</p>
+                <p class="font-mono text-slate-200 mt-0.5">{versionInfo.commit ?? '—'}</p>
+              </div>
+              <div>
+                <p class="text-slate-600">Date</p>
+                <p class="font-mono text-slate-200 mt-0.5">{versionDateLabel ?? '—'}</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         </div>

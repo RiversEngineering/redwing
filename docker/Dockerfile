@@ -15,6 +15,9 @@ FROM python:3.11-slim
 # System deps for OpenCV + serial + evdev (evdev needs linux headers + gcc to build from source)
 # picotool + libusb-1.0-0: lets the dashboard's "Flash Firmware" button reset
 # the RP2040 into BOOTSEL over USB (no physical button press) and reflash it.
+# git: lets the System tab's Version card read the checked-out commit from
+# the read-only /opt/redwing mount (see daemon/sysinfo.py) — the base image
+# doesn't include it.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
@@ -24,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     linux-libc-dev \
     picotool \
     libusb-1.0-0 \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
