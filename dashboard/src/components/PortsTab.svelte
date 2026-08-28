@@ -220,7 +220,7 @@
 
   <!-- ── Port list (left column) ── -->
   <div class="w-52 flex-shrink-0 flex flex-col border-r border-[#2e3340] bg-[#1a1d26] overflow-hidden">
-    <div class="px-3 py-2 border-b border-[#2e3340] flex-shrink-0">
+    <div class="h-10 flex items-center px-3 border-b border-[#2e3340] flex-shrink-0">
       <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Ports</span>
     </div>
 
@@ -308,7 +308,7 @@
   <div class="flex-1 min-w-0 flex flex-col overflow-hidden bg-[#161920]">
 
     <!-- Shared toolbar -->
-    <div class="flex items-center justify-center gap-2 px-3 py-2 border-b border-[#2e3340] flex-shrink-0 bg-[#1a1d26]">
+    <div class="h-10 flex items-center justify-center gap-2 px-3 border-b border-[#2e3340] flex-shrink-0 bg-[#1a1d26]">
       {#if confirmReset}
         <span class="text-xs text-amber-400">Reset all ports?</span>
         <button
@@ -807,7 +807,7 @@
 
   <!-- ── Bus / expansion device list (right column) — mirror image of the port list ── -->
   <div class="w-52 flex-shrink-0 flex flex-col border-l border-[#2e3340] bg-[#1a1d26] overflow-hidden">
-    <div class="px-3 py-2 border-b border-[#2e3340] flex-shrink-0 text-right">
+    <div class="h-10 flex items-center justify-end px-3 border-b border-[#2e3340] flex-shrink-0">
       <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500">I²C &amp; UART</span>
     </div>
 
