@@ -126,6 +126,13 @@ class SharedState:
         }
         self.camera_actual_fps: float | None = None
 
+        # System resource monitor (see daemon/sysmon.py) — periodic host-wide
+        # samples for the dashboard's System tab.
+        self.sys_cpu_percent:  float | None = None
+        self.sys_mem_percent:  float | None = None
+        self.sys_cpu_temp_c:   float | None = None
+        self.sys_disk_percent: float | None = None
+
         # Battery (MAX17043/17048 or INA219 via Pi I²C — auto-detected)
         self.battery_present: bool  = False
         self.battery_voltage: float = 0.0    # pack voltage in V (cell_v × cell_count)
@@ -238,6 +245,12 @@ class SharedState:
         msg["camera"] = {
             "config":     dict(self.camera_config),
             "actual_fps": self.camera_actual_fps,
+        }
+        msg["system"] = {
+            "cpu_percent":  self.sys_cpu_percent,
+            "mem_percent":  self.sys_mem_percent,
+            "cpu_temp_c":   self.sys_cpu_temp_c,
+            "disk_percent": self.sys_disk_percent,
         }
         if self.battery_present:
             msg["battery"] = {

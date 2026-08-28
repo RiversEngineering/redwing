@@ -30,6 +30,7 @@ from .lidar import LidarCapture
 from .pca9685 import PCA9685
 from .rp2040 import RP2040
 from .state import SharedState
+from .sysmon import sysmon_task
 
 logging.basicConfig(
     level=logging.INFO,
@@ -67,7 +68,7 @@ async def main():
 
     asyncio.ensure_future(pca.detect())
 
-    tasks = [rp.run(), ipc.run(), camera.run(), server.serve(), gamepad_reader_task(state)]
+    tasks = [rp.run(), ipc.run(), camera.run(), server.serve(), gamepad_reader_task(state), sysmon_task(state)]
     if LIDAR_PORT:
         tasks.append(LidarCapture(state, LIDAR_PORT).run())
     if BATTERY_I2C_BUS >= 0:

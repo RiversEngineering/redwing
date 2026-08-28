@@ -19,6 +19,37 @@
     send({ cmd: 'set_camera_config', width: cameraConfig.width ?? 640, height: cameraConfig.height ?? 480, fps });
   }
 
+  // ── System resource monitor (see daemon/sysmon.py) ────────────────────────
+  $: sysStats = $robotState?.system ?? { cpu_percent: null, mem_percent: null, cpu_temp_c: null, disk_percent: null };
+
+  function pctColor(pct) {
+    if (pct === null || pct === undefined) return 'text-slate-600';
+    if (pct >= 85) return 'text-red-400';
+    if (pct >= 60) return 'text-amber-400';
+    return 'text-emerald-400';
+  }
+  function pctBarColor(pct) {
+    if (pct === null || pct === undefined) return 'bg-slate-700';
+    if (pct >= 85) return 'bg-red-500';
+    if (pct >= 60) return 'bg-amber-500';
+    return 'bg-emerald-500';
+  }
+  // Thresholds match what we measured firsthand on this hardware: the Pi was
+  // actively throttling at 85.6°C and settled at 77.4°C after fixing the CPU
+  // regressions that caused it.
+  function tempColor(t) {
+    if (t === null || t === undefined) return 'text-slate-600';
+    if (t >= 80) return 'text-red-400';
+    if (t >= 70) return 'text-amber-400';
+    return 'text-emerald-400';
+  }
+  function tempBarColor(t) {
+    if (t === null || t === undefined) return 'bg-slate-700';
+    if (t >= 80) return 'bg-red-500';
+    if (t >= 70) return 'bg-amber-500';
+    return 'bg-emerald-500';
+  }
+
   // Confirmation state — null | 'shutdown' | 'reboot'
   let confirming = null;
   let shutdownSent = false;
@@ -119,6 +150,67 @@
 
       {:else}
         <!-- Normal state -->
+
+        <!-- System Resources — read-only, updates every ~2s (daemon/sysmon.py) -->
+        <div class="space-y-3 pb-6 mb-6 border-b border-[#2e3340]">
+          <p class="text-xs text-slate-600 uppercase tracking-widest">System Resources</p>
+          <div class="bg-[#1e2129] rounded-xl border border-[#2e3340] p-5">
+            <div class="grid grid-cols-2 gap-x-6 gap-y-4">
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-slate-400">CPU</span>
+                  <span class="font-mono font-semibold {pctColor(sysStats.cpu_percent)}">
+                    {sysStats.cpu_percent != null ? sysStats.cpu_percent + '%' : '—'}
+                  </span>
+                </div>
+                <div class="h-1.5 rounded-full bg-[#161920] overflow-hidden">
+                  <div class="h-full rounded-full transition-all duration-500 {pctBarColor(sysStats.cpu_percent)}"
+                       style="width: {sysStats.cpu_percent ?? 0}%"></div>
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-slate-400">Memory</span>
+                  <span class="font-mono font-semibold {pctColor(sysStats.mem_percent)}">
+                    {sysStats.mem_percent != null ? sysStats.mem_percent + '%' : '—'}
+                  </span>
+                </div>
+                <div class="h-1.5 rounded-full bg-[#161920] overflow-hidden">
+                  <div class="h-full rounded-full transition-all duration-500 {pctBarColor(sysStats.mem_percent)}"
+                       style="width: {sysStats.mem_percent ?? 0}%"></div>
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-slate-400">CPU Temp</span>
+                  <span class="font-mono font-semibold {tempColor(sysStats.cpu_temp_c)}">
+                    {sysStats.cpu_temp_c != null ? sysStats.cpu_temp_c + '°C' : '—'}
+                  </span>
+                </div>
+                <div class="h-1.5 rounded-full bg-[#161920] overflow-hidden">
+                  <div class="h-full rounded-full transition-all duration-500 {tempBarColor(sysStats.cpu_temp_c)}"
+                       style="width: {Math.min(100, Math.max(0, sysStats.cpu_temp_c ?? 0))}%"></div>
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-slate-400">Disk (workspace)</span>
+                  <span class="font-mono font-semibold {pctColor(sysStats.disk_percent)}">
+                    {sysStats.disk_percent != null ? sysStats.disk_percent + '%' : '—'}
+                  </span>
+                </div>
+                <div class="h-1.5 rounded-full bg-[#161920] overflow-hidden">
+                  <div class="h-full rounded-full transition-all duration-500 {pctBarColor(sysStats.disk_percent)}"
+                       style="width: {sysStats.disk_percent ?? 0}%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="space-y-3">
           <p class="text-xs text-slate-600 uppercase tracking-widest">Power</p>
 
