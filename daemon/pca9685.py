@@ -3,7 +3,14 @@
 The PCA9685 is wired to the Pico's I²C0 bus (GP4/GP5, address 0x40).
 All control goes through the Pico serial protocol — no direct I²C from the Pi.
 
-All 16 channels run at 50 Hz (RC servo / ESC frequency).
+All 16 channels share one PWM frequency, chip-wide (50 Hz — RC servo / ESC
+rate) — there is no per-channel frequency on this part, only per-channel
+duty within that shared period. Most channels use that period as an RC
+pulse-width slot (set_channel_pulse_us); set_channel_duty instead treats it
+as a plain 0-100% duty cycle for a non-RC PWM+DIR driver input, which still
+works fine at 50 Hz since duty (not absolute pulse timing) is what those
+drivers read.
+
 The calibration routine wires PCA channel 0 to a Pico single-pin port,
 has the Pico measure the actual pulse width, then corrects the PCA prescale
 so that 1500 µs commands genuinely produce 1500 µs pulses.
@@ -49,6 +56,11 @@ class PCA9685:
         # line. Mutually exclusive with _channel_pulse_us; both setters clear
         # the other so calibration re-apply (below) knows which one is live.
         self._channel_level: list[bool | None] = [None] * 16
+        # Last commanded duty cycle (0-100%) per channel, for a plain
+        # PWM+DIR motor driver input (e.g. Cytron MDD10A Sign-Magnitude
+        # mode) rather than an RC servo/ESC pulse — see set_channel_duty.
+        # Also mutually exclusive with the two lists above.
+        self._channel_duty: list[float | None] = [None] * 16
 
     # ------------------------------------------------------------------
     # Detection
@@ -166,6 +178,7 @@ class PCA9685:
         self._rp.enqueue(proto.cmd_pca_set_ch(channel, on, off))
         self._channel_pulse_us[channel] = pulse_us
         self._channel_level[channel] = None
+        self._channel_duty[channel] = None
 
     def set_channel_off(self, channel: int):
         """Disable a channel (no pulse output)."""
@@ -174,6 +187,7 @@ class PCA9685:
         self._rp.enqueue(proto.cmd_pca_ch_off(channel))
         self._channel_pulse_us[channel] = None
         self._channel_level[channel] = None
+        self._channel_duty[channel] = None
 
     def set_channel_level(self, channel: int, level: bool):
         """Drive a channel to a fixed 0% or 100% duty digital level via the
@@ -189,6 +203,35 @@ class PCA9685:
             self._rp.enqueue(proto.cmd_pca_ch_off(channel))
         self._channel_level[channel] = level
         self._channel_pulse_us[channel] = None
+        self._channel_duty[channel] = None
+
+    def set_channel_duty(self, channel: int, duty_pct: float):
+        """Set a channel's duty cycle directly (0-100%), for a plain PWM+DIR
+        motor driver input (e.g. Cytron MDD10A Sign-Magnitude mode reads
+        Ton/(Ton+Toff) directly) — NOT the RC servo/ESC pulse-width
+        convention used by set_channel_pulse_us. That convention confines
+        the signal to a narrow ~500-2500 µs slice of the 20 ms (50 Hz)
+        frame — at most ~12.5% duty — which reads as "barely any power" to
+        a driver that's just measuring duty cycle, regardless of how the
+        daemon intended the pulse width. This scales across the *entire*
+        period instead, so 100% duty is genuinely full power irrespective
+        of the PCA9685's configured frequency (shared chip-wide with any
+        50 Hz servos also present — see module docstring).
+        """
+        if not self._present:
+            return
+        duty_pct = max(0.0, min(100.0, duty_pct))
+        if duty_pct <= 0:
+            self.set_channel_off(channel)
+            return
+        if duty_pct >= 100:
+            self.set_channel_level(channel, True)
+            return
+        off = max(1, min(4094, round(duty_pct / 100 * 4096)))
+        self._rp.enqueue(proto.cmd_pca_set_ch(channel, 0, off))
+        self._channel_duty[channel] = duty_pct
+        self._channel_pulse_us[channel] = None
+        self._channel_level[channel] = None
 
     def configure_channel(self, channel: int, port_type: str):
         """Configure a channel for a device type.
@@ -266,12 +309,15 @@ class PCA9685:
             return {"ok": False, "error": "PCA9685 not responding after calibration"}
 
         # Step 7: re-apply all channels that were previously set. A fixed
-        # digital level (direction line) doesn't depend on prescale at all,
-        # but is re-sent anyway for simplicity and to keep the two tracking
-        # lists authoritative for what's actually live on each channel.
+        # digital level or a direct duty cycle doesn't depend on prescale at
+        # all, but both are re-sent anyway for simplicity and to keep the
+        # tracking lists authoritative for what's actually live on each
+        # channel.
         for ch in range(16):
             if self._channel_level[ch] is not None:
                 self.set_channel_level(ch, self._channel_level[ch])
+            elif self._channel_duty[ch] is not None:
+                self.set_channel_duty(ch, self._channel_duty[ch])
             elif self._channel_pulse_us[ch] is not None:
                 self.set_channel_pulse_us(ch, self._channel_pulse_us[ch])
             else:

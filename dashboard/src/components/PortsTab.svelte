@@ -554,10 +554,11 @@
                     </span>
                   </div>
                   <p class="text-[11px] text-slate-600">
-                    Sign-magnitude pair: P{rightSelectedPcaChannel} (PWM) outputs 1500–1900 µs proportional
-                    to |speed| — wire to your driver's PWM/magnitude input. P{selectedPcaData.partner} (DIR)
-                    outputs a fixed HIGH or LOW level — not a pulse — via the PCA9685's full-on/full-off
-                    mode. Wire it to your driver's DIR input.
+                    Sign-magnitude pair: P{rightSelectedPcaChannel} (PWM) outputs a 0–100% duty cycle
+                    proportional to |speed| — not an RC servo pulse — for a plain PWM+DIR driver input
+                    (e.g. Cytron MDD10A). P{selectedPcaData.partner} (DIR) outputs a fixed HIGH or LOW
+                    level — not a pulse — via the PCA9685's full-on/full-off mode. Wire it to your
+                    driver's DIR input.
                   </p>
                 {:else}
                   <p class="text-[11px] text-slate-600">RC ESC protocol: 1500 µs = stop, 1100 µs = full reverse, 1900 µs = full forward.</p>

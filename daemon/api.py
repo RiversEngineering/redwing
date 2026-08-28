@@ -100,12 +100,13 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                         async with state.lock:
                             state.pca9685_channels.setdefault(ch, {})["pulse_us"] = 1500
                     for ch in paired_magnitude_channels:
-                        # Zero the magnitude channel only — direction is a static
-                        # level and stopping doesn't imply a direction change.
-                        pca.set_channel_pulse_us(ch, 1500)
+                        # Zero the magnitude (PWM) channel only — direction is
+                        # a static level and stopping doesn't imply a
+                        # direction change.
+                        pca.set_channel_duty(ch, 0)
                         async with state.lock:
                             cd = state.pca9685_channels.setdefault(ch, {})
-                            cd["pulse_us"] = 1500
+                            cd["duty_pct"] = 0
                             cd["value"] = 0
 
             elif cmd == "configure_port":
@@ -217,12 +218,14 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
             elif cmd == "pca_pair_channels":
                 # Bind two PCA9685 channels together as one sign-magnitude
                 # motor, mirroring the D-port motor_sm scheme in software:
-                # channel_a carries a PWM pulse proportional to |speed| (a
-                # driver's PWM/magnitude input, 0% -> stopped), channel_b is
-                # held at a fixed 0% or 100% duty level via the PCA9685's
-                # full-on/full-off register bits (pca.set_channel_level) — a
-                # true static high/low level, not an RC-style pulse — for a
-                # driver's DIR input.
+                # channel_a carries a duty cycle proportional to |speed| (a
+                # plain PWM+DIR driver's PWM input, e.g. Cytron MDD10A
+                # Sign-Magnitude mode — 0% duty -> stopped; see
+                # pca.set_channel_duty for why this is NOT the RC-style pulse
+                # used for servos/ESCs), channel_b is held at a fixed 0% or
+                # 100% duty level via the PCA9685's full-on/full-off register
+                # bits (pca.set_channel_level) — a true static high/low
+                # level — for the driver's DIR input.
                 channel_a = int(msg["channel_a"])  # magnitude / PWM
                 channel_b = int(msg["channel_b"])  # direction / DIR
                 if channel_a == channel_b or not (0 <= channel_a < 16 and 0 <= channel_b < 16):
@@ -237,12 +240,12 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                     async with state.lock:
                         state.add_log("warning", "[Dashboard] PCA9685 not detected")
                     return
-                pca.set_channel_pulse_us(channel_a, 1500)  # 0% magnitude — stopped
-                pca.set_channel_level(channel_b, True)     # arbitrary default direction
+                pca.set_channel_duty(channel_a, 0)       # 0% magnitude — stopped
+                pca.set_channel_level(channel_b, True)   # arbitrary default direction
                 async with state.lock:
                     state.pca9685_channels[channel_a] = {
                         "type": "motor_sm_pair", "role": "magnitude", "partner": channel_b,
-                        "pulse_us": 1500, "value": 0,
+                        "duty_pct": 0, "value": 0,
                     }
                     state.pca9685_channels[channel_b] = {
                         "type": "motor_sm_pair", "role": "direction", "partner": channel_a,
@@ -263,13 +266,13 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                         return
                     partner = cd["partner"]
                 if pca and pca.present:
-                    mag_pulse = 1500 + (abs(val_x100) * 400) // 10000
+                    mag_duty  = abs(val_x100) / 100.0   # 0-100%
                     dir_level = val_x100 >= 0
-                    pca.set_channel_pulse_us(channel, mag_pulse)
+                    pca.set_channel_duty(channel, mag_duty)
                     pca.set_channel_level(partner, dir_level)
                     async with state.lock:
                         cd = state.pca9685_channels.setdefault(channel, {})
-                        cd["pulse_us"] = mag_pulse
+                        cd["duty_pct"] = mag_duty
                         cd["value"] = val_x100
                         pd = state.pca9685_channels.setdefault(partner, {})
                         pd["level"] = dir_level
