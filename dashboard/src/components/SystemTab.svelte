@@ -209,27 +209,6 @@
                 </div>
               </div>
             </div>
-
-            <!-- Map tab toggle — advanced/opt-in feature, see stores.js mapTabEnabled -->
-            <div class="pt-4 mt-4 border-t border-[#2e3340] flex items-center justify-between gap-3">
-              <div>
-                <p class="text-xs font-semibold text-slate-300">Map Tab</p>
-                <p class="text-[10px] text-slate-600 mt-0.5">
-                  Advanced feature, off by default — it does nothing until student code calls the
-                  mapping API, which would otherwise just look empty/broken.
-                </p>
-              </div>
-              <button
-                role="switch"
-                aria-checked={$mapTabEnabled}
-                class="relative w-10 h-5 rounded-full transition-colors flex-shrink-0
-                       {$mapTabEnabled ? 'bg-blue-600' : 'bg-slate-700'}"
-                on:click={() => ($mapTabEnabled = !$mapTabEnabled)}
-              >
-                <span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform
-                             {$mapTabEnabled ? 'translate-x-5' : 'translate-x-0'}"></span>
-              </button>
-            </div>
           </div>
         </div>
 
@@ -286,6 +265,30 @@
               <span>Negotiated: <span class="text-slate-300 font-mono">{cameraConfig.actual_width ?? '—'}×{cameraConfig.actual_height ?? '—'}</span></span>
               <span>Measured: <span class="text-slate-300 font-mono">{cameraActualFps ?? '—'} fps</span></span>
             </div>
+          </div>
+        </div>
+
+        <!-- Features — dashboard-level toggles, not robot hardware settings -->
+        <div class="space-y-3">
+          <p class="text-xs text-slate-600 uppercase tracking-widest">Features</p>
+          <div class="bg-[#1e2129] rounded-xl border border-[#2e3340] p-5 flex items-center gap-4">
+            <div class="flex-1">
+              <p class="text-sm font-semibold text-slate-200">Map Tab</p>
+              <p class="text-xs text-slate-600 mt-0.5">
+                Advanced feature, off by default — it does nothing until student code calls the
+                mapping API, which would otherwise just look empty/broken to most students.
+              </p>
+            </div>
+            <button
+              role="switch"
+              aria-checked={$mapTabEnabled}
+              class="relative w-10 h-5 rounded-full transition-colors flex-shrink-0
+                     {$mapTabEnabled ? 'bg-blue-600' : 'bg-slate-700'}"
+              on:click={() => ($mapTabEnabled = !$mapTabEnabled)}
+            >
+              <span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform
+                           {$mapTabEnabled ? 'translate-x-5' : 'translate-x-0'}"></span>
+            </button>
           </div>
         </div>
 
