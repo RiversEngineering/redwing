@@ -892,7 +892,10 @@
         <div class="border-t border-[#2e3340] mx-2 my-1"></div>
         <div class="px-2 pb-1">
           <div class="flex flex-row-reverse items-center px-1 mb-1">
-            <div class="text-[9px] text-slate-700 uppercase tracking-widest">PCA9685  P0–P15</div>
+            <div class="text-[9px] text-slate-700 uppercase tracking-widest leading-tight text-right">
+              <div>PCA9685</div>
+              <div>P0–P15</div>
+            </div>
             <div class="mr-auto flex items-center gap-1.5">
               <button
                 class="text-[8px] transition-colors cursor-pointer hover:brightness-125
