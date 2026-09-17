@@ -33,8 +33,7 @@ saves you from the exact precedence bug you fixed in Debug It.</div>
 
 <h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 1 — circle measurements</h2>
 <p>Given <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">radius = 4</code>, compute and print the circle's
-<strong>area</strong> (<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">area = pi * radius ** 2</code>) and its
-<strong>circumference</strong> (<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">circumference = 2 * pi * radius</code>).
+<strong>area</strong> and its <strong>circumference</strong>.
 Use <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">3.14159</code> for pi. Expected output:</p>
 <pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Area: 50.26544
 Circumference: 25.13272</code></pre>
@@ -48,8 +47,7 @@ Leftover minutes: 17</code></pre>
 
 <h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 3 — price with tax</h2>
 <p>Given <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">price = 19.99</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">tax_rate = 0.08</code>,
-compute and print the total cost including tax
-(<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">price + price * tax_rate</code>). Expected output:</p>
+compute and print the total cost including tax. Expected output:</p>
 <pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Total cost: 21.589199999999998</code></pre>
 <p>(Yes, that trailing string of 9s and 8s is correct — that's how
 computers store floats. It's not a bug in your code.)</p>
@@ -61,14 +59,13 @@ output:</p>
 <pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Average score: 86.33333333333333</code></pre>
 
 <h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 5 — Celsius to Fahrenheit</h2>
-<p>Given <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">celsius = 23</code>, convert to Fahrenheit using
-<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">F = C * 9 / 5 + 32</code> and print it. Expected output:</p>
+<p>Given <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">celsius = 23</code>, convert to Fahrenheit and print it. Expected output:</p>
 <pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Fahrenheit: 73.4</code></pre>
 
 <h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Problem 6 — distance with a speed boost</h2>
 <p>Given <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">speed = 45</code> and <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">time = 2</code>, compute and
-print the distance traveled (<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">distance = speed * time</code>).
-Then use <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">speed += 15</code> to simulate a speed boost,
+print the distance traveled.
+Then add 15 to speed <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">+=</code> to simulate a speed boost,
 recompute the distance for the new speed over the same time, and print
 that too. Expected output:</p>
 <pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code>Distance: 90

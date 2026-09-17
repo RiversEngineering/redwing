@@ -29,13 +29,13 @@ else:
 distance_cm = 8
 if distance_cm < 10:
     print("STOP")
-# TODO 1: add an elif here for distance_cm < 30 that prints "Slow down"
+# TODO 1: add an elif here for a distance less than 30 that prints "Slow down"
 # TODO 1: add an else that prints "Full speed ahead"
 
 # --- Task 2: combine conditions with 'and', store the result ---
 battery_voltage = 11.2
 # TODO 2: create is_low, a boolean that is True only when
-#         battery_voltage < 11.5 AND battery_voltage > 9.0
+#         the battery voltage is less than 11.5 AND also less than 9.0
 # TODO 2: then write an if/else on is_low:
 #         if is_low, print "Battery low — recharge soon."
 #         else, print "Battery OK."
@@ -46,6 +46,7 @@ battery_voltage = 11.2
 # to match the if: body, and Python needs every line in a block to line
 # up exactly). Uncomment the 5 lines below and fix the indentation so
 # the if body and else body are each indented consistently.
+
 # motor_temp_c = 45
 # if motor_temp_c > 40:
 #     print("Motor hot — reduce speed.")
@@ -57,8 +58,7 @@ emergency_stop = False
 battery_critical = True
 # TODO 4: write an if/else:
 #         if emergency_stop OR battery_critical is True, print "HALTING ALL MOTORS"
-#         (note: fix the typo — it should say HALTING, not HALYING)
-#         else, print "Systems normal."
+#         otherwise, print "Systems normal."
 
 # --- Task 5: predict, then run ---
 # TODO 5: before running, write your predicted output as a comment
@@ -73,4 +73,4 @@ elif sensor_reading < 80:
 else:
     print("Zone D")
 
-print("Assignment 4 complete!")
+

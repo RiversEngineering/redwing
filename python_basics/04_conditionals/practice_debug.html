@@ -1,11 +1,6 @@
 <div style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#222;line-height:1.6;max-width:900px;">
 
-<h1 style="font-family:sans-serif;color:#1a1a2e;">Assignment 4 Practice: Debug It</h1>
-
-<div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 20px 0;">
-  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">⏱ Estimated time: 30 minutes</span>
-  <span style="background:#eef0f3;color:#333;padding:4px 12px;border-radius:999px;font-size:0.85em;">Prerequisite: Assignment 4 — Making Decisions with Conditionals</span>
-</div>
+<h1 style="font-family:sans-serif;color:#1a1a2e;">if Practice: Debug It</h1>
 
 <p>Not every bug crashes your program. Some bugs are loud — Python refuses to run at all and shows you an error message. Others are quiet — the code runs just fine and prints something, it's just <em>wrong</em>, and nothing tells you that. Both kinds show up in <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">practice_debug.py</code> in this folder. Your job is to find and fix all 7.</p>
 
@@ -18,7 +13,7 @@
 
 <p>The crash-bugs (1, 2, 3, and 7 below) are shipped fully commented out in <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">practice_debug.py</code> — that's the only reason the file runs at all as distributed. The logic-only bugs (4, 5, and 6) are live: the file runs, but prints the wrong thing for each of them.</p>
 
-<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 1 — assignment instead of comparison</h2>
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 1</h2>
 
 <pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code># Goal: print "Threshold reached" when x is exactly 10.
 x = 10
@@ -26,11 +21,7 @@ if x = 10:
     print("Threshold reached")
 </code></pre>
 
-<p><strong>Error type:</strong> <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">SyntaxError</code>. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">=</code> assigns; <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">==</code> compares. An <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code> needs a comparison, so Python refuses to run this at all.</p>
-
-<p><strong>Fix:</strong> change <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if x = 10:</code> to <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if x == 10:</code>. Corrected output: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">Threshold reached</code></p>
-
-<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 2 — missing colon</h2>
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 2</h2>
 
 <pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code># Goal: print "Motor cool" when motor_temp_c is 40 or below.
 motor_temp_c = 35
@@ -38,11 +29,7 @@ if motor_temp_c &lt;= 40
     print("Motor cool")
 </code></pre>
 
-<p><strong>Error type:</strong> <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">SyntaxError</code>. Python uses the colon at the end of an <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code>/<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">elif</code>/<code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">else</code> line to know an indented block is coming. Without it, the line is invalid.</p>
-
-<p><strong>Fix:</strong> add the colon: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if motor_temp_c &lt;= 40:</code>. Corrected output: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">Motor cool</code></p>
-
-<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 3 — inconsistent indentation</h2>
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 3</h2>
 
 <pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code># Goal: print "Sensor error" if reading is negative, otherwise print
 # the reading itself.
@@ -53,15 +40,15 @@ else:
 print(reading)
 </code></pre>
 
-<p><strong>Error type:</strong> <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">IndentationError</code>. The <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code> body is indented 4 spaces, but the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">else</code> body isn't indented at all — Python expects an indented block right after a colon and doesn't find one.</p>
-
-<p><strong>Fix:</strong> indent the line under <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">else:</code> to match the <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if</code> body's 4 spaces. Corrected output (with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">reading = -5</code>): <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">Sensor error</code></p>
-
 <div style="background:#eaf4ff;border-left:4px solid #2b7de9;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>💡 Tip</strong><br>
 Every line inside the same block must be indented by the exact same amount. Python doesn't care whether you use 2 spaces or 4, as long as you're consistent within a block and your editor isn't secretly mixing tabs and spaces. If you ever see <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">IndentationError: expected an indented block</code>, look at the line right after your colon first.
 </div>
 
-<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 4 — wrong logical operator</h2>
+<div style="background:#fff8e6;border-left:4px solid #e0a800;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>⚠️ Common mistake</strong><br>
+Bugs 4, 5, and 6 are the sneakiest kind: Python never complains, the program runs top to bottom, and it prints a real, well-formed answer — it's just the <em>wrong</em> one. A crash at least tells you where to look. A silent logic bug only shows up when you (or someone else) compares the output against what it should have been, which is exactly why testing your conditions against more than one input matters.
+</div>
+
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 4</h2>
 
 <pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code># Goal: sound the alarm if the temperature is too low (under 32) OR
 # too high (over 100).
@@ -72,13 +59,7 @@ else:
     print("Temperature normal")
 </code></pre>
 
-<p><strong>What's wrong:</strong> this one doesn't crash — it just always gives the wrong answer. No number can be both under 32 <em>and</em> over 100 at the same time, so <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">and</code> makes the whole condition <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">False</code> no matter what — the alarm can never sound. The goal says "OR," so the code should say <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">or</code>.</p>
-
-<p><strong>As shipped, this prints:</strong> <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">Temperature normal</code> (wrong — 105 should trigger the alarm)</p>
-
-<p><strong>Fix:</strong> change <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">and</code> to <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">or</code>. Corrected output: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">ALARM: temperature out of safe range</code></p>
-
-<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 5 — elif ordering hides a branch</h2>
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 5</h2>
 
 <pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code># Goal: give a discount tier based on order_total:
 #   under $10  -&gt; "Tiny order discount"
@@ -93,13 +74,7 @@ else:
     print("No discount")
 </code></pre>
 
-<p><strong>What's wrong:</strong> every order under $10 is also under $100, so the broad <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">order_total &lt; 100</code> check always matches first. The <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">elif order_total &lt; 10:</code> branch is dead code — it can never run, no matter what <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">order_total</code> is.</p>
-
-<p><strong>As shipped, this prints:</strong> <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">Standard discount</code> (wrong — an order of $5 should get the tiny-order discount)</p>
-
-<p><strong>Fix:</strong> check the narrower condition first — <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">order_total &lt; 10</code> before <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">order_total &lt; 100</code>. Corrected output: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">Tiny order discount</code></p>
-
-<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 6 — off-by-one at the boundary</h2>
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 6</h2>
 
 <pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code># Goal: any speed of 60 or below (that's &lt;= 60) counts as "Safe speed".
 speed = 60
@@ -109,13 +84,8 @@ else:
     print("Too fast")
 </code></pre>
 
-<p><strong>What's wrong:</strong> the goal says <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">60 or below</code> should count as safe, which means the comparison needs <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;=</code>. As written with plain <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;</code>, a speed of exactly 60 falls into the wrong branch.</p>
 
-<p><strong>As shipped, this prints:</strong> <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">Too fast</code> (wrong — 60 should count as safe)</p>
-
-<p><strong>Fix:</strong> change <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;</code> to <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&lt;=</code>. Corrected output: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">Safe speed</code></p>
-
-<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 7 — comparing a string to a number</h2>
+<h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Bug 7</h2>
 
 <pre style="background:#272822;color:#f8f8f2;padding:14px 16px;border-radius:6px;overflow-x:auto;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;line-height:1.5;"><code># Goal: print "Old enough" if age_text (typed in by a user, so it
 # starts out as a string) represents an age of 18 or older.
@@ -126,13 +96,6 @@ else:
     print("Not old enough")
 </code></pre>
 
-<p><strong>Error type:</strong> <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">TypeError</code>. <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">age_text</code> is a string (remember: anything from <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">input()</code> is always a string, even if it looks like a number). Python won't compare a string to an integer with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">&gt;=</code> — it has no idea whether <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">"20"</code> should sort before or after the number <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">18</code>, so it refuses and crashes instead.</p>
-
-<p><strong>Fix:</strong> convert first, with <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">int(age_text)</code> (this is the same <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">int()</code> you used back in Module 3): <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">if int(age_text) &gt;= 18:</code>. Corrected output: <code style="background:#eef0f3;color:#c0341d;padding:2px 6px;border-radius:4px;font-family:Consolas,'Liberation Mono',Menlo,monospace;font-size:0.9em;">Old enough</code></p>
-
-<div style="background:#fff8e6;border-left:4px solid #e0a800;padding:12px 18px;margin:16px 0;border-radius:4px;"><strong>⚠️ Common mistake</strong><br>
-Bugs 4, 5, and 6 are the sneakiest kind: Python never complains, the program runs top to bottom, and it prints a real, well-formed answer — it's just the <em>wrong</em> one. A crash at least tells you where to look. A silent logic bug only shows up when you (or someone else) compares the output against what it should have been, which is exactly why testing your conditions against more than one input matters.
-</div>
 
 <h2 style="border-bottom:2px solid #eef0f3;padding-bottom:6px;margin-top:32px;">Quick Reference</h2>
 

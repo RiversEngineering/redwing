@@ -16,8 +16,6 @@ Concepts practiced
 # --- Problem 1 ---
 # Given the radius of a circle, compute and print its area and its
 # circumference. Use 3.14159 for pi.
-#   area = pi * radius ** 2
-#   circumference = 2 * pi * radius
 radius = 4
 # Write your code here
 
@@ -42,16 +40,15 @@ score3 = 79
 # Write your code here
 
 # --- Problem 5 ---
-# Given a temperature in Celsius, convert it to Fahrenheit using
-# F = C * 9 / 5 + 32, and print it.
+# Given a temperature in Celsius, convert it to Fahrenheit and print it.
+# (go find the equation to convert on the internet)
 celsius = 23
 # Write your code here
 
 # --- Problem 6 ---
 # Given a speed and a travel time, compute and print the distance
-# traveled (distance = speed * time). Then simulate a speed boost with
-# +=, recompute the distance for the new speed over the same time, and
-# print that too.
+# traveled. Then simulate a speed boost with# +=, recompute the 
+# distance for the new speed over the same time, and print that too.
 speed = 45
 time = 2
 # Write your code here

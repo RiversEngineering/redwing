@@ -36,6 +36,9 @@
     if (msg.type === 'state') {
       robotState.set(msg);
       if (msg.map_pose) mapPose.set(msg.map_pose);
+      // Hostname-first so it survives tab-width truncation — lets you tell
+      // multiple robots' dashboard tabs apart at a glance.
+      if (msg.network?.hostname) document.title = `${msg.network.hostname} — Redwing`;
     } else if (msg.type === 'log') {
       pushLog({ level: msg.level, message: msg.message, ts: msg.ts });
     } else if (msg.type === 'plot') {

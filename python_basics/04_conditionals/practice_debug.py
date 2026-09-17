@@ -1,4 +1,4 @@
-"""Assignment 4 Practice — Debug It
+"""Conditionals Practice — Debug
 
 Every one of these 7 numbered blocks is broken in some way. Some of them
 crash Python outright (those are commented out so this file can still
@@ -30,62 +30,80 @@ things for bugs 4, 5, and 6.
 
 # --- Bug 1 ---
 # Goal: print "Threshold reached" when x is exactly 10.
+
 # x = 10
 # if x = 10:
 #     print("Threshold reached")
 
+
+
 # --- Bug 2 ---
 # Goal: print "Motor cool" when motor_temp_c is 40 or below.
+
 # motor_temp_c = 35
 # if motor_temp_c <= 40
 #     print("Motor cool")
 
+
+
 # --- Bug 3 ---
 # Goal: print "Sensor error" if reading is negative, otherwise print the
 # reading itself.
+
 # reading = -5
 # if reading < 0:
 #     print("Sensor error")
 # else:
 # print(reading)
 
+
+
 # --- Bug 4 ---
 # Goal: sound the alarm if the temperature is too low (under 32) OR too
 # high (over 100).
-temperature = 105
-if temperature < 32 and temperature > 100:
-    print("ALARM: temperature out of safe range")
-else:
-    print("Temperature normal")
+
+# temperature = 105
+# if temperature < 32 and temperature > 100:
+#     print("ALARM: temperature out of safe range")
+# else:
+#     print("Temperature normal")
+
+
 
 # --- Bug 5 ---
 # Goal: give a discount tier based on order_total:
 #   under $10  -> "Tiny order discount"
 #   under $100 -> "Standard discount"
 #   otherwise  -> "No discount"
-order_total = 5
-if order_total < 100:
-    print("Standard discount")
-elif order_total < 10:
-    print("Tiny order discount")
-else:
-    print("No discount")
+
+# order_total = 5
+# if order_total < 100:
+#     print("Standard discount")
+# elif order_total < 10:
+#     print("Tiny order discount")
+# else:
+#     print("No discount")
+
+
 
 # --- Bug 6 ---
 # Goal: any speed of 60 or below (that's <= 60) counts as "Safe speed".
-speed = 60
-if speed < 60:
-    print("Safe speed")
-else:
-    print("Too fast")
+
+# speed = 60
+# if speed < 60:
+#     print("Safe speed")
+# else:
+#     print("Too fast")
+
+
 
 # --- Bug 7 ---
 # Goal: print "Old enough" if age_text (typed in by a user, so it starts
 # out as a string) represents an age of 18 or older.
+
 # age_text = "20"
 # if age_text >= 18:
 #     print("Old enough")
 # else:
 #     print("Not old enough")
 
-print("Debug It complete!")
