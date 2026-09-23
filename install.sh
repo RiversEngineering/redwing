@@ -277,7 +277,14 @@ Requires=docker.service
 Type=simple
 WorkingDirectory=${INSTALL_DIR}
 Environment=REDWING_DAEMON_MEM_RESERVATION=${DAEMON_MEM_RESERVATION}
-ExecStart=${DOCKER_BIN} compose -f ${COMPOSE_FILE} up
+# --force-recreate: an unclean shutdown (this robot's normal way of losing
+# power) can leave containerd's on-disk state for one container corrupted
+# ("RWLayer of container ... is unexpectedly nil") while its siblings are
+# fine. Without this flag, `up` reuses the same broken container object on
+# every restart and loops forever under Restart=on-failure below; recreating
+# gives it a fresh layer instead, which is the only thing that's fixed it
+# when this has come up (see also the equivalent manual `down && up`).
+ExecStart=${DOCKER_BIN} compose -f ${COMPOSE_FILE} up --force-recreate --remove-orphans
 ExecStop=${DOCKER_BIN} compose -f ${COMPOSE_FILE} down
 Restart=on-failure
 RestartSec=10
