@@ -1,0 +1,77 @@
+<h2>Redwing Quick Reference: Gamepad</h2>
+
+<h3>Setup</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">gp</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#9CDCFE">gamepad</span>    <span style="color:#6A9955"># no setup needed; works with the dashboard controller or a USB pad</span></pre>
+
+<h3>Joysticks (-1.0 to 1.0)</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_x</span>     <span style="color:#6A9955"># -1 = left,  1 = right</span>
+<span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_y</span>     <span style="color:#6A9955"># -1 = back,  1 = forward</span>
+<span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">right_x</span>
+<span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">right_y</span></pre>
+
+<h3>Throttle &amp; turn</h3>
+<p><strong>Throttle</strong> = forward/back. <strong>Turn</strong> = rotation. Save stick readings in named variables first, then pass the variables to <code>set_power()</code>.</p>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">throttle</span> = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_y</span> * <span style="color:#B5CEA8">100</span>    <span style="color:#6A9955"># scale -1..1 to -100..100</span>
+<span style="color:#9CDCFE">turn</span>     = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">right_x</span> * <span style="color:#B5CEA8">100</span>
+
+<span style="color:#9CDCFE">left_power</span>  = <span style="color:#9CDCFE">throttle</span> + <span style="color:#9CDCFE">turn</span>
+<span style="color:#9CDCFE">right_power</span> = <span style="color:#9CDCFE">throttle</span> - <span style="color:#9CDCFE">turn</span>
+
+<span style="color:#9CDCFE">left</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#9CDCFE">left_power</span>)
+<span style="color:#9CDCFE">right</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#9CDCFE">right_power</span>)</pre>
+
+<h3>Buttons</h3>
+<table style="border-collapse:collapse;margin:8px 0;" border="1" cellpadding="6">
+<tr><th>Held down (True every loop)</th><th>Just pressed (True once per press)</th></tr>
+<tr><td><code>gp.a</code> <code>gp.b</code> <code>gp.x</code> <code>gp.y</code></td><td><code>gp.just_pressed_a</code> (etc.)</td></tr>
+<tr><td><code>gp.dpad_up</code> <code>gp.dpad_down</code> <code>gp.dpad_left</code> <code>gp.dpad_right</code></td><td><code>gp.just_pressed_dpad_up</code> (etc.)</td></tr>
+<tr><td><code>gp.lb</code> <code>gp.rb</code> (bumpers)</td><td><code>gp.just_pressed_lb</code> / <code>gp.just_pressed_rb</code></td></tr>
+</table>
+<ul>
+<li><strong>Held</strong> → continuous actions (turbo, intake).</li>
+<li><strong>Just pressed</strong> → one-time actions (toggle a mode).</li>
+</ul>
+<p>Read each <code>just_pressed_</code> value <strong>once per loop</strong> into a variable. It's True only the first time you check it after a press.</p>
+
+<h3>Triggers (0.0 to 1.0)</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">lt</span>   <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">rt</span>                              <span style="color:#6A9955"># how far pressed</span>
+<span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">just_pressed_lt</span>   <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">just_pressed_rt</span>    <span style="color:#6A9955"># once per press</span></pre>
+
+<h3>Connected?</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">connected</span>    <span style="color:#6A9955"># True if a controller is active</span></pre>
+
+<h3>Example: drive + buttons</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+<span style="color:#9CDCFE">left</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">right</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">intake</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">gp</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#9CDCFE">gamepad</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+    <span style="color:#6A9955"># INPUT</span>
+    <span style="color:#9CDCFE">throttle</span>    = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_y</span> * <span style="color:#B5CEA8">50</span>     <span style="color:#6A9955"># half speed by default</span>
+    <span style="color:#9CDCFE">turn</span>        = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">right_x</span> * <span style="color:#B5CEA8">50</span>
+    <span style="color:#9CDCFE">turbo_held</span>  = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">rb</span>
+    <span style="color:#9CDCFE">intake_held</span> = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">a</span>
+
+    <span style="color:#6A9955"># DECIDE</span>
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">turbo_held</span>:                   <span style="color:#6A9955"># hold RB for full speed</span>
+        <span style="color:#9CDCFE">throttle</span> = <span style="color:#9CDCFE">throttle</span> * <span style="color:#B5CEA8">2</span>
+        <span style="color:#9CDCFE">turn</span>     = <span style="color:#9CDCFE">turn</span> * <span style="color:#B5CEA8">2</span>
+
+    <span style="color:#9CDCFE">left_power</span>  = <span style="color:#9CDCFE">throttle</span> + <span style="color:#9CDCFE">turn</span>
+    <span style="color:#9CDCFE">right_power</span> = <span style="color:#9CDCFE">throttle</span> - <span style="color:#9CDCFE">turn</span>
+
+    <span style="color:#9CDCFE">intake_power</span> = <span style="color:#B5CEA8">0</span>                 <span style="color:#6A9955"># default: intake off</span>
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">intake_held</span>:
+        <span style="color:#9CDCFE">intake_power</span> = <span style="color:#B5CEA8">80</span>
+
+    <span style="color:#6A9955"># OUTPUT</span>
+    <span style="color:#9CDCFE">left</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#9CDCFE">left_power</span>)
+    <span style="color:#9CDCFE">right</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#9CDCFE">right_power</span>)
+    <span style="color:#9CDCFE">intake</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#9CDCFE">intake_power</span>)
+
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.02</span>)</pre>

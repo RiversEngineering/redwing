@@ -1,10 +1,18 @@
-"""Sharp GP2Y0A21YK0F IR distance sensor (10–80 cm)."""
+"""Sharp GP2Y0A21YK0F IR distance sensor (10–80 cm).
+
+.. warning::
+    NOT VALIDATED — DO NOT USE. IR distance sensor support is untested on
+    hardware and must not be used until it has been validated.
+"""
 
 OUT_OF_RANGE = -1.0
 
 
 class IrDistance:
     """Sharp GP2Y0A21YK0F (10–80 cm) analog IR distance sensor.
+
+    .. warning::
+        NOT VALIDATED — DO NOT USE. Untested on hardware.
 
     Wire the sensor to **S5**, **S6**, or **S7** — these are the only
     S-ports with ADC hardware (GP26/ADC0, GP27/ADC1, GP28/ADC2).

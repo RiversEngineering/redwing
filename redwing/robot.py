@@ -495,6 +495,11 @@ class Robot:
     def ir_distance(self, port: Port) -> IrDistance:
         """Configure *port* as a Sharp GP2Y0A21YK0F IR distance sensor.
 
+        .. warning::
+            NOT VALIDATED — DO NOT USE. IR distance sensor support is
+            untested on hardware and must not be used until it has been
+            validated. Calling this logs a warning to the dashboard console.
+
         *port* must be **S5**, **S6**, or **S7** — only those ports have ADC
         hardware (GP26/ADC0, GP27/ADC1, GP28/ADC2).
 
@@ -514,6 +519,12 @@ class Robot:
                 robot.sleep(0.05)
         """
         self._check_not_started("configure an IR distance sensor")
+        # TODO: remove this warning once IR distance support is validated on hardware.
+        import warnings
+        _msg = ("ir_distance() is NOT VALIDATED and should not be used yet. "
+                "Use an ultrasonic or VL53L0X sensor instead.")
+        warnings.warn(_msg, stacklevel=2)
+        self.log(_msg, level="warning")
         if port._id not in (5, 6, 7):
             raise ValueError(
                 "ir_distance() requires S5, S6, or S7 (the ADC-capable S-ports)."

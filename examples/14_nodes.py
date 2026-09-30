@@ -43,21 +43,25 @@ class DriveNode(Node):
 
     async def run(self):
         while True:
+            # INPUT
             distance = await self.receive("distance")
+            valid    = distance >= 0          # -1 means no valid reading
 
-            if distance < 0 or distance > 30:
-                # Clear path or no echo — drive forward
-                left.set_power(60)
-                right.set_power(60)
-            elif distance > 15:
-                # Getting close — slow down
-                left.set_power(30)
-                right.set_power(30)
-            else:
+            # DECIDE
+            left_power  = 60                  # default: clear path or no echo
+            right_power = 60
+            if valid and distance <= 15:
                 # Too close — back up and turn
-                left.set_power(-40)
-                right.set_power(10)
+                left_power  = -40
+                right_power = 10
+            elif valid and distance <= 30:
+                # Getting close — slow down
+                left_power  = 30
+                right_power = 30
 
+            # OUTPUT
+            left.set_power(left_power)
+            right.set_power(right_power)
             robot.log(f"Distance: {distance:.1f} cm")
 
 

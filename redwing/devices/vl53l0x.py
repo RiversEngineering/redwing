@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from ..connection import Connection
 
 _I2C_PORT_ID = "16"
+OUT_OF_RANGE = -1.0
 
 
 class VL53L0X:
@@ -81,7 +82,7 @@ class VL53L0X:
     def distance(self) -> float:
         """Distance in **centimetres**.
 
-        Returns ``0.0`` when the target is out of range.
+        Returns ``-1`` when the reading is invalid (out of range or unreliable).
         Raises :class:`RuntimeError` if the sensor is not connected.
 
         Example::
@@ -92,18 +93,21 @@ class VL53L0X:
         self._check_started()
         d = self._port()
         if not d.get("valid", False):
-            return 0.0
+            return OUT_OF_RANGE
         return round(d.get("distance_mm", 0) / 10.0, 2)
 
     @property
     def distance_mm(self) -> int:
         """Distance in **millimetres**.
 
-        Returns ``0`` when out of range.
+        Returns ``-1`` when the reading is invalid.
         Raises :class:`RuntimeError` if the sensor is not connected.
         """
         self._check_started()
-        return int(self._port().get("distance_mm", 0))
+        d = self._port()
+        if not d.get("valid", False):
+            return -1
+        return int(d.get("distance_mm", 0))
 
     @property
     def valid(self) -> bool:
@@ -120,3 +124,8 @@ class VL53L0X:
             return bool(self._port().get("valid", False))
         except RuntimeError:
             return False
+
+    @property
+    def in_range(self) -> bool:
+        """Same as :attr:`valid`."""
+        return self.valid

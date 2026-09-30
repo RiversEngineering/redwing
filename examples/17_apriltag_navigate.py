@@ -67,8 +67,8 @@ search_dir     = 1          # 1 = rotate right, -1 = rotate left
 robot.log("Searching for tag…")
 
 while True:
-    frame = cam_frame = robot.camera.read()
-
+    # INPUT
+    frame = robot.camera.read()
     corners, ids, _ = detector.detectMarkers(frame)
 
     target_corners = None
@@ -77,18 +77,20 @@ while True:
             if tag_id == TARGET_ID:
                 target_corners = corners[i][0]
                 break
+    tag_found = target_corners is not None
 
+    # DECIDE
     annotated = cv2.aruco.drawDetectedMarkers(frame.copy(), corners, ids) \
                 if ids is not None else frame.copy()
 
-    if target_corners is None:
-        # --- Search: rotate slowly ---
-        lat_integral = lat_prev_err = depth_integral = depth_prev_err = 0.0
-        left.set_power(20 * search_dir)
-        right.set_power(-20 * search_dir)
-        robot.log("Searching…")
+    # Defaults: no tag in view — rotate slowly to search
+    left_power  = 20 * search_dir
+    right_power = -20 * search_dir
+    distance_cm = 0.0
+    lat_err     = 0.0
+    status      = "Searching…"
 
-    else:
+    if tag_found:
         # --- Lateral error: pixels from image centre ---
         cx          = target_corners[:, 0].mean()
         lat_err     = cx - FRAME_WIDTH / 2        # +ve = tag to the right
@@ -113,11 +115,9 @@ while True:
         depth_out       = DEPTH_KP * depth_err + DEPTH_KI * depth_integral + DEPTH_KD * depth_deriv
 
         # Combine: depth sets forward speed, lateral steers
-        l_power = max(-MAX_SPEED, min(MAX_SPEED,  depth_out - lat_out))
-        r_power = max(-MAX_SPEED, min(MAX_SPEED,  depth_out + lat_out))
-
-        left.set_power(l_power)
-        right.set_power(r_power)
+        left_power  = max(-MAX_SPEED, min(MAX_SPEED,  depth_out - lat_out))
+        right_power = max(-MAX_SPEED, min(MAX_SPEED,  depth_out + lat_out))
+        status      = f"Tag {TARGET_ID}: {distance_cm:.1f} cm  lateral={lat_err:+.0f} px"
 
         # Annotate frame
         cv2.putText(
@@ -126,10 +126,17 @@ while True:
             (int(target_corners[0][0]), int(target_corners[0][1]) - 12),
             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 200, 255), 2,
         )
+    else:
+        # Clear PID memory so old errors don't carry over once the tag reappears
+        lat_integral = lat_prev_err = depth_integral = depth_prev_err = 0.0
 
+    # OUTPUT
+    left.set_power(left_power)
+    right.set_power(right_power)
+    robot.log(status)
+    if tag_found:
         robot.plot("distance_cm", distance_cm)
         robot.plot("lat_err_px",  lat_err)
-        robot.log(f"Tag {TARGET_ID}: {distance_cm:.1f} cm  lateral={lat_err:+.0f} px")
-
     robot.camera.show(annotated)
+
     robot.sleep(0.05)

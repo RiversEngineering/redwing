@@ -27,6 +27,8 @@ if TYPE_CHECKING:
 _FRAME_LEN = 9
 _HEADER    = (0x59, 0x59)
 _MIN_STRENGTH = 100   # readings below this are considered unreliable
+_SATURATED    = 65535 # strength value the sensor reports when overexposed
+OUT_OF_RANGE  = -1.0
 
 
 class _TFBase:
@@ -71,27 +73,34 @@ class _TFBase:
 
     # ── Public properties ────────────────────────────────────────────────
 
+    def _reading_ok(self) -> bool:
+        if self._dist_cm is None or self._strength is None:
+            return False
+        return (self._dist_cm > 0
+                and _MIN_STRENGTH <= self._strength < _SATURATED)
+
     @property
-    def distance(self) -> float | None:
+    def distance(self) -> float:
         """Distance to target in **centimetres**.
 
-        Returns ``None`` until the first valid frame is received.
-        Returns ``0.0`` when the target is out of range or too close.
+        Returns ``-1`` when the reading is invalid: no frame received yet,
+        out of range, or signal too weak/saturated to trust.
 
         Example::
 
-            d = lidar.distance
-            if d is not None and d < 30:
+            if lidar.valid and lidar.distance < 30:
                 robot.stop()
         """
         self._ingest()
-        return float(self._dist_cm) if self._dist_cm is not None else None
+        if not self._reading_ok():
+            return OUT_OF_RANGE
+        return float(self._dist_cm)
 
     @property
-    def distance_m(self) -> float | None:
-        """Distance to target in **metres** (``None`` until first frame)."""
+    def distance_m(self) -> float:
+        """Distance to target in **metres** (``-1`` when invalid)."""
         d = self.distance
-        return d / 100.0 if d is not None else None
+        return d / 100.0 if d >= 0 else OUT_OF_RANGE
 
     @property
     def strength(self) -> int | None:
@@ -108,16 +117,19 @@ class _TFBase:
     def valid(self) -> bool:
         """``True`` when a reading has been received and the signal looks reliable.
 
-        Checks that distance > 0 and strength > 100.  Use this to guard
-        against out-of-range or low-confidence readings::
+        Checks that distance > 0 and 100 <= strength < 65535 (saturated).
+        Use this to guard against out-of-range or low-confidence readings::
 
             if lidar.valid:
                 robot.log(f"Distance: {lidar.distance:.1f} cm")
         """
         self._ingest()
-        if self._dist_cm is None or self._strength is None:
-            return False
-        return self._dist_cm > 0 and self._strength >= _MIN_STRENGTH
+        return self._reading_ok()
+
+    @property
+    def in_range(self) -> bool:
+        """Same as :attr:`valid`."""
+        return self.valid
 
 
 class TFMini(_TFBase):

@@ -49,6 +49,11 @@ class Ultrasonic:
         return state.get("distance_mm", -1)
 
     @property
-    def in_range(self) -> bool:
+    def valid(self) -> bool:
         """``True`` if the sensor has a valid reading."""
         return self.distance >= 0
+
+    @property
+    def in_range(self) -> bool:
+        """Same as :attr:`valid`."""
+        return self.valid

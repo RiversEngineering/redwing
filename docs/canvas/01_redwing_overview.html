@@ -1,0 +1,60 @@
+<h2>Redwing Quick Reference: Setup &amp; Motors</h2>
+
+<h3>Every program starts like this</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+
+<span style="color:#6A9955"># 1. Set up devices here (motors, sensors, ...)</span>
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#6A9955"># 2. Control code goes here</span></pre>
+<p><strong>Rule:</strong> set up <em>all</em> devices <strong>before</strong> <code>robot.start()</code>. Using a device before <code>start()</code> is an error.</p>
+
+<h3>Ports</h3>
+<table style="border-collapse:collapse;margin:8px 0;" border="1" cellpadding="6">
+<tr><th>Port</th><th>Use for</th></tr>
+<tr><td><code>D0</code>–<code>D7</code></td><td>DC motors (2-wire driver), encoders, ultrasonic sensors</td></tr>
+<tr><td><code>S0</code>–<code>S7</code></td><td>Motor controllers with a servo/PWM input (ESCs), servos</td></tr>
+</table>
+<p>One device per port.</p>
+
+<h3>Set up a motor</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">left</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()    <span style="color:#6A9955"># motor driver on a D port</span>
+<span style="color:#9CDCFE">right</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">arm</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">S0</span>.<span style="color:#DCDCAA">motor</span>()    <span style="color:#6A9955"># motor controller on an S port</span>
+
+<span style="color:#9CDCFE">right</span>.<span style="color:#9CDCFE">inverted</span> = <span style="color:#569CD6">True</span>       <span style="color:#6A9955"># flip direction (no rewiring)</span></pre>
+
+<h3>Control a motor</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">left</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#B5CEA8">75</span>)     <span style="color:#6A9955"># -100 (full reverse) to 100 (full forward)</span>
+<span style="color:#9CDCFE">left</span>.<span style="color:#DCDCAA">set_power</span>(-<span style="color:#B5CEA8">50</span>)    <span style="color:#6A9955"># reverse, half power</span>
+<span style="color:#9CDCFE">left</span>.<span style="color:#DCDCAA">stop</span>()            <span style="color:#6A9955"># stop one motor</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">stop</span>()           <span style="color:#6A9955"># stop ALL motors</span></pre>
+
+<h3>Waiting &amp; printing</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">2</span>)                 <span style="color:#6A9955"># wait 2 seconds</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"</span><span style="color:#CE9178">Hello</span><span style="color:#CE9178">"</span>, <span style="color:#B5CEA8">42</span>)         <span style="color:#6A9955"># print to the dashboard console</span></pre>
+
+<h3>Example: drive forward 2 s, then stop</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+<span style="color:#9CDCFE">left</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">right</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#9CDCFE">left</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#B5CEA8">60</span>)
+<span style="color:#9CDCFE">right</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#B5CEA8">60</span>)
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">2</span>)
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">stop</span>()</pre>
+
+<h3>Control loop pattern: Input → Decide → Output</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+    <span style="color:#6A9955"># INPUT: read every sensor and controller value into variables</span>
+    <span style="color:#6A9955"># DECIDE: do calculations and make decisions with those variables</span>
+    <span style="color:#6A9955"># OUTPUT: set each motor's power ONCE, at the end</span>
+
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.02</span>)   <span style="color:#6A9955"># always sleep inside loops</span></pre>
+<p>Only read inputs in the INPUT section, and only call <code>set_power()</code> in the OUTPUT section.</p>

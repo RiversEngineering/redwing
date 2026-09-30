@@ -37,7 +37,7 @@ motor = robot.motor(robot.D0)     # Robot factory method, same result
 
 | Ports | Pins | Notes |
 |---|---|---|
-| `S0`–`S7` | single-pin | 50 Hz servo-capable. `S5`–`S7` also ADC-capable (IR distance sensors) |
+| `S0`–`S7` | single-pin | 50 Hz servo-capable. `S5`–`S7` also ADC-capable (IR distance sensors — not validated, do not use) |
 | `D0`–`D7` | dual-pin (A/B) | Motors (20 kHz), encoders, ultrasonic. `D6`/`D7` double as UART1/UART0 |
 | `P0`–`P15` | PCA9685 I²C expander | 50 Hz only — motor (ESC) or servo output |
 | I²C (SDA/SCL) | fixed GP4/GP5 | Reserved — auto-detects IMU / VL53L0X, no manual config |
@@ -138,13 +138,17 @@ S5–S7 cannot be servos (shared PWM slices with D2/D3/D7 motors).
 ## Distance sensors
 
 ```python
-# HC-SR04 ultrasonic — dual-pin port required
-us = robot.D2.ultrasonic()
-us.distance        # cm, -1 if out of range
-us.distance_mm
-us.in_range
+# All distance sensors: distance / distance_mm return -1 when invalid;
+# valid and in_range are the same check (True = reading can be trusted)
 
-# Sharp IR — S5, S6, or S7 only (ADC pins), 10-80cm, needs 10k/10k voltage divider
+# RCWL-1601 / HC-SR04 ultrasonic — dual-pin port required
+us = robot.D2.ultrasonic()
+us.distance        # cm
+us.distance_mm
+us.valid           # or us.in_range
+
+# Sharp IR — NOT VALIDATED, DO NOT USE (untested on hardware)
+# S5, S6, or S7 only (ADC pins), 10-80cm, needs 10k/10k voltage divider
 ir = robot.ir_distance(robot.S5)
 ir.distance
 ir.in_range
@@ -152,13 +156,14 @@ ir.in_range
 # VL53L0X ToF (I2C, auto-detected, no config call needed)
 tof = robot.vl53l0x()
 tof.connected
-tof.valid
+tof.valid           # or tof.in_range
 tof.distance        # cm
+tof.distance_mm
 
 # TFMini / TFLuna UART ToF LiDAR — port 14 (D6) or 15 (D7, default)
 tf = robot.tfmini()          # or robot.tfluna()
-tf.valid
-tf.distance          # cm (None until first frame)
+tf.valid            # or tf.in_range
+tf.distance          # cm
 tf.distance_m
 tf.strength
 tf.temperature        # TFLuna only, °C

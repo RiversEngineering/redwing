@@ -1,0 +1,52 @@
+<h2>Redwing Quick Reference: Encoders</h2>
+
+<h3>Setup (before <code>robot.start()</code>)</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">enc</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">encoder</span>()    <span style="color:#6A9955"># D ports only (D0–D7)</span>
+<span style="color:#9CDCFE">enc</span>.<span style="color:#9CDCFE">inverted</span> = <span style="color:#569CD6">True</span>         <span style="color:#6A9955"># optional: flip count direction</span></pre>
+
+<h3>Reading</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">enc</span>.<span style="color:#9CDCFE">count</span>       <span style="color:#6A9955"># total ticks since last reset (whole number)</span>
+<span style="color:#9CDCFE">enc</span>.<span style="color:#9CDCFE">velocity</span>    <span style="color:#6A9955"># speed in ticks per second (+ forward, - backward)</span>
+<span style="color:#9CDCFE">enc</span>.<span style="color:#DCDCAA">reset</span>()     <span style="color:#6A9955"># set count back to 0</span></pre>
+<p>If <code>count</code> goes <em>down</em> when the motor has a positive power, set <code>enc.inverted = True</code>.</p>
+
+<h3>Ticks → distance</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#4FC1FF">TICKS_PER_REV</span> = <span style="color:#B5CEA8">537.7</span>    <span style="color:#6A9955"># encoder ticks per WHEEL revolution (check your motor)</span>
+<span style="color:#4FC1FF">WHEEL_DIAM_CM</span> = <span style="color:#B5CEA8">9.6</span>
+
+<span style="color:#4FC1FF">TICKS_PER_CM</span> = <span style="color:#4FC1FF">TICKS_PER_REV</span> / (<span style="color:#B5CEA8">3.14159</span> * <span style="color:#4FC1FF">WHEEL_DIAM_CM</span>)
+
+<span style="color:#9CDCFE">distance_cm</span> = <span style="color:#9CDCFE">enc</span>.<span style="color:#9CDCFE">count</span> / <span style="color:#4FC1FF">TICKS_PER_CM</span></pre>
+<p><strong>Find <code>TICKS_PER_REV</code> yourself:</strong> <code>reset()</code> the encoder, turn the wheel exactly one revolution by hand, and read <code>enc.count</code>. Don't trust a datasheet's "PPR" number, which may be 4× too small.</p>
+
+<h3>Example: drive 50 cm, then stop</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#4FC1FF">TICKS_PER_CM</span> = <span style="color:#B5CEA8">537.7</span> / (<span style="color:#B5CEA8">3.14159</span> * <span style="color:#B5CEA8">9.6</span>)
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+<span style="color:#9CDCFE">motor</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">enc</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">encoder</span>()
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#9CDCFE">enc</span>.<span style="color:#DCDCAA">reset</span>()
+<span style="color:#9CDCFE">target</span> = <span style="color:#B5CEA8">50</span> * <span style="color:#4FC1FF">TICKS_PER_CM</span>
+
+<span style="color:#9CDCFE">done</span> = <span style="color:#569CD6">False</span>
+
+<span style="color:#C586C0">while</span> <span style="color:#569CD6">not</span> <span style="color:#9CDCFE">done</span>:
+    <span style="color:#6A9955"># INPUT</span>
+    <span style="color:#9CDCFE">ticks</span> = <span style="color:#9CDCFE">enc</span>.<span style="color:#9CDCFE">count</span>
+    <span style="color:#9CDCFE">speed</span> = <span style="color:#9CDCFE">enc</span>.<span style="color:#9CDCFE">velocity</span>
+
+    <span style="color:#6A9955"># DECIDE</span>
+    <span style="color:#9CDCFE">power</span> = <span style="color:#B5CEA8">50</span>                       <span style="color:#6A9955"># default: keep driving</span>
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">ticks</span> &gt;= <span style="color:#9CDCFE">target</span>:
+        <span style="color:#9CDCFE">done</span>  = <span style="color:#569CD6">True</span>
+        <span style="color:#9CDCFE">power</span> = <span style="color:#B5CEA8">0</span>                    <span style="color:#6A9955"># reached target: stop</span>
+
+    <span style="color:#6A9955"># OUTPUT</span>
+    <span style="color:#9CDCFE">motor</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#9CDCFE">power</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"</span><span style="color:#CE9178">Ticks:</span><span style="color:#CE9178">"</span>, <span style="color:#9CDCFE">ticks</span>, <span style="color:#CE9178">"</span><span style="color:#CE9178"> Speed:</span><span style="color:#CE9178">"</span>, <span style="color:#9CDCFE">speed</span>)
+
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.02</span>)</pre>

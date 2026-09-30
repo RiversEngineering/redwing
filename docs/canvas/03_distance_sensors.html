@@ -1,0 +1,44 @@
+<h2>Redwing Quick Reference: Distance Sensors</h2>
+
+<table style="border-collapse:collapse;margin:8px 0;" border="1" cellpadding="6">
+<tr><th>Sensor</th><th>Range</th><th>Port</th><th>Setup (before <code>robot.start()</code>)</th></tr>
+<tr><td>Ultrasonic (RCWL-1601)</td><td>2 cm – 4 m</td><td><code>D0</code>–<code>D7</code></td><td><code>us = robot.D2.ultrasonic()</code></td></tr>
+<tr><td>Time-of-flight (VL53L0X)</td><td>3 cm – 2 m</td><td>I²C (auto-detected)</td><td><code>tof = robot.vl53l0x()</code></td></tr>
+<tr><td>TF Luna LiDAR</td><td>20 cm – 8 m</td><td><code>D7</code> (default) or <code>D6</code></td><td><code>luna = robot.tfluna()</code> (D7)<br><code>luna = robot.tfluna(port=14)</code> (D6)</td></tr>
+</table>
+
+<h3>Reading (same for every sensor)</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">us</span>.<span style="color:#9CDCFE">distance</span>       <span style="color:#6A9955"># centimeters, -1 if invalid</span>
+<span style="color:#9CDCFE">us</span>.<span style="color:#9CDCFE">distance_mm</span>    <span style="color:#6A9955"># millimeters, -1 if invalid</span>
+<span style="color:#9CDCFE">us</span>.<span style="color:#9CDCFE">valid</span>          <span style="color:#6A9955"># True if the reading can be trusted</span>
+
+<span style="color:#9CDCFE">tof</span>.<span style="color:#9CDCFE">distance</span>      <span style="color:#6A9955"># same properties: tof.distance_mm, tof.valid, tof.in_range</span>
+<span style="color:#9CDCFE">luna</span>.<span style="color:#9CDCFE">distance</span>     <span style="color:#6A9955"># same properties, plus luna.distance_m (meters)</span></pre>
+
+<p><strong>Always check <code>valid</code> first.</strong> An invalid reading is <code>-1</code>, which is less than any distance, so <code>if us.distance &lt; 20</code> is True when nothing is there.</p>
+
+<h3>Example: stop when close</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+<span style="color:#9CDCFE">left</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">right</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">us</span>    = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">ultrasonic</span>()
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+    <span style="color:#6A9955"># INPUT</span>
+    <span style="color:#9CDCFE">distance</span> = <span style="color:#9CDCFE">us</span>.<span style="color:#9CDCFE">distance</span>
+    <span style="color:#9CDCFE">valid</span>    = <span style="color:#9CDCFE">us</span>.<span style="color:#9CDCFE">valid</span>
+
+    <span style="color:#6A9955"># DECIDE</span>
+    <span style="color:#9CDCFE">power</span> = <span style="color:#B5CEA8">50</span>                       <span style="color:#6A9955"># default: drive</span>
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">valid</span> <span style="color:#569CD6">and</span> <span style="color:#9CDCFE">distance</span> &lt; <span style="color:#B5CEA8">20</span>:
+        <span style="color:#9CDCFE">power</span> = <span style="color:#B5CEA8">0</span>                    <span style="color:#6A9955"># something close: stop</span>
+
+    <span style="color:#6A9955"># OUTPUT</span>
+    <span style="color:#9CDCFE">left</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#9CDCFE">power</span>)
+    <span style="color:#9CDCFE">right</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#9CDCFE">power</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"</span><span style="color:#CE9178">Distance:</span><span style="color:#CE9178">"</span>, <span style="color:#9CDCFE">distance</span>)
+
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.05</span>)</pre>
