@@ -6,10 +6,11 @@ Sockets:
   REP  5557  — handles synchronous config requests (port setup)
 
 Config finalization:
-  Once all ports are configured, the first runtime command (set_motor, etc.)
-  triggers CMD_CONFIG_DONE, which tells the RP2040 to validate PWM slice
-  conflicts and lock the configuration.  Subsequent configure attempts are
-  rejected by the firmware.
+  robot.start() sends a "finalize" request on the REP socket, which triggers
+  CMD_CONFIG_DONE: the RP2040 validates PWM slice conflicts and locks the
+  configuration.  Subsequent configure attempts are rejected.  Runtime
+  commands do not finalize implicitly — the library refuses them until
+  robot.start() has been called.
 """
 
 import asyncio

@@ -82,9 +82,9 @@ class Robot:
         self._conn = Connection(host)
         self._ports: dict[int, Port] = {}
         for i in _SINGLE_IDS:
-            self._ports[i] = Port(i, self._conn, dual_pin=False)
+            self._ports[i] = Port(i, self._conn, dual_pin=False, robot=self)
         for i in _DUAL_IDS:
-            self._ports[i] = Port(i, self._conn, dual_pin=True)
+            self._ports[i] = Port(i, self._conn, dual_pin=True, robot=self)
         self._pca_ports: dict[int, PcaPort] = {
             i: PcaPort(i, self._conn, robot=self) for i in range(16)
         }
@@ -592,6 +592,15 @@ class Robot:
                 "via USB and that /dev/rp2040 is accessible."
             )
 
+        # The cached state may still be the snapshot received on connect, which
+        # predates the reset and holds the previous program's values (e.g. old
+        # encoder counts, config_finalized=True).  First wait for a broadcast
+        # taken after the reset (config_finalized=False), then — after finalize —
+        # for one taken after finalize, so the first sensor read after start()
+        # reflects this program's configuration.  PUB messages arrive in order,
+        # so a True seen after a False must be post-finalize.
+        self._conn.wait_for_state(lambda s: not s.get("config_finalized", False))
+
         ok, error = self._conn.finalize_config()
         if not ok:
             if "not responding" in error.lower() or not error:
@@ -604,6 +613,7 @@ class Robot:
                 "Check for PWM conflicts — motors and servos cannot share "
                 "the same PWM slice (see dashboard log for which ports conflict)."
             )
+        self._conn.wait_for_state(lambda s: s.get("config_finalized", False))
         self._started = True
         for drive in self._drives:
             drive._start()
@@ -682,7 +692,7 @@ class Robot:
         self._check_not_started("configure TFMini")
         if port not in self._tfmini:
             self._conn.configure_port(port, "uart", baud=baud)
-            sensor = TFMini(self._conn, port_id=port)
+            sensor = TFMini(self._conn, port_id=port, robot=self)
             self._tfmini[port] = sensor
             self._ports[port]._device = sensor
         return self._tfmini[port]
@@ -717,7 +727,7 @@ class Robot:
         self._check_not_started("configure TFLuna")
         if port not in self._tfluna:
             self._conn.configure_port(port, "uart", baud=baud)
-            sensor = TFLuna(self._conn, port_id=port)
+            sensor = TFLuna(self._conn, port_id=port, robot=self)
             self._tfluna[port] = sensor
             self._ports[port]._device = sensor
         return self._tfluna[port]
@@ -761,7 +771,7 @@ class Robot:
                 robot.sleep(0.02)
         """
         if self._vl53l0x is None:
-            self._vl53l0x = VL53L0X(self._conn)
+            self._vl53l0x = VL53L0X(self._conn, robot=self)
         return self._vl53l0x
 
     # ------------------------------------------------------------------
@@ -788,7 +798,7 @@ class Robot:
                 robot.sleep(0.05)
         """
         if self._imu is None:
-            self._imu = IMU(self._conn)
+            self._imu = IMU(self._conn, robot=self)
         return self._imu
 
     # ------------------------------------------------------------------
@@ -1185,6 +1195,11 @@ class Robot:
             robot.sleep(2)   # sleeps 2 s, reads fresh sensor data after
             left.stop()
         """
+        if not self._started:
+            raise RuntimeError(
+                "Call robot.start() before robot.sleep(). "
+                "Put robot.start() after all device setup and before your main code."
+            )
         t0 = time.monotonic()
         ev = self._conn._state_event
         ev.clear()                         # arm: catch the next state update

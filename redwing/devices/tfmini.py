@@ -32,16 +32,22 @@ _MIN_STRENGTH = 100   # readings below this are considered unreliable
 class _TFBase:
     """Shared frame-parsing logic for TFMini and TFLuna."""
 
-    def __init__(self, conn: "Connection", port_id: int = 15) -> None:
+    def __init__(self, conn: "Connection", port_id: int = 15, robot=None) -> None:
         self._conn     = conn
+        self._robot    = robot
         self._port_id  = port_id
         self._buf      = bytearray()
         self._dist_cm: int | None  = None
         self._strength: int | None = None
         self._raw_temp: int | None = None
 
+    def _check_started(self):
+        if self._robot is not None and not self._robot._started:
+            raise RuntimeError("Call robot.start() before reading sensor values.")
+
     def _ingest(self) -> None:
         """Pull new bytes from the UART buffer and parse any complete frames."""
+        self._check_started()
         new = self._conn.read_uart_bytes(port_id=self._port_id)
         if new:
             self._buf.extend(new)

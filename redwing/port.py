@@ -31,10 +31,11 @@ class Port:
     Each port can only be configured once.
     """
 
-    def __init__(self, port_id: int, conn, dual_pin: bool):
+    def __init__(self, port_id: int, conn, dual_pin: bool, robot=None):
         self._id = port_id
         self._conn = conn
         self._dual = dual_pin
+        self._robot = robot
         self._device = None
 
     @property
@@ -92,7 +93,7 @@ class Port:
             )
         port_type = type_map[type]
         self._configure(port_type)
-        self._device = Motor(self._id, self._conn, port_type)
+        self._device = Motor(self._id, self._conn, port_type, robot=self._robot)
         return self._device
 
     def servo(
@@ -123,8 +124,16 @@ class Port:
             arm.angle = 90
         """
         self._configure("servo")
+        self._conn.send_command(
+            cmd="set_servo_range",
+            port=self._id,
+            min_angle=min_deg,
+            max_angle=max_deg,
+            min_us=min_us,
+            max_us=max_us,
+        )
         self._device = Servo(
-            self._id, self._conn,
+            self._id, self._conn, robot=self._robot,
             min_deg=min_deg, max_deg=max_deg,
             min_us=min_us, max_us=max_us,
         )
@@ -139,7 +148,7 @@ class Port:
             left_motor.attach_encoder(enc)
         """
         self._configure("encoder")
-        self._device = Encoder(self._id, self._conn)
+        self._device = Encoder(self._id, self._conn, robot=self._robot)
         return self._device
 
     def ultrasonic(self) -> Ultrasonic:
@@ -151,7 +160,7 @@ class Port:
             print(sensor.distance)   # cm
         """
         self._configure("ultrasonic")
-        self._device = Ultrasonic(self._id, self._conn)
+        self._device = Ultrasonic(self._id, self._conn, robot=self._robot)
         return self._device
 
     def digital_input(self) -> DigitalInput:
@@ -164,7 +173,7 @@ class Port:
                 robot.log("Pressed!")
         """
         self._configure("gpio_in")
-        self._device = DigitalInput(self._id, self._conn)
+        self._device = DigitalInput(self._id, self._conn, robot=self._robot)
         return self._device
 
     def digital_output(self) -> DigitalOutput:
@@ -176,7 +185,7 @@ class Port:
             led.on()
         """
         self._configure("gpio_out")
-        self._device = DigitalOutput(self._id, self._conn)
+        self._device = DigitalOutput(self._id, self._conn, robot=self._robot)
         return self._device
 
     @property

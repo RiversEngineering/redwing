@@ -87,6 +87,22 @@ class Connection:
         with self._lock:
             return dict(self._state)
 
+    def wait_for_state(self, predicate, timeout: float = 1.0) -> bool:
+        """Block until a received state satisfies *predicate* or *timeout* elapses.
+
+        Returns True if the predicate was satisfied, False on timeout.
+        """
+        deadline = time.monotonic() + timeout
+        while True:
+            self._state_event.clear()
+            with self._lock:
+                if predicate(self._state):
+                    return True
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return False
+            self._state_event.wait(timeout=remaining)
+
     def send_command(self, **kwargs):
         try:
             self._push.send_json(kwargs, zmq.NOBLOCK)

@@ -42,6 +42,7 @@ class Ultrasonic:
     @property
     def distance_mm(self) -> int:
         """Distance in millimeters. Returns ``-1`` if out of range."""
+        self._check_started()
         state = self._conn.get_port_state(self._id)
         if not state.get("valid", False):
             return -1

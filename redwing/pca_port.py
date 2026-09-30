@@ -65,14 +65,21 @@ class PcaServo:
 
     def __init__(self, channel: int, conn,
                  min_deg: float = 0.0, max_deg: float = 300.0,
-                 min_us: int = 500, max_us: int = 2500):
+                 min_us: int = 500, max_us: int = 2500, robot=None):
         self._channel = channel
         self._conn = conn
+        self._robot = robot
         self._min_deg = min_deg
         self._max_deg = max_deg
         self._min_us = min_us
         self._max_us = max_us
         self._angle = (min_deg + max_deg) / 2.0
+
+    def _check_started(self):
+        if self._robot is not None and not self._robot._started:
+            raise RuntimeError(
+                "Call robot.start() before setting servo angle."
+            )
 
     def _deg_to_us(self, deg: float) -> int:
         lo, hi = sorted((self._min_deg, self._max_deg))
@@ -86,6 +93,7 @@ class PcaServo:
 
     @angle.setter
     def angle(self, deg: float):
+        self._check_started()
         deg = max(self._min_deg, min(self._max_deg, float(deg)))
         self._angle = deg
         pulse_us = self._deg_to_us(deg)
@@ -166,7 +174,8 @@ class PcaPort:
             min_us=min_us,
             max_us=max_us,
         )
-        self._device = PcaServo(self._channel, self._conn, min_deg, max_deg, min_us, max_us)
+        self._device = PcaServo(self._channel, self._conn, min_deg, max_deg, min_us, max_us,
+                                robot=self._robot)
         return self._device
 
     @property

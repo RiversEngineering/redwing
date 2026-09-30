@@ -78,8 +78,9 @@ class IMU:
     Use :attr:`connected` and :attr:`type` to check presence first.
     """
 
-    def __init__(self, conn: "Connection") -> None:
+    def __init__(self, conn: "Connection", robot=None) -> None:
         self._conn = conn
+        self._robot = robot
         # Gyro-integrated heading for MPU-6050 (stateful; lock protects concurrent access)
         self._gyro_hdg:    float        = 0.0
         self._gyro_t:      float | None = None
@@ -93,6 +94,10 @@ class IMU:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _check_started(self):
+        if self._robot is not None and not self._robot._started:
+            raise RuntimeError("Call robot.start() before reading sensor values.")
 
     def _port(self) -> dict:
         state = self._conn.get_all_state()
@@ -204,6 +209,7 @@ class IMU:
         Raises :class:`RuntimeError` if the sensor is not a fusion type
         (BNO085/BNO055) or is not connected.
         """
+        self._check_started()
         data = self._port()
         if data.get("type") not in _FUSION_TYPES:
             raise RuntimeError("quaternion is only available on BNO085/BNO055")
@@ -231,6 +237,7 @@ class IMU:
 
         Positive heading = counter-clockwise rotation (standard math convention).
         """
+        self._check_started()
         data = self._port()
         if data.get("type") in _FUSION_TYPES:
             q = data["quaternion"]
@@ -295,6 +302,7 @@ class IMU:
         For MPU-6050 this is raw acceleration in g converted to m/s²
         (gravity included; subtract ~9.81 m/s² on the vertical axis if needed).
         """
+        self._check_started()
         data = self._port()
         t = data.get("type")
         if t in _FUSION_TYPES:
@@ -319,6 +327,7 @@ class IMU:
         Only available on MPU-6050.  Raises :class:`RuntimeError` on
         BNO085/BNO055 (use :attr:`quaternion` or :attr:`heading` instead).
         """
+        self._check_started()
         data = self._port()
         if data.get("type") != "mpu6050":
             raise RuntimeError("gyro is only available on MPU-6050")

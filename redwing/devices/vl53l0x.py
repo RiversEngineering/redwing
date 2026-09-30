@@ -38,12 +38,17 @@ class VL53L0X:
     Range: ~20 mm – 2 000 mm (2 m) under good lighting conditions.
     """
 
-    def __init__(self, conn: "Connection") -> None:
+    def __init__(self, conn: "Connection", robot=None) -> None:
         self._conn = conn
+        self._robot = robot
 
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _check_started(self):
+        if self._robot is not None and not self._robot._started:
+            raise RuntimeError("Call robot.start() before reading sensor values.")
 
     def _port(self) -> dict:
         """Return port data, raising RuntimeError if sensor is absent."""
@@ -84,6 +89,7 @@ class VL53L0X:
             if lidar.valid:
                 robot.log(f"{lidar.distance:.1f} cm")
         """
+        self._check_started()
         d = self._port()
         if not d.get("valid", False):
             return 0.0
@@ -96,6 +102,7 @@ class VL53L0X:
         Returns ``0`` when out of range.
         Raises :class:`RuntimeError` if the sensor is not connected.
         """
+        self._check_started()
         return int(self._port().get("distance_mm", 0))
 
     @property
@@ -108,6 +115,7 @@ class VL53L0X:
             if lidar.valid:
                 stop_if_close(lidar.distance)
         """
+        self._check_started()
         try:
             return bool(self._port().get("valid", False))
         except RuntimeError:
