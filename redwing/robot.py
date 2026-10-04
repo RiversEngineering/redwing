@@ -657,11 +657,21 @@ class Robot:
         self._check_not_started("configure UART")
         if port in self._uart_buses:
             return self._uart_buses[port]
+        self._check_port_free(port)
         self._conn.configure_port(port, "uart", baud=baud)
         bus = UartBus(self._conn, robot=self, port_id=port)
         self._uart_buses[port] = bus
         self._ports[port]._device = bus
         return bus
+
+    def _check_port_free(self, port: int) -> None:
+        existing = self._ports[port]._device
+        if existing is not None:
+            name = self._ports[port].name
+            raise RuntimeError(
+                f"{name} is already configured as a {type(existing).__name__}. "
+                "Each port can only be used for one device."
+            )
 
     def uart1(self, baud: int = 115200) -> UartBus:
         """Convenience alias for ``robot.uart(port=14, baud=baud)`` (D6/UART1)."""
@@ -702,6 +712,7 @@ class Robot:
             raise ValueError("TFMini port must be 14 (D6) or 15 (D7).")
         self._check_not_started("configure TFMini")
         if port not in self._tfmini:
+            self._check_port_free(port)
             self._conn.configure_port(port, "uart", baud=baud)
             sensor = TFMini(self._conn, port_id=port, robot=self)
             self._tfmini[port] = sensor
@@ -737,6 +748,7 @@ class Robot:
             raise ValueError("TFLuna port must be 14 (D6) or 15 (D7).")
         self._check_not_started("configure TFLuna")
         if port not in self._tfluna:
+            self._check_port_free(port)
             self._conn.configure_port(port, "uart", baud=baud)
             sensor = TFLuna(self._conn, port_id=port, robot=self)
             self._tfluna[port] = sensor

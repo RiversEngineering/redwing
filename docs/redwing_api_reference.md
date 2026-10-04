@@ -162,6 +162,7 @@ tof.distance_mm
 
 # TFMini / TFLuna UART ToF LiDAR — port 14 (D6) or 15 (D7, default)
 tf = robot.tfmini()          # or robot.tfluna()
+tf = robot.D6.tfluna()       # port-style also works: robot.D7.tfmini(), etc.
 tf.valid            # or tf.in_range
 tf.distance          # cm
 tf.distance_m

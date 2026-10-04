@@ -188,6 +188,55 @@ class Port:
         self._device = DigitalOutput(self._id, self._conn, robot=self._robot)
         return self._device
 
+    # ------------------------------------------------------------------
+    # UART-based devices (D6 / D7 only) — delegate to the robot-level methods
+    # ------------------------------------------------------------------
+
+    def _check_uart(self, kind: str):
+        if self._id not in (14, 15):
+            raise RuntimeError(
+                f"{self.name} cannot be used for {kind}. "
+                f"UART devices are only available on D6 or D7."
+            )
+        if self._robot is None:
+            raise RuntimeError(f"{self.name} is not attached to a robot.")
+
+    def uart(self, baud: int = 115200):
+        """Configure this port (D6 or D7) as a UART serial bus and return it.
+
+        Same as ``robot.uart(port=..., baud=...)``.
+
+        Example::
+
+            gps = robot.D7.uart(baud=9600)
+        """
+        self._check_uart("UART")
+        return self._robot.uart(port=self._id, baud=baud)
+
+    def tfluna(self, baud: int = 115200):
+        """Configure this port (D6 or D7) for a TF-Luna LiDAR and return it.
+
+        Same as ``robot.tfluna(port=..., baud=...)``.
+
+        Example::
+
+            lidar = robot.D7.tfluna()
+        """
+        self._check_uart("a TF-Luna")
+        return self._robot.tfluna(port=self._id, baud=baud)
+
+    def tfmini(self, baud: int = 115200):
+        """Configure this port (D6 or D7) for a TF-Mini LiDAR and return it.
+
+        Same as ``robot.tfmini(port=..., baud=...)``.
+
+        Example::
+
+            lidar = robot.D6.tfmini()
+        """
+        self._check_uart("a TF-Mini")
+        return self._robot.tfmini(port=self._id, baud=baud)
+
     @property
     def device(self):
         """The device currently configured on this port, or ``None``."""
