@@ -10,7 +10,7 @@ Quick start — differential drive::
 
     lm = robot.motor(robot.D0)
     rm = robot.motor(robot.D1)
-    rm.inverted = True          # flip right motor if it spins backwards
+    rm.invert()                 # flip right motor if it spins backwards
 
     le = robot.encoder(robot.D2)
     re = robot.encoder(robot.D3)
@@ -69,7 +69,7 @@ Heading note
 ~~~~~~~~~~~~
 The IMU heading (0–360°, increasing = CCW from above) matches the mathematical
 convention.  If your robot turns the wrong direction for a given command,
-set ``motor.inverted = True`` on the relevant motor(s).
+call ``motor.invert()`` on the relevant motor(s).
 """
 
 from __future__ import annotations
@@ -114,8 +114,8 @@ class DifferentialDrive:
     ----------
     left_motor, right_motor:
         :class:`~redwing.devices.motor.Motor` objects (created with
-        ``robot.motor()``).  If a motor spins backwards, set
-        ``motor.inverted = True`` rather than using the ``invert_*`` flags.
+        ``robot.motor()``).  If a motor spins backwards,
+        call ``motor.invert()`` rather than using the ``invert_*`` flags.
     left_encoder, right_encoder:
         :class:`~redwing.devices.encoder.Encoder` objects (``robot.encoder()``).
     imu:

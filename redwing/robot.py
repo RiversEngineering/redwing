@@ -42,7 +42,7 @@ class Robot:
 
         left   = robot.D0.motor()
         right  = robot.D1.motor()
-        right.inverted = True          # flip direction without rewiring
+        right.invert()                 # flip direction without rewiring
 
         sensor = robot.D2.ultrasonic()
         arm    = robot.S0.servo()
@@ -340,7 +340,7 @@ class Robot:
 
             left  = robot.motor(robot.D0)
             right = robot.motor(robot.D1)
-            right.inverted = True
+            right.invert()
             robot.start()
             left.speed = 60
         """
@@ -368,7 +368,7 @@ class Robot:
         """Group two or more motors that should always run together.
 
         All motors in the group receive the same ``set_power()`` command.
-        Use ``motor.inverted = True`` on individual motors beforehand to
+        Call ``motor.invert()`` on individual motors beforehand to
         correct for back-to-back or mirrored mounting.
 
         Parameters
@@ -386,11 +386,11 @@ class Robot:
 
             lm1 = robot.motor(robot.D0)
             lm2 = robot.motor(robot.D2)
-            lm2.inverted = True          # rear-left faces backwards
+            lm2.invert()                 # rear-left faces backwards
 
             rm1 = robot.motor(robot.D1)
             rm2 = robot.motor(robot.D3)
-            rm1.inverted = True          # front-right faces backwards
+            rm1.invert()                 # front-right faces backwards
 
             le  = robot.encoder(robot.S0)
             re  = robot.encoder(robot.S1)
@@ -976,7 +976,7 @@ class Robot:
 
         Example::
 
-            # Configure motors and encoders (set inverted=True as needed)
+            # Configure motors and encoders (call .invert() as needed)
             fl_m = robot.motor(robot.D0);  fl_e = robot.encoder(robot.S0)
             fr_m = robot.motor(robot.D1);  fr_e = robot.encoder(robot.S1)
             bl_m = robot.motor(robot.D2);  bl_e = robot.encoder(robot.S2)
