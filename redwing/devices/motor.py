@@ -170,6 +170,18 @@ class Motor:
         self._code_invert_set = True
         self._conn.send_command(cmd="set_motor_invert", port=self._id, inverted=self._inverted)
 
+    def invert(self, inverted: bool = True):
+        """Flip the motor direction without rewiring.
+
+        Same as setting :attr:`inverted`.  Pass ``False`` to undo.
+
+        Example::
+
+            right.invert()         # right motor now spins the other way
+            right.invert(False)    # back to normal
+        """
+        self.inverted = inverted
+
     def stop(self):
         """Stop this motor immediately (set power to 0)."""
         self.set_power(0)

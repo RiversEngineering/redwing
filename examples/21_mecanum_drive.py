@@ -26,7 +26,7 @@ Note: D6 = UART1 and D7 = UART0.  If you are also using a UART device
 or drop to a 2-encoder configuration.
 
   Label your motors by physical position on the robot (front/back,
-  left/right) — not by wiring order.  Use motor.inverted = True on any
+  left/right) — not by wiring order.  Use motor.invert() on any
   motor that spins the wrong direction when given a positive power command.
 
 Tune the constants below to match your robot before running.
@@ -44,14 +44,14 @@ TICKS_PER_REV  = 1440   # encoder pulses per full wheel revolution
 robot = redwing.Robot()
 
 # Configure each corner: motor + its encoder.
-# Flip .inverted on any motor that runs backwards.
+# Call .invert() on any motor that runs backwards.
 fl_m = robot.motor(robot.D0);  fl_e = robot.encoder(robot.D4)
 fr_m = robot.motor(robot.D1);  fr_e = robot.encoder(robot.D5)
 bl_m = robot.motor(robot.D2);  bl_e = robot.encoder(robot.D6)
 br_m = robot.motor(robot.D3);  br_e = robot.encoder(robot.D7)
 
-# fr_m.inverted = True   # uncomment if front-right runs backwards
-# br_m.inverted = True   # uncomment if back-right runs backwards
+# fr_m.invert()          # uncomment if front-right runs backwards
+# br_m.invert()          # uncomment if back-right runs backwards
 
 # Wrap each corner into a (Motor, Encoder) pair for the drive.
 # If a corner uses TWO motors (e.g. a larger robot), use motor_group:

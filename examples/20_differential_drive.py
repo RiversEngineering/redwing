@@ -40,14 +40,14 @@ robot = redwing.Robot()
 
 # ── 4-MOTOR CONFIG (default) ───────────────────────────────────────────────────
 # Two motors per side grouped together so they always move as one.
-# Flip .inverted on any motor that runs the wrong direction.
+# Call .invert() on any motor that runs the wrong direction.
 fl = robot.motor(robot.D0)   # front-left
 rl = robot.motor(robot.D2)   # rear-left
 fr = robot.motor(robot.D1)   # front-right
 rr = robot.motor(robot.D3)   # rear-right
 
-# rl.inverted = True   # uncomment if rear-left runs backwards
-# fr.inverted = True   # uncomment if front-right runs backwards
+# rl.invert()          # uncomment if rear-left runs backwards
+# fr.invert()          # uncomment if front-right runs backwards
 
 le = robot.encoder(robot.D4)
 re = robot.encoder(robot.D5)
@@ -69,7 +69,7 @@ drive = robot.differential_drive(
 #
 # lm = robot.motor(robot.D0)
 # rm = robot.motor(robot.D1)
-# rm.inverted = True
+# rm.invert()
 # le = robot.encoder(robot.D2)
 # re = robot.encoder(robot.D3)
 #

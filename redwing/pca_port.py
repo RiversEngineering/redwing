@@ -53,6 +53,11 @@ class PcaMotor:
     def inverted(self, value: bool):
         self._inverted = bool(value)
 
+    def invert(self, inverted: bool = True):
+        """Flip the motor direction.  Same as setting :attr:`inverted`.
+        Pass ``False`` to undo."""
+        self.inverted = inverted
+
 
 class PcaServo:
     """Controls an RC servo via the PCA9685 I²C PWM expander.

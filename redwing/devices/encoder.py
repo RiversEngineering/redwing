@@ -49,6 +49,18 @@ class Encoder:
         self._inverted = bool(value)
         self._conn.send_command(cmd="invert_encoder", port=self._id, inverted=self._inverted)
 
+    def invert(self, inverted: bool = True):
+        """Flip the encoder count direction.
+
+        Same as setting :attr:`inverted`.  Pass ``False`` to undo.
+
+        Example::
+
+            shoulder_enc.invert()         # count now increases the other way
+            shoulder_enc.invert(False)    # back to normal
+        """
+        self.inverted = inverted
+
     @property
     def count(self) -> int:
         """Total encoder ticks since the last reset. Increases going forward,

@@ -8,8 +8,8 @@ Hardware
 - Left motor controller  → D0 (dual-pin, sign-magnitude)
 - Right motor controller → D1 (dual-pin, sign-magnitude)
 
-If one motor runs backward, set its `inverted` flag:
-    right.inverted = True
+If one motor runs backward, invert it:
+    right.invert()
 """
 
 from redwing import Robot
@@ -19,7 +19,7 @@ robot = Robot()
 left  = robot.D0.motor()
 right = robot.D1.motor()
 
-# right.inverted = True   # uncomment if right wheel runs the wrong way
+# right.invert()          # uncomment if right wheel runs the wrong way
 
 robot.start()
 

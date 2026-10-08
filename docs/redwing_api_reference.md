@@ -55,7 +55,8 @@ m = robot.D0.motor("locked_antiphase")     # or "sm" / "lap" / "servo" aliases
 
 m.set_power(75)      # -100..100, open-loop PWM %
 m.stop()
-m.inverted = True     # flip direction without rewiring
+m.invert()            # flip direction without rewiring (m.invert(False) to undo)
+m.inverted            # True/False readback; m.inverted = True also still works
 m.power                # readback (last commanded, or actual output during PID)
 ```
 
@@ -94,7 +95,7 @@ m.set_position_options(
 
 ```python
 lm1, lm2 = robot.D0.motor(), robot.D2.motor()
-lm2.inverted = True                      # e.g. rear motor mounted backwards
+lm2.invert()                             # e.g. rear motor mounted backwards
 le = robot.S0.encoder()
 
 left = robot.motor_group(lm1, lm2, encoder=le)
@@ -113,7 +114,8 @@ enc = robot.D2.encoder()
 enc.count          # total ticks since reset (int)
 enc.velocity        # ticks/sec, positive = forward
 enc.reset()
-enc.inverted = True  # flip count direction without rewiring
+enc.invert()        # flip count direction without rewiring (enc.invert(False) to undo)
+enc.inverted        # True/False readback; enc.inverted = True also still works
 ```
 
 ---
@@ -276,7 +278,7 @@ Mirrors the Port API; 50 Hz only, so motor outputs are RC-ESC style (servo signa
 ```python
 m = robot.P0.motor()          # RC ESC: 1500us=stop, 1100us=full reverse, 1900us=full forward
 m.set_power(75)
-m.inverted = True
+m.invert()
 
 s = robot.P1.servo(max_deg=180, min_us=1000, max_us=2000)
 s.angle = 90
