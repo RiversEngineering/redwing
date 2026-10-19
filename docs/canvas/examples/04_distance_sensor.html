@@ -1,0 +1,28 @@
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#CE9178">"""Example 4 — Read an ultrasonic distance sensor.
+
+Prints the distance to the nearest object every half second.
+`distance` returns centimetres, or -1 if no echo was received
+(object too far or out of the sensor's beam).
+
+Hardware
+--------
+- HC-SR04 ultrasonic sensor → D2 (dual-pin port required)
+"""</span>
+
+<span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+
+<span style="color:#9CDCFE">sensor</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">ultrasonic</span>()
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+    <span style="color:#9CDCFE">d</span> = <span style="color:#9CDCFE">sensor</span>.<span style="color:#9CDCFE">distance</span>
+
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">d</span> &lt; <span style="color:#B5CEA8">0</span>:
+        <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"No echo — object out of range"</span>)
+    <span style="color:#C586C0">else</span>:
+        <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">Distance: </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">d</span>:<span style="color:#CE9178">.1f</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> cm</span><span style="color:#CE9178">"</span>)
+
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.5</span>)</pre>

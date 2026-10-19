@@ -1,0 +1,43 @@
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#CE9178">"""Example 8 — Closed-loop velocity control with PID.
+
+The RP2040 runs an onboard PID loop at 100 Hz that keeps the motor at a
+target speed in encoder ticks per second, regardless of load or battery
+level.
+
+After tuning the PID gains you can call robot.plot() to watch the actual
+velocity track the setpoint on the dashboard graph.
+
+Hardware
+--------
+- Motor controller → D0
+- Quadrature encoder → D2
+"""</span>
+
+<span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#6A9955"># PID gains — tune these for your motor/encoder combination.</span>
+<span style="color:#6A9955"># Start with a small Kp (0.1–0.5) and zero Ki/Kd, then add Ki once</span>
+<span style="color:#6A9955"># the response looks stable.</span>
+<span style="color:#4FC1FF">KP</span> = <span style="color:#B5CEA8">0.3</span>
+<span style="color:#4FC1FF">KI</span> = <span style="color:#B5CEA8">0.05</span>
+<span style="color:#4FC1FF">KD</span> = <span style="color:#B5CEA8">0.01</span>
+
+<span style="color:#4FC1FF">TARGET_TICKS_PER_S</span> = <span style="color:#B5CEA8">200</span>   <span style="color:#6A9955"># setpoint: 200 ticks per second</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+
+<span style="color:#9CDCFE">motor</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">encoder</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">encoder</span>()
+<span style="color:#9CDCFE">motor</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">encoder</span>)
+<span style="color:#9CDCFE">motor</span>.<span style="color:#DCDCAA">set_pid</span>(<span style="color:#4FC1FF">KP</span>, <span style="color:#4FC1FF">KI</span>, <span style="color:#4FC1FF">KD</span>)
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">Running at </span><span style="color:#569CD6">{</span><span style="color:#4FC1FF">TARGET_TICKS_PER_S</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> ticks/s — watch the dashboard graph.</span><span style="color:#CE9178">"</span>)
+
+<span style="color:#9CDCFE">motor</span>.<span style="color:#DCDCAA">set_velocity</span>(<span style="color:#4FC1FF">TARGET_TICKS_PER_S</span>)
+
+<span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">plot</span>(<span style="color:#CE9178">"target"</span>,   <span style="color:#4FC1FF">TARGET_TICKS_PER_S</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">plot</span>(<span style="color:#CE9178">"velocity"</span>, <span style="color:#9CDCFE">encoder</span>.<span style="color:#9CDCFE">velocity</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.05</span>)</pre>

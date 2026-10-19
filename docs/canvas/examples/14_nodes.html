@@ -1,0 +1,69 @@
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#CE9178">"""Example 14 — Node-based concurrent programming.
+
+The nodes system lets different parts of your code run at their own
+pace without blocking each other. Nodes communicate through named
+channels: one node publishes values, another receives them.
+
+This example runs two nodes simultaneously:
+  - SensorNode: reads the ultrasonic sensor at 20 Hz and publishes
+                the distance on the "distance" channel
+  - DriveNode:  receives each new distance reading and adjusts the
+                motor powers accordingly
+
+Hardware
+--------
+- Left motor controller  → D0
+- Right motor controller → D1
+- HC-SR04 ultrasonic     → D2
+"""</span>
+
+<span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+<span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span>.<span style="color:#4EC9B0">nodes</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Node</span>, <span style="color:#DCDCAA">run_nodes</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+
+<span style="color:#9CDCFE">left</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">right</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">sensor</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">ultrasonic</span>()
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()          <span style="color:#6A9955"># must be called before run_nodes()</span>
+
+
+<span style="color:#569CD6">class</span> <span style="color:#4EC9B0">SensorNode</span>(<span style="color:#9CDCFE">Node</span>):
+    <span style="color:#CE9178">"""Reads the sensor at 20 Hz and broadcasts the distance."""</span>
+
+    <span style="color:#C586C0">async</span> <span style="color:#569CD6">def</span> <span style="color:#DCDCAA">run</span>(<span style="color:#569CD6">self</span>):
+        <span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+            <span style="color:#C586C0">await</span> <span style="color:#569CD6">self</span>.<span style="color:#DCDCAA">publish</span>(<span style="color:#CE9178">"distance"</span>, <span style="color:#9CDCFE">sensor</span>.<span style="color:#9CDCFE">distance</span>)
+            <span style="color:#C586C0">await</span> <span style="color:#569CD6">self</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.05</span>)
+
+
+<span style="color:#569CD6">class</span> <span style="color:#4EC9B0">DriveNode</span>(<span style="color:#9CDCFE">Node</span>):
+    <span style="color:#CE9178">"""Reacts to distance readings to steer the robot."""</span>
+
+    <span style="color:#C586C0">async</span> <span style="color:#569CD6">def</span> <span style="color:#DCDCAA">run</span>(<span style="color:#569CD6">self</span>):
+        <span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+            <span style="color:#6A9955"># INPUT</span>
+            <span style="color:#9CDCFE">distance</span> = <span style="color:#C586C0">await</span> <span style="color:#569CD6">self</span>.<span style="color:#DCDCAA">receive</span>(<span style="color:#CE9178">"distance"</span>)
+            <span style="color:#9CDCFE">valid</span>    = <span style="color:#9CDCFE">distance</span> &gt;= <span style="color:#B5CEA8">0</span>          <span style="color:#6A9955"># -1 means no valid reading</span>
+
+            <span style="color:#6A9955"># DECIDE</span>
+            <span style="color:#9CDCFE">left_power</span>  = <span style="color:#B5CEA8">60</span>                  <span style="color:#6A9955"># default: clear path or no echo</span>
+            <span style="color:#9CDCFE">right_power</span> = <span style="color:#B5CEA8">60</span>
+            <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">valid</span> <span style="color:#569CD6">and</span> <span style="color:#9CDCFE">distance</span> &lt;= <span style="color:#B5CEA8">15</span>:
+                <span style="color:#6A9955"># Too close — back up and turn</span>
+                <span style="color:#9CDCFE">left_power</span>  = -<span style="color:#B5CEA8">40</span>
+                <span style="color:#9CDCFE">right_power</span> = <span style="color:#B5CEA8">10</span>
+            <span style="color:#C586C0">elif</span> <span style="color:#9CDCFE">valid</span> <span style="color:#569CD6">and</span> <span style="color:#9CDCFE">distance</span> &lt;= <span style="color:#B5CEA8">30</span>:
+                <span style="color:#6A9955"># Getting close — slow down</span>
+                <span style="color:#9CDCFE">left_power</span>  = <span style="color:#B5CEA8">30</span>
+                <span style="color:#9CDCFE">right_power</span> = <span style="color:#B5CEA8">30</span>
+
+            <span style="color:#6A9955"># OUTPUT</span>
+            <span style="color:#9CDCFE">left</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#9CDCFE">left_power</span>)
+            <span style="color:#9CDCFE">right</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#9CDCFE">right_power</span>)
+            <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">Distance: </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">distance</span>:<span style="color:#CE9178">.1f</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> cm</span><span style="color:#CE9178">"</span>)
+
+
+<span style="color:#6A9955"># run_nodes() is blocking — it starts all nodes and runs until Ctrl+C</span>
+<span style="color:#DCDCAA">run_nodes</span>(<span style="color:#4EC9B0">SensorNode</span>(), <span style="color:#4EC9B0">DriveNode</span>())</pre>

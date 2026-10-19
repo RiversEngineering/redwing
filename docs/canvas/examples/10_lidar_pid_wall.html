@@ -1,0 +1,67 @@
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#CE9178">"""Example 10 — LIDAR wall-following with PID.
+
+The robot drives forward while a PID controller keeps it a fixed
+distance from the wall on its right side. The LIDAR measures the
+distance to the right wall on every loop iteration, and the error
+(measured - desired) steers the robot left or right.
+
+This is a classic single-axis PID application — tune Kp first, then
+add Kd to reduce oscillation. Use robot.plot() to watch the error.
+
+Hardware
+--------
+- Left motor controller  → D0
+- Right motor controller → D1
+- 360° USB LIDAR (connected to Raspberry Pi USB)
+
+Diagram
+-------
+  +----wall----+
+  |            |
+  | →  robot   |  ← right wall at 90°
+  |            |
+"""</span>
+
+<span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#4FC1FF">TARGET_CM</span> = <span style="color:#B5CEA8">25</span>   <span style="color:#6A9955"># desired distance from the right wall</span>
+
+<span style="color:#4FC1FF">KP</span> = <span style="color:#B5CEA8">1.5</span>         <span style="color:#6A9955"># proportional gain</span>
+<span style="color:#4FC1FF">KD</span> = <span style="color:#B5CEA8">0.3</span>         <span style="color:#6A9955"># derivative gain (dampens oscillation)</span>
+<span style="color:#4FC1FF">BASE_SPEED</span> = <span style="color:#B5CEA8">50</span>  <span style="color:#6A9955"># straight-line speed</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+
+<span style="color:#9CDCFE">left</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">right</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">lidar</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">lidar</span>()
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#9CDCFE">prev_error</span> = <span style="color:#B5CEA8">0.0</span>
+
+<span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+    <span style="color:#6A9955"># Measure distance on the right side (90° clockwise from forward)</span>
+    <span style="color:#9CDCFE">right_dist</span> = <span style="color:#9CDCFE">lidar</span>.<span style="color:#DCDCAA">nearest_in_range</span>(<span style="color:#9CDCFE">center_deg</span>=<span style="color:#B5CEA8">90</span>, <span style="color:#9CDCFE">half_width_deg</span>=<span style="color:#B5CEA8">20</span>)
+
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">right_dist</span> &lt;= <span style="color:#B5CEA8">0</span> <span style="color:#569CD6">or</span> <span style="color:#9CDCFE">right_dist</span> &gt; <span style="color:#B5CEA8">200</span>:
+        <span style="color:#6A9955"># No wall detected — drive straight</span>
+        <span style="color:#9CDCFE">left</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#4FC1FF">BASE_SPEED</span>)
+        <span style="color:#9CDCFE">right</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#4FC1FF">BASE_SPEED</span>)
+        <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.05</span>)
+        <span style="color:#C586C0">continue</span>
+
+    <span style="color:#9CDCFE">error</span>      = <span style="color:#9CDCFE">right_dist</span> - <span style="color:#4FC1FF">TARGET_CM</span>      <span style="color:#6A9955"># positive → too far, steer right</span>
+    <span style="color:#9CDCFE">derivative</span> = <span style="color:#9CDCFE">error</span> - <span style="color:#9CDCFE">prev_error</span>
+    <span style="color:#9CDCFE">prev_error</span> = <span style="color:#9CDCFE">error</span>
+
+    <span style="color:#9CDCFE">correction</span> = <span style="color:#4FC1FF">KP</span> * <span style="color:#9CDCFE">error</span> + <span style="color:#4FC1FF">KD</span> * <span style="color:#9CDCFE">derivative</span>
+
+    <span style="color:#6A9955"># Positive correction steers right (reduce right, increase left)</span>
+    <span style="color:#9CDCFE">left</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#4FC1FF">BASE_SPEED</span> + <span style="color:#9CDCFE">correction</span>)
+    <span style="color:#9CDCFE">right</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#4FC1FF">BASE_SPEED</span> - <span style="color:#9CDCFE">correction</span>)
+
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">plot</span>(<span style="color:#CE9178">"right_dist"</span>, <span style="color:#9CDCFE">right_dist</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">plot</span>(<span style="color:#CE9178">"error"</span>,      <span style="color:#9CDCFE">error</span>)
+
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.05</span>)</pre>

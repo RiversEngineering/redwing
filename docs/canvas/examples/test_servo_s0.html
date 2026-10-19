@@ -1,0 +1,33 @@
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#CE9178">"""Servo test — S0 (300° servo, 500–2500 µs).
+
+Sweeps the servo on port S0 from 0° to 300° and back, then holds at center.
+Run this on the Pi with the daemon already running:
+
+    python test_servo_s0.py
+"""</span>
+
+<span style="color:#C586C0">import</span> <span style="color:#4EC9B0">redwing</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">redwing</span>.<span style="color:#4EC9B0">Robot</span>()
+
+<span style="color:#9CDCFE">arm</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">S0</span>.<span style="color:#DCDCAA">servo</span>()  <span style="color:#6A9955"># default: 300°, 500–2500 µs</span>
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Servo test started on S0"</span>)
+
+<span style="color:#6A9955"># Sweep 0 → 300</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Sweeping 0 → 300°"</span>)
+<span style="color:#C586C0">for</span> <span style="color:#9CDCFE">angle</span> <span style="color:#569CD6">in</span> <span style="color:#4EC9B0">range</span>(<span style="color:#B5CEA8">0</span>, <span style="color:#B5CEA8">301</span>, <span style="color:#B5CEA8">5</span>):
+    <span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">set_angle</span>(<span style="color:#9CDCFE">angle</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.02</span>)
+
+<span style="color:#6A9955"># Sweep 300 → 0</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Sweeping 300 → 0°"</span>)
+<span style="color:#C586C0">for</span> <span style="color:#9CDCFE">angle</span> <span style="color:#569CD6">in</span> <span style="color:#4EC9B0">range</span>(<span style="color:#B5CEA8">300</span>, -<span style="color:#B5CEA8">1</span>, -<span style="color:#B5CEA8">5</span>):
+    <span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">set_angle</span>(<span style="color:#9CDCFE">angle</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.02</span>)
+
+<span style="color:#6A9955"># Park at centre</span>
+<span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">center</span>()
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Done — parked at center (150°)"</span>)</pre>

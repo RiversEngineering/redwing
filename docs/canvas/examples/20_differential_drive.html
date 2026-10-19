@@ -1,0 +1,126 @@
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#CE9178">"""Example 20 — Differential drive with dead-reckoning odometry.
+
+Demonstrates the DifferentialDrive API: forward, backward, turns, and
+reading the robot's estimated pose.  Two versions are shown:
+
+  • 4-motor (two motors per side using MotorGroup) — default config.
+  • Simple (2 motors, one per side) — see commented block below.
+
+The drive tracks position automatically using encoder counts fused with
+the IMU heading (BNO085/BNO055) or gyro integration (MPU-6050).  The
+estimated pose is sent to the dashboard Map tab in real time.
+
+Port layout
+-----------
+Motors and encoders both require dual-pin D ports (two signal wires each).
+S ports are single-pin only and cannot be used for motors or encoders.
+
+4-motor config (uses D0–D5):
+  Front-left  motor → D0      Front-right motor → D1
+  Rear-left   motor → D2      Rear-right  motor → D3
+  Left encoder      → D4      Right encoder     → D5
+  IMU (BNO085)      → I²C port (GP4/GP5) — optional but recommended
+
+2-motor config (uses D0–D3):
+  Left motor        → D0      Right motor       → D1
+  Left encoder      → D2      Right encoder     → D3
+
+Tune the constants below to match your robot before running.
+"""</span>
+
+<span style="color:#C586C0">import</span> <span style="color:#4EC9B0">redwing</span>
+
+<span style="color:#6A9955"># ── Robot geometry ─────────────────────────────────────────────────────────────</span>
+<span style="color:#4FC1FF">WHEEL_DIAM_MM</span>  = <span style="color:#B5CEA8">60</span>      <span style="color:#6A9955"># drive wheel diameter in millimetres</span>
+<span style="color:#4FC1FF">TRACK_WIDTH_MM</span> = <span style="color:#B5CEA8">280</span>     <span style="color:#6A9955"># distance between left and right wheel centres (mm)</span>
+<span style="color:#4FC1FF">TICKS_PER_REV</span>  = <span style="color:#B5CEA8">1440</span>   <span style="color:#6A9955"># encoder pulses per full wheel revolution</span>
+
+<span style="color:#6A9955"># ── Setup ──────────────────────────────────────────────────────────────────────</span>
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">redwing</span>.<span style="color:#4EC9B0">Robot</span>()
+
+<span style="color:#6A9955"># ── 4-MOTOR CONFIG (default) ───────────────────────────────────────────────────</span>
+<span style="color:#6A9955"># Two motors per side grouped together so they always move as one.</span>
+<span style="color:#6A9955"># Call .invert() on any motor that runs the wrong direction.</span>
+<span style="color:#9CDCFE">fl</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">motor</span>(<span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>)   <span style="color:#6A9955"># front-left</span>
+<span style="color:#9CDCFE">rl</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">motor</span>(<span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>)   <span style="color:#6A9955"># rear-left</span>
+<span style="color:#9CDCFE">fr</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">motor</span>(<span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>)   <span style="color:#6A9955"># front-right</span>
+<span style="color:#9CDCFE">rr</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">motor</span>(<span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D3</span>)   <span style="color:#6A9955"># rear-right</span>
+
+<span style="color:#6A9955"># rl.invert()          # uncomment if rear-left runs backwards</span>
+<span style="color:#6A9955"># fr.invert()          # uncomment if front-right runs backwards</span>
+
+<span style="color:#9CDCFE">le</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">encoder</span>(<span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D4</span>)
+<span style="color:#9CDCFE">re</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">encoder</span>(<span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D5</span>)
+
+<span style="color:#9CDCFE">left</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">motor_group</span>(<span style="color:#9CDCFE">fl</span>, <span style="color:#9CDCFE">rl</span>, <span style="color:#9CDCFE">encoder</span>=<span style="color:#9CDCFE">le</span>)
+<span style="color:#9CDCFE">right</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">motor_group</span>(<span style="color:#9CDCFE">fr</span>, <span style="color:#9CDCFE">rr</span>, <span style="color:#9CDCFE">encoder</span>=<span style="color:#9CDCFE">re</span>)
+
+<span style="color:#9CDCFE">drive</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">differential_drive</span>(
+    <span style="color:#9CDCFE">left</span>=<span style="color:#9CDCFE">left</span>,
+    <span style="color:#9CDCFE">right</span>=<span style="color:#9CDCFE">right</span>,
+    <span style="color:#9CDCFE">imu</span>=<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">imu</span>(),           <span style="color:#6A9955"># remove this line if no IMU is attached</span>
+    <span style="color:#9CDCFE">wheel_diameter_mm</span>=<span style="color:#4FC1FF">WHEEL_DIAM_MM</span>,
+    <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#4FC1FF">TRACK_WIDTH_MM</span>,
+    <span style="color:#9CDCFE">ticks_per_rev</span>=<span style="color:#4FC1FF">TICKS_PER_REV</span>,
+)
+
+<span style="color:#6A9955"># ── SIMPLE CONFIG (2-motor) ────────────────────────────────────────────────────</span>
+<span style="color:#6A9955"># Uncomment this block and comment out the 4-motor block above.</span>
+<span style="color:#6A9955">#</span>
+<span style="color:#6A9955"># lm = robot.motor(robot.D0)</span>
+<span style="color:#6A9955"># rm = robot.motor(robot.D1)</span>
+<span style="color:#6A9955"># rm.invert()</span>
+<span style="color:#6A9955"># le = robot.encoder(robot.D2)</span>
+<span style="color:#6A9955"># re = robot.encoder(robot.D3)</span>
+<span style="color:#6A9955">#</span>
+<span style="color:#6A9955"># drive = robot.differential_drive(</span>
+<span style="color:#6A9955">#     left_motor=lm,   right_motor=rm,</span>
+<span style="color:#6A9955">#     left_encoder=le, right_encoder=re,</span>
+<span style="color:#6A9955">#     imu=robot.imu(),</span>
+<span style="color:#6A9955">#     wheel_diameter_mm=WHEEL_DIAM_MM,</span>
+<span style="color:#6A9955">#     track_width_mm=TRACK_WIDTH_MM,</span>
+<span style="color:#6A9955">#     ticks_per_rev=TICKS_PER_REV,</span>
+<span style="color:#6A9955"># )</span>
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#6A9955"># ── Demo sequence ──────────────────────────────────────────────────────────────</span>
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Starting differential drive demo"</span>)
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">clear_map</span>()
+
+<span style="color:#6A9955"># Drive a simple square</span>
+<span style="color:#6A9955"># Each leg: forward 0.5 m, then turn 90° right</span>
+<span style="color:#C586C0">for</span> <span style="color:#9CDCFE">leg</span> <span style="color:#569CD6">in</span> <span style="color:#4EC9B0">range</span>(<span style="color:#B5CEA8">4</span>):
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">Leg </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">leg</span> + <span style="color:#B5CEA8">1</span><span style="color:#569CD6">}</span><span style="color:#CE9178">: forward 0.5 m</span><span style="color:#CE9178">"</span>)
+    <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">forward</span>(<span style="color:#B5CEA8">0.5</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">50</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.3</span>)            <span style="color:#6A9955"># brief pause between moves</span>
+
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">Leg </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">leg</span> + <span style="color:#B5CEA8">1</span><span style="color:#569CD6">}</span><span style="color:#CE9178">: turn right 90°</span><span style="color:#CE9178">"</span>)
+    <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">turn_right</span>(<span style="color:#B5CEA8">90</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">40</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.3</span>)
+
+    <span style="color:#9CDCFE">x</span>, <span style="color:#9CDCFE">y</span>, <span style="color:#9CDCFE">hdg</span> = <span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">pose</span>
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">  Pose → x=</span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">x</span>:<span style="color:#CE9178">.2f</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> m  y=</span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">y</span>:<span style="color:#CE9178">.2f</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> m  heading=</span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">hdg</span>:<span style="color:#CE9178">.1f</span><span style="color:#569CD6">}</span><span style="color:#CE9178">°</span><span style="color:#CE9178">"</span>)
+
+<span style="color:#6A9955"># Drive backward a short distance</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Reversing 0.2 m"</span>)
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">backward</span>(<span style="color:#B5CEA8">0.2</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">40</span>)
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.3</span>)
+
+<span style="color:#6A9955"># Turn left using the signed rotate() method</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Rotating 45° counter-clockwise"</span>)
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">rotate</span>(<span style="color:#B5CEA8">45</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">35</span>)
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.3</span>)
+
+<span style="color:#6A9955"># Continuous drive example: gentle arc for 1 second</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Arcing right for 1 s"</span>)
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">drive</span>(<span style="color:#9CDCFE">forward</span>=<span style="color:#B5CEA8">50</span>, <span style="color:#9CDCFE">turn</span>=-<span style="color:#B5CEA8">20</span>)   <span style="color:#6A9955"># negative turn = right (clockwise)</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">1.0</span>)
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">stop</span>()
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.3</span>)
+
+<span style="color:#6A9955"># Final pose report</span>
+<span style="color:#9CDCFE">x</span>, <span style="color:#9CDCFE">y</span>, <span style="color:#9CDCFE">hdg</span> = <span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">pose</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">Final pose → x=</span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">x</span>:<span style="color:#CE9178">.2f</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> m  y=</span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">y</span>:<span style="color:#CE9178">.2f</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> m  heading=</span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">hdg</span>:<span style="color:#CE9178">.1f</span><span style="color:#569CD6">}</span><span style="color:#CE9178">°</span><span style="color:#CE9178">"</span>)
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Demo complete."</span>)</pre>

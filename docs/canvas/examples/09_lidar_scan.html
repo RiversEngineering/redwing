@@ -1,0 +1,35 @@
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#CE9178">"""Example 9 — Reading the 360° LIDAR sensor.
+
+Prints the distance to the nearest object in front of the robot every
+100 ms and sends the full scan to the dashboard radar view.
+
+The LIDAR connects to the Raspberry Pi via USB. Make sure the device
+is listed in docker-compose.yml, e.g.:
+    REDWING_LIDAR: /dev/ttyUSB0
+
+The sensor does not use a Pico port — no port configuration needed.
+
+Hardware
+--------
+- 360° USB LIDAR (e.g. RPLIDAR A1/A2 or YDLidar)
+  connected to the Raspberry Pi USB port
+"""</span>
+
+<span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+
+<span style="color:#6A9955"># offset_deg=0 means the sensor's forward direction matches the robot's.</span>
+<span style="color:#6A9955"># Use offset_deg=180 if the sensor is mounted facing backward.</span>
+<span style="color:#9CDCFE">lidar</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">lidar</span>(<span style="color:#9CDCFE">offset_deg</span>=<span style="color:#B5CEA8">0</span>)
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+    <span style="color:#6A9955"># nearest_in_range(center, half_width) looks in the arc</span>
+    <span style="color:#6A9955"># from (center - half_width) to (center + half_width) degrees.</span>
+    <span style="color:#6A9955"># 0° is always robot-forward after the offset is applied.</span>
+    <span style="color:#9CDCFE">front</span> = <span style="color:#9CDCFE">lidar</span>.<span style="color:#DCDCAA">nearest_in_range</span>(<span style="color:#9CDCFE">center_deg</span>=<span style="color:#B5CEA8">0</span>, <span style="color:#9CDCFE">half_width_deg</span>=<span style="color:#B5CEA8">30</span>)
+
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">Nearest in front: </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">front</span>:<span style="color:#CE9178">.0f</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> cm</span><span style="color:#CE9178">"</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.1</span>)</pre>

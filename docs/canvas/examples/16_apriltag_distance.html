@@ -1,0 +1,88 @@
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#CE9178">"""Example 16 — Estimate distance to an AprilTag.
+
+Uses the pin-hole camera model to estimate how far away a tag is,
+without needing full camera calibration.
+
+The idea: if you know the tag's real width (TAG_SIZE_CM) and how wide
+it appears in pixels (pixel_width), you can recover the distance:
+
+    distance = (TAG_SIZE_CM × focal_length_px) / pixel_width
+
+FOCAL_PX is the camera's focal length in pixels. The default (600) is
+a reasonable estimate for a 70°-FOV webcam at 640×480. To calibrate it
+precisely, hold a tag at a known distance D_cm and measure pixel_width,
+then compute: FOCAL_PX = pixel_width × D_cm / TAG_SIZE_CM.
+
+Hardware
+--------
+- Pi camera or USB webcam
+
+No motors needed. Values are logged to the dashboard.
+"""</span>
+
+<span style="color:#C586C0">import</span> <span style="color:#4EC9B0">cv2</span>
+<span style="color:#C586C0">import</span> <span style="color:#4EC9B0">numpy</span> <span style="color:#C586C0">as</span> <span style="color:#4EC9B0">np</span>
+
+<span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#4FC1FF">TAG_SIZE_CM</span> = <span style="color:#B5CEA8">10.0</span>   <span style="color:#6A9955"># physical side length of the printed tag in cm</span>
+<span style="color:#4FC1FF">FOCAL_PX</span>    = <span style="color:#B5CEA8">600</span>    <span style="color:#6A9955"># camera focal length in pixels (see note above)</span>
+<span style="color:#4FC1FF">TARGET_ID</span>   = <span style="color:#B5CEA8">0</span>      <span style="color:#6A9955"># which tag ID to track (or None to track any)</span>
+
+<span style="color:#4FC1FF">FRAME_WIDTH</span> = <span style="color:#B5CEA8">640</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+<span style="color:#9CDCFE">cam</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#9CDCFE">camera</span>
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#9CDCFE">dictionary</span> = <span style="color:#4EC9B0">cv2</span>.<span style="color:#9CDCFE">aruco</span>.<span style="color:#DCDCAA">getPredefinedDictionary</span>(<span style="color:#4EC9B0">cv2</span>.<span style="color:#9CDCFE">aruco</span>.<span style="color:#9CDCFE">DICT_APRILTAG_36h11</span>)
+<span style="color:#9CDCFE">detector</span>   = <span style="color:#4EC9B0">cv2</span>.<span style="color:#9CDCFE">aruco</span>.<span style="color:#4EC9B0">ArucoDetector</span>(<span style="color:#9CDCFE">dictionary</span>, <span style="color:#4EC9B0">cv2</span>.<span style="color:#9CDCFE">aruco</span>.<span style="color:#4EC9B0">DetectorParameters</span>())
+
+<span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+    <span style="color:#9CDCFE">frame</span> = <span style="color:#9CDCFE">cam</span>.<span style="color:#DCDCAA">read</span>()
+
+    <span style="color:#9CDCFE">corners</span>, <span style="color:#9CDCFE">ids</span>, <span style="color:#9CDCFE">_</span> = <span style="color:#9CDCFE">detector</span>.<span style="color:#DCDCAA">detectMarkers</span>(<span style="color:#9CDCFE">frame</span>)
+
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">ids</span> <span style="color:#569CD6">is</span> <span style="color:#569CD6">not</span> <span style="color:#569CD6">None</span>:
+        <span style="color:#9CDCFE">annotated</span> = <span style="color:#4EC9B0">cv2</span>.<span style="color:#9CDCFE">aruco</span>.<span style="color:#DCDCAA">drawDetectedMarkers</span>(<span style="color:#9CDCFE">frame</span>.<span style="color:#DCDCAA">copy</span>(), <span style="color:#9CDCFE">corners</span>, <span style="color:#9CDCFE">ids</span>)
+
+        <span style="color:#C586C0">for</span> <span style="color:#9CDCFE">i</span>, <span style="color:#9CDCFE">tag_id</span> <span style="color:#569CD6">in</span> <span style="color:#4EC9B0">enumerate</span>(<span style="color:#9CDCFE">ids</span>.<span style="color:#DCDCAA">flatten</span>()):
+            <span style="color:#C586C0">if</span> <span style="color:#4FC1FF">TARGET_ID</span> <span style="color:#569CD6">is</span> <span style="color:#569CD6">not</span> <span style="color:#569CD6">None</span> <span style="color:#569CD6">and</span> <span style="color:#9CDCFE">tag_id</span> != <span style="color:#4FC1FF">TARGET_ID</span>:
+                <span style="color:#C586C0">continue</span>
+
+            <span style="color:#9CDCFE">pts</span> = <span style="color:#9CDCFE">corners</span>[<span style="color:#9CDCFE">i</span>][<span style="color:#B5CEA8">0</span>]   <span style="color:#6A9955"># shape (4, 2): top-left, top-right, bottom-right, bottom-left</span>
+
+            <span style="color:#6A9955"># Average the top and bottom edge widths for a robust pixel_width</span>
+            <span style="color:#9CDCFE">top_w</span>    = <span style="color:#4EC9B0">np</span>.<span style="color:#9CDCFE">linalg</span>.<span style="color:#DCDCAA">norm</span>(<span style="color:#9CDCFE">pts</span>[<span style="color:#B5CEA8">1</span>] - <span style="color:#9CDCFE">pts</span>[<span style="color:#B5CEA8">0</span>])
+            <span style="color:#9CDCFE">bottom_w</span> = <span style="color:#4EC9B0">np</span>.<span style="color:#9CDCFE">linalg</span>.<span style="color:#DCDCAA">norm</span>(<span style="color:#9CDCFE">pts</span>[<span style="color:#B5CEA8">2</span>] - <span style="color:#9CDCFE">pts</span>[<span style="color:#B5CEA8">3</span>])
+            <span style="color:#9CDCFE">pixel_width</span> = (<span style="color:#9CDCFE">top_w</span> + <span style="color:#9CDCFE">bottom_w</span>) / <span style="color:#B5CEA8">2</span>
+
+            <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">pixel_width</span> &lt; <span style="color:#B5CEA8">1</span>:
+                <span style="color:#C586C0">continue</span>
+
+            <span style="color:#9CDCFE">distance_cm</span> = (<span style="color:#4FC1FF">TAG_SIZE_CM</span> * <span style="color:#4FC1FF">FOCAL_PX</span>) / <span style="color:#9CDCFE">pixel_width</span>
+
+            <span style="color:#6A9955"># Horizontal offset from image center (+ve = tag is to the right)</span>
+            <span style="color:#9CDCFE">cx</span> = <span style="color:#9CDCFE">pts</span>[:, <span style="color:#B5CEA8">0</span>].<span style="color:#DCDCAA">mean</span>()
+            <span style="color:#9CDCFE">lateral_px</span> = <span style="color:#9CDCFE">cx</span> - <span style="color:#4FC1FF">FRAME_WIDTH</span> / <span style="color:#B5CEA8">2</span>
+
+            <span style="color:#4EC9B0">cv2</span>.<span style="color:#DCDCAA">putText</span>(
+                <span style="color:#9CDCFE">annotated</span>,
+                <span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">ID </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">tag_id</span><span style="color:#569CD6">}</span><span style="color:#CE9178">  </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">distance_cm</span>:<span style="color:#CE9178">.0f</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> cm</span><span style="color:#CE9178">"</span>,
+                (<span style="color:#4EC9B0">int</span>(<span style="color:#9CDCFE">pts</span>[<span style="color:#B5CEA8">0</span>][<span style="color:#B5CEA8">0</span>]), <span style="color:#4EC9B0">int</span>(<span style="color:#9CDCFE">pts</span>[<span style="color:#B5CEA8">0</span>][<span style="color:#B5CEA8">1</span>]) - <span style="color:#B5CEA8">10</span>),
+                <span style="color:#4EC9B0">cv2</span>.<span style="color:#4FC1FF">FONT_HERSHEY_SIMPLEX</span>, <span style="color:#B5CEA8">0.6</span>, (<span style="color:#B5CEA8">0</span>, <span style="color:#B5CEA8">200</span>, <span style="color:#B5CEA8">255</span>), <span style="color:#B5CEA8">2</span>,
+            )
+
+            <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(
+                <span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">Tag </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">tag_id</span><span style="color:#569CD6">}</span><span style="color:#CE9178">: distance=</span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">distance_cm</span>:<span style="color:#CE9178">.1f</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> cm  </span><span style="color:#CE9178">"</span>
+                <span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">lateral=</span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">lateral_px</span>:<span style="color:#CE9178">+.0f</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> px</span><span style="color:#CE9178">"</span>
+            )
+            <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">plot</span>(<span style="color:#CE9178">"distance_cm"</span>, <span style="color:#9CDCFE">distance_cm</span>)
+            <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">plot</span>(<span style="color:#CE9178">"lateral_px"</span>,  <span style="color:#9CDCFE">lateral_px</span>)
+
+        <span style="color:#9CDCFE">cam</span>.<span style="color:#DCDCAA">show</span>(<span style="color:#9CDCFE">annotated</span>)
+    <span style="color:#C586C0">else</span>:
+        <span style="color:#9CDCFE">cam</span>.<span style="color:#DCDCAA">show</span>(<span style="color:#9CDCFE">frame</span>)
+
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.05</span>)</pre>

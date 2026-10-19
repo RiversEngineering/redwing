@@ -1,0 +1,21 @@
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#CE9178">"""Example 1 — Drive a single motor.
+
+The simplest possible program. One motor runs at half power for two
+seconds, then stops.
+
+Hardware
+--------
+- Motor controller wired to port D0 (dual-pin, sign-magnitude mode)
+"""</span>
+
+<span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+
+<span style="color:#9CDCFE">motor</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()   <span style="color:#6A9955"># configure D0 as a sign-magnitude motor</span>
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()              <span style="color:#6A9955"># lock in configuration and enable commands</span>
+
+<span style="color:#9CDCFE">motor</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#B5CEA8">50</span>)        <span style="color:#6A9955"># 50 % forward (-100 to +100)</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">2</span>)
+<span style="color:#9CDCFE">motor</span>.<span style="color:#DCDCAA">stop</span>()</pre>

@@ -1,0 +1,89 @@
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#CE9178">"""Example 11 — LIDAR mapping with dead-reckoning odometry.
+
+Drives forward while building a map of the environment. The robot's
+position is estimated from encoder ticks (dead-reckoning), and every
+LIDAR point is converted from robot-relative polar coordinates to
+world-frame Cartesian coordinates and sent to the dashboard map view.
+
+This is an introduction to the core idea behind SLAM: combining
+motion estimates with sensor readings to build a map.
+
+Hardware
+--------
+- Left motor controller  → D0
+- Left encoder           → D2
+- Right motor controller → D1
+- Right encoder          → D3
+- 360° USB LIDAR (connected to Raspberry Pi USB)
+
+Tuning
+------
+Set TICKS_PER_CM to match your robot's encoder and wheel geometry.
+You can measure this by driving 1 m and reading encoder.count.
+"""</span>
+
+<span style="color:#C586C0">import</span> <span style="color:#4EC9B0">math</span>
+<span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#4FC1FF">TICKS_PER_CM</span>   = <span style="color:#B5CEA8">43.0</span>    <span style="color:#6A9955"># encoder ticks per centimetre of wheel travel</span>
+<span style="color:#4FC1FF">TRACK_WIDTH_CM</span> = <span style="color:#B5CEA8">20.0</span>    <span style="color:#6A9955"># distance between left and right wheels</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+
+<span style="color:#9CDCFE">left</span>        = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">left_enc</span>    = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">encoder</span>()
+<span style="color:#9CDCFE">right</span>       = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">right_enc</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D3</span>.<span style="color:#DCDCAA">encoder</span>()
+<span style="color:#9CDCFE">left</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">left_enc</span>)
+<span style="color:#9CDCFE">right</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">right_enc</span>)
+
+<span style="color:#9CDCFE">lidar</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">lidar</span>()
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#6A9955"># World-frame pose: (x_cm, y_cm, heading_radians)</span>
+<span style="color:#9CDCFE">x</span>, <span style="color:#9CDCFE">y</span>, <span style="color:#9CDCFE">heading</span> = <span style="color:#B5CEA8">0.0</span>, <span style="color:#B5CEA8">0.0</span>, <span style="color:#B5CEA8">0.0</span>
+<span style="color:#9CDCFE">prev_left</span>  = <span style="color:#B5CEA8">0</span>
+<span style="color:#9CDCFE">prev_right</span> = <span style="color:#B5CEA8">0</span>
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">map_pose</span>(<span style="color:#9CDCFE">x</span>, <span style="color:#9CDCFE">y</span>, <span style="color:#4EC9B0">math</span>.<span style="color:#DCDCAA">degrees</span>(<span style="color:#9CDCFE">heading</span>))
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Mapping — drive the robot around the space."</span>)
+
+<span style="color:#9CDCFE">left</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#B5CEA8">40</span>)
+<span style="color:#9CDCFE">right</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#B5CEA8">40</span>)
+
+<span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+    <span style="color:#6A9955"># --- Odometry ---</span>
+    <span style="color:#9CDCFE">cur_left</span>  = <span style="color:#9CDCFE">left_enc</span>.<span style="color:#9CDCFE">count</span>
+    <span style="color:#9CDCFE">cur_right</span> = <span style="color:#9CDCFE">right_enc</span>.<span style="color:#9CDCFE">count</span>
+
+    <span style="color:#9CDCFE">dl</span> = (<span style="color:#9CDCFE">cur_left</span>  - <span style="color:#9CDCFE">prev_left</span>)  / <span style="color:#4FC1FF">TICKS_PER_CM</span>
+    <span style="color:#9CDCFE">dr</span> = (<span style="color:#9CDCFE">cur_right</span> - <span style="color:#9CDCFE">prev_right</span>) / <span style="color:#4FC1FF">TICKS_PER_CM</span>
+    <span style="color:#9CDCFE">prev_left</span>  = <span style="color:#9CDCFE">cur_left</span>
+    <span style="color:#9CDCFE">prev_right</span> = <span style="color:#9CDCFE">cur_right</span>
+
+    <span style="color:#9CDCFE">d_center</span>  = (<span style="color:#9CDCFE">dl</span> + <span style="color:#9CDCFE">dr</span>) / <span style="color:#B5CEA8">2</span>
+    <span style="color:#9CDCFE">d_heading</span> = (<span style="color:#9CDCFE">dr</span> - <span style="color:#9CDCFE">dl</span>) / <span style="color:#4FC1FF">TRACK_WIDTH_CM</span>    <span style="color:#6A9955"># radians</span>
+
+    <span style="color:#9CDCFE">heading</span> += <span style="color:#9CDCFE">d_heading</span>
+    <span style="color:#9CDCFE">x</span>       += <span style="color:#9CDCFE">d_center</span> * <span style="color:#4EC9B0">math</span>.<span style="color:#DCDCAA">cos</span>(<span style="color:#9CDCFE">heading</span>)
+    <span style="color:#9CDCFE">y</span>       += <span style="color:#9CDCFE">d_center</span> * <span style="color:#4EC9B0">math</span>.<span style="color:#DCDCAA">sin</span>(<span style="color:#9CDCFE">heading</span>)
+
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">map_pose</span>(<span style="color:#9CDCFE">x</span>, <span style="color:#9CDCFE">y</span>, <span style="color:#4EC9B0">math</span>.<span style="color:#DCDCAA">degrees</span>(<span style="color:#9CDCFE">heading</span>))
+
+    <span style="color:#6A9955"># --- Map LIDAR scan into world frame ---</span>
+    <span style="color:#9CDCFE">points</span> = []
+    <span style="color:#C586C0">for</span> <span style="color:#9CDCFE">angle_deg</span>, <span style="color:#9CDCFE">dist_cm</span> <span style="color:#569CD6">in</span> <span style="color:#9CDCFE">lidar</span>.<span style="color:#DCDCAA">scan</span>():
+        <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">dist_cm</span> &lt;= <span style="color:#B5CEA8">0</span> <span style="color:#569CD6">or</span> <span style="color:#9CDCFE">dist_cm</span> &gt; <span style="color:#B5CEA8">400</span>:
+            <span style="color:#C586C0">continue</span>
+        <span style="color:#6A9955"># Robot-relative polar → Cartesian</span>
+        <span style="color:#9CDCFE">angle_rad</span>  = <span style="color:#4EC9B0">math</span>.<span style="color:#DCDCAA">radians</span>(<span style="color:#9CDCFE">angle_deg</span>) + <span style="color:#9CDCFE">heading</span>
+        <span style="color:#9CDCFE">px</span> = <span style="color:#9CDCFE">x</span> + <span style="color:#9CDCFE">dist_cm</span> * <span style="color:#4EC9B0">math</span>.<span style="color:#DCDCAA">cos</span>(<span style="color:#9CDCFE">angle_rad</span>)
+        <span style="color:#9CDCFE">py</span> = <span style="color:#9CDCFE">y</span> + <span style="color:#9CDCFE">dist_cm</span> * <span style="color:#4EC9B0">math</span>.<span style="color:#DCDCAA">sin</span>(<span style="color:#9CDCFE">angle_rad</span>)
+        <span style="color:#9CDCFE">points</span>.<span style="color:#DCDCAA">append</span>((<span style="color:#9CDCFE">px</span>, <span style="color:#9CDCFE">py</span>))
+
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">points</span>:
+        <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">map_points</span>(<span style="color:#9CDCFE">points</span>)
+
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.05</span>)</pre>

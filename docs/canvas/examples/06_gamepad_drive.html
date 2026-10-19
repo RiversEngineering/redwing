@@ -1,0 +1,46 @@
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#CE9178">"""Example — Gamepad-controlled differential drive, RC controls.
+
+Left stick Y-axis drives the left wheel; right stick Y-axis drives the
+right wheel. Press A to stop all motors.
+
+Connect a gamepad via USB or the virtual controller in the dashboard.
+
+Make sure both motors drive forwards when power is positive.
+
+Hardware
+--------
+- Left motor controller  → D0
+- Right motor controller → D1
+- Gamepad (USB or virtual dashboard controller)
+"""</span>
+
+<span style="color:#6A9955"># import redwing library</span>
+<span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#6A9955"># set up robot object</span>
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+
+<span style="color:#6A9955"># set up motor connections (must match hardware connections)</span>
+<span style="color:#9CDCFE">left</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">right</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">gamepad</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#9CDCFE">gamepad</span>
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#6A9955"># run forever</span>
+<span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+    <span style="color:#6A9955"># joysticks return -1.0 to 1.0</span>
+    <span style="color:#6A9955"># motors expect -100 to 100</span>
+    <span style="color:#6A9955"># run at half speed to start</span>
+    <span style="color:#9CDCFE">left_pwr</span> = <span style="color:#9CDCFE">gamepad</span>.<span style="color:#9CDCFE">left_y</span> * <span style="color:#B5CEA8">50</span>
+    <span style="color:#9CDCFE">right_pwr</span> = <span style="color:#9CDCFE">gamepad</span>.<span style="color:#9CDCFE">right_y</span> * <span style="color:#B5CEA8">50</span>
+
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">gamepad</span>.<span style="color:#9CDCFE">just_pressed_a</span>:
+        <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">stop</span>()
+        <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Emergency stop"</span>)
+    <span style="color:#C586C0">else</span>:
+        <span style="color:#9CDCFE">left</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#9CDCFE">left_pwr</span>)
+        <span style="color:#9CDCFE">right</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#9CDCFE">right_pwr</span>)
+
+    <span style="color:#6A9955"># 50 Hz control loop; ESSENTIAL</span>
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.02</span>)</pre>

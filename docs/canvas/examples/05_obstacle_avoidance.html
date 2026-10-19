@@ -1,0 +1,70 @@
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#CE9178">"""Example 5 — Obstacle avoidance.
+
+Drives forward until something is closer than 25 cm, then backs up,
+turns, and tries again.
+
+The robot is always in one of three states: "drive", "back_up", or
+"turn". Each loop reads the sensor, decides which state to be in and
+what power that state needs, then sets the motors once at the end.
+
+Hardware
+--------
+- Left motor controller  → D0
+- Right motor controller → D1
+- HC-SR04 ultrasonic     → D2
+"""</span>
+
+<span style="color:#C586C0">import</span> <span style="color:#4EC9B0">time</span>
+
+<span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#4FC1FF">STOP_DISTANCE_CM</span> = <span style="color:#B5CEA8">25</span>
+<span style="color:#4FC1FF">BACK_UP_SECONDS</span>  = <span style="color:#B5CEA8">0.5</span>
+<span style="color:#4FC1FF">TURN_SECONDS</span>     = <span style="color:#B5CEA8">0.4</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+
+<span style="color:#9CDCFE">left</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">right</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">sensor</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">ultrasonic</span>()
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#9CDCFE">state</span>       = <span style="color:#CE9178">"drive"</span>
+<span style="color:#9CDCFE">state_start</span> = <span style="color:#4EC9B0">time</span>.<span style="color:#DCDCAA">monotonic</span>()   <span style="color:#6A9955"># when the current state began</span>
+
+<span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+    <span style="color:#6A9955"># INPUT</span>
+    <span style="color:#9CDCFE">distance</span> = <span style="color:#9CDCFE">sensor</span>.<span style="color:#9CDCFE">distance</span>
+    <span style="color:#9CDCFE">valid</span>    = <span style="color:#9CDCFE">sensor</span>.<span style="color:#9CDCFE">valid</span>
+    <span style="color:#9CDCFE">now</span>      = <span style="color:#4EC9B0">time</span>.<span style="color:#DCDCAA">monotonic</span>()
+    <span style="color:#9CDCFE">time_in_state</span> = <span style="color:#9CDCFE">now</span> - <span style="color:#9CDCFE">state_start</span>
+
+    <span style="color:#6A9955"># DECIDE: which state should we be in?</span>
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">state</span> == <span style="color:#CE9178">"drive"</span> <span style="color:#569CD6">and</span> <span style="color:#9CDCFE">valid</span> <span style="color:#569CD6">and</span> <span style="color:#9CDCFE">distance</span> &lt; <span style="color:#4FC1FF">STOP_DISTANCE_CM</span>:
+        <span style="color:#9CDCFE">state</span> = <span style="color:#CE9178">"back_up"</span>
+        <span style="color:#9CDCFE">state_start</span> = <span style="color:#9CDCFE">now</span>
+    <span style="color:#C586C0">elif</span> <span style="color:#9CDCFE">state</span> == <span style="color:#CE9178">"back_up"</span> <span style="color:#569CD6">and</span> <span style="color:#9CDCFE">time_in_state</span> &gt; <span style="color:#4FC1FF">BACK_UP_SECONDS</span>:
+        <span style="color:#9CDCFE">state</span> = <span style="color:#CE9178">"turn"</span>
+        <span style="color:#9CDCFE">state_start</span> = <span style="color:#9CDCFE">now</span>
+    <span style="color:#C586C0">elif</span> <span style="color:#9CDCFE">state</span> == <span style="color:#CE9178">"turn"</span> <span style="color:#569CD6">and</span> <span style="color:#9CDCFE">time_in_state</span> &gt; <span style="color:#4FC1FF">TURN_SECONDS</span>:
+        <span style="color:#9CDCFE">state</span> = <span style="color:#CE9178">"drive"</span>
+        <span style="color:#9CDCFE">state_start</span> = <span style="color:#9CDCFE">now</span>
+
+    <span style="color:#6A9955"># DECIDE: throttle and turn for that state</span>
+    <span style="color:#9CDCFE">throttle</span> = <span style="color:#B5CEA8">60</span>                    <span style="color:#6A9955"># default: drive forward</span>
+    <span style="color:#9CDCFE">turn</span>     = <span style="color:#B5CEA8">0</span>
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">state</span> == <span style="color:#CE9178">"back_up"</span>:
+        <span style="color:#9CDCFE">throttle</span> = -<span style="color:#B5CEA8">50</span>
+    <span style="color:#C586C0">elif</span> <span style="color:#9CDCFE">state</span> == <span style="color:#CE9178">"turn"</span>:
+        <span style="color:#9CDCFE">throttle</span> = <span style="color:#B5CEA8">0</span>
+        <span style="color:#9CDCFE">turn</span>     = <span style="color:#B5CEA8">60</span>                <span style="color:#6A9955"># spin right in place</span>
+
+    <span style="color:#9CDCFE">left_power</span>  = <span style="color:#9CDCFE">throttle</span> + <span style="color:#9CDCFE">turn</span>
+    <span style="color:#9CDCFE">right_power</span> = <span style="color:#9CDCFE">throttle</span> - <span style="color:#9CDCFE">turn</span>
+
+    <span style="color:#6A9955"># OUTPUT</span>
+    <span style="color:#9CDCFE">left</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#9CDCFE">left_power</span>)
+    <span style="color:#9CDCFE">right</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#9CDCFE">right_power</span>)
+
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.05</span>)</pre>

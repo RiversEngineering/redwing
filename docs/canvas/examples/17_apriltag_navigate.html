@@ -1,0 +1,142 @@
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#CE9178">"""Example 17 — Navigate toward a specific AprilTag.
+
+The robot searches for a target tag (TARGET_ID). When found, two PID
+controllers work simultaneously:
+
+  - Lateral PID:  steers left/right to centre the tag horizontally
+  - Depth PID:    drives forward/backward to reach STOP_DISTANCE_CM
+
+When no tag is visible the robot slowly rotates to search. Use
+robot.plot() on the dashboard to tune the PID gains live.
+
+Hardware
+--------
+- Left motor controller  → D0
+- Right motor controller → D1
+- Pi camera or USB webcam
+
+Setup
+-----
+Print a tag36h11 marker, set TARGET_ID to match its number, and measure
+its physical side length for TAG_SIZE_CM. Tune FOCAL_PX once per camera
+as described in 16_apriltag_distance.py.
+"""</span>
+
+<span style="color:#C586C0">import</span> <span style="color:#4EC9B0">cv2</span>
+<span style="color:#C586C0">import</span> <span style="color:#4EC9B0">numpy</span> <span style="color:#C586C0">as</span> <span style="color:#4EC9B0">np</span>
+
+<span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#6A9955"># --- Configuration ---</span>
+<span style="color:#4FC1FF">TARGET_ID</span>        = <span style="color:#B5CEA8">0</span>       <span style="color:#6A9955"># tag ID to approach</span>
+<span style="color:#4FC1FF">TAG_SIZE_CM</span>      = <span style="color:#B5CEA8">10.0</span>    <span style="color:#6A9955"># physical side length in cm</span>
+<span style="color:#4FC1FF">FOCAL_PX</span>         = <span style="color:#B5CEA8">600</span>     <span style="color:#6A9955"># camera focal length in pixels</span>
+<span style="color:#4FC1FF">STOP_DISTANCE_CM</span> = <span style="color:#B5CEA8">30.0</span>    <span style="color:#6A9955"># desired stopping distance</span>
+<span style="color:#4FC1FF">FRAME_WIDTH</span>      = <span style="color:#B5CEA8">640</span>
+
+<span style="color:#6A9955"># --- Lateral (steering) PID ---</span>
+<span style="color:#4FC1FF">LAT_KP</span> = <span style="color:#B5CEA8">0.08</span>   <span style="color:#6A9955"># proportional gain</span>
+<span style="color:#4FC1FF">LAT_KI</span> = <span style="color:#B5CEA8">0.002</span>  <span style="color:#6A9955"># integral gain</span>
+<span style="color:#4FC1FF">LAT_KD</span> = <span style="color:#B5CEA8">0.01</span>   <span style="color:#6A9955"># derivative gain</span>
+
+<span style="color:#6A9955"># --- Depth (forward/backward) PID ---</span>
+<span style="color:#4FC1FF">DEPTH_KP</span> = <span style="color:#B5CEA8">0.8</span>
+<span style="color:#4FC1FF">DEPTH_KI</span> = <span style="color:#B5CEA8">0.05</span>
+<span style="color:#4FC1FF">DEPTH_KD</span> = <span style="color:#B5CEA8">0.1</span>
+
+<span style="color:#4FC1FF">MAX_SPEED</span> = <span style="color:#B5CEA8">70</span>   <span style="color:#6A9955"># % power cap for any motor</span>
+
+<span style="color:#6A9955"># --- Setup ---</span>
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+
+<span style="color:#9CDCFE">left</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">right</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>()
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#9CDCFE">dictionary</span> = <span style="color:#4EC9B0">cv2</span>.<span style="color:#9CDCFE">aruco</span>.<span style="color:#DCDCAA">getPredefinedDictionary</span>(<span style="color:#4EC9B0">cv2</span>.<span style="color:#9CDCFE">aruco</span>.<span style="color:#9CDCFE">DICT_APRILTAG_36h11</span>)
+<span style="color:#9CDCFE">detector</span>   = <span style="color:#4EC9B0">cv2</span>.<span style="color:#9CDCFE">aruco</span>.<span style="color:#4EC9B0">ArucoDetector</span>(<span style="color:#9CDCFE">dictionary</span>, <span style="color:#4EC9B0">cv2</span>.<span style="color:#9CDCFE">aruco</span>.<span style="color:#4EC9B0">DetectorParameters</span>())
+
+<span style="color:#6A9955"># PID state</span>
+<span style="color:#9CDCFE">lat_integral</span>   = <span style="color:#B5CEA8">0.0</span>
+<span style="color:#9CDCFE">lat_prev_err</span>   = <span style="color:#B5CEA8">0.0</span>
+<span style="color:#9CDCFE">depth_integral</span> = <span style="color:#B5CEA8">0.0</span>
+<span style="color:#9CDCFE">depth_prev_err</span> = <span style="color:#B5CEA8">0.0</span>
+<span style="color:#9CDCFE">search_dir</span>     = <span style="color:#B5CEA8">1</span>          <span style="color:#6A9955"># 1 = rotate right, -1 = rotate left</span>
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Searching for tag…"</span>)
+
+<span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+    <span style="color:#6A9955"># INPUT</span>
+    <span style="color:#9CDCFE">frame</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#9CDCFE">camera</span>.<span style="color:#DCDCAA">read</span>()
+    <span style="color:#9CDCFE">corners</span>, <span style="color:#9CDCFE">ids</span>, <span style="color:#9CDCFE">_</span> = <span style="color:#9CDCFE">detector</span>.<span style="color:#DCDCAA">detectMarkers</span>(<span style="color:#9CDCFE">frame</span>)
+
+    <span style="color:#9CDCFE">target_corners</span> = <span style="color:#569CD6">None</span>
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">ids</span> <span style="color:#569CD6">is</span> <span style="color:#569CD6">not</span> <span style="color:#569CD6">None</span>:
+        <span style="color:#C586C0">for</span> <span style="color:#9CDCFE">i</span>, <span style="color:#9CDCFE">tag_id</span> <span style="color:#569CD6">in</span> <span style="color:#4EC9B0">enumerate</span>(<span style="color:#9CDCFE">ids</span>.<span style="color:#DCDCAA">flatten</span>()):
+            <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">tag_id</span> == <span style="color:#4FC1FF">TARGET_ID</span>:
+                <span style="color:#9CDCFE">target_corners</span> = <span style="color:#9CDCFE">corners</span>[<span style="color:#9CDCFE">i</span>][<span style="color:#B5CEA8">0</span>]
+                <span style="color:#C586C0">break</span>
+    <span style="color:#9CDCFE">tag_found</span> = <span style="color:#9CDCFE">target_corners</span> <span style="color:#569CD6">is</span> <span style="color:#569CD6">not</span> <span style="color:#569CD6">None</span>
+
+    <span style="color:#6A9955"># DECIDE</span>
+    <span style="color:#9CDCFE">annotated</span> = <span style="color:#4EC9B0">cv2</span>.<span style="color:#9CDCFE">aruco</span>.<span style="color:#DCDCAA">drawDetectedMarkers</span>(<span style="color:#9CDCFE">frame</span>.<span style="color:#DCDCAA">copy</span>(), <span style="color:#9CDCFE">corners</span>, <span style="color:#9CDCFE">ids</span>) \
+                <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">ids</span> <span style="color:#569CD6">is</span> <span style="color:#569CD6">not</span> <span style="color:#569CD6">None</span> <span style="color:#C586C0">else</span> <span style="color:#9CDCFE">frame</span>.<span style="color:#DCDCAA">copy</span>()
+
+    <span style="color:#6A9955"># Defaults: no tag in view — rotate slowly to search</span>
+    <span style="color:#9CDCFE">left_power</span>  = <span style="color:#B5CEA8">20</span> * <span style="color:#9CDCFE">search_dir</span>
+    <span style="color:#9CDCFE">right_power</span> = -<span style="color:#B5CEA8">20</span> * <span style="color:#9CDCFE">search_dir</span>
+    <span style="color:#9CDCFE">distance_cm</span> = <span style="color:#B5CEA8">0.0</span>
+    <span style="color:#9CDCFE">lat_err</span>     = <span style="color:#B5CEA8">0.0</span>
+    <span style="color:#9CDCFE">status</span>      = <span style="color:#CE9178">"Searching…"</span>
+
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">tag_found</span>:
+        <span style="color:#6A9955"># --- Lateral error: pixels from image centre ---</span>
+        <span style="color:#9CDCFE">cx</span>          = <span style="color:#9CDCFE">target_corners</span>[:, <span style="color:#B5CEA8">0</span>].<span style="color:#DCDCAA">mean</span>()
+        <span style="color:#9CDCFE">lat_err</span>     = <span style="color:#9CDCFE">cx</span> - <span style="color:#4FC1FF">FRAME_WIDTH</span> / <span style="color:#B5CEA8">2</span>        <span style="color:#6A9955"># +ve = tag to the right</span>
+
+        <span style="color:#9CDCFE">lat_integral</span>  += <span style="color:#9CDCFE">lat_err</span>
+        <span style="color:#9CDCFE">lat_integral</span>   = <span style="color:#DCDCAA">max</span>(-<span style="color:#B5CEA8">300</span>, <span style="color:#DCDCAA">min</span>(<span style="color:#B5CEA8">300</span>, <span style="color:#9CDCFE">lat_integral</span>))   <span style="color:#6A9955"># anti-windup</span>
+        <span style="color:#9CDCFE">lat_deriv</span>      = <span style="color:#9CDCFE">lat_err</span> - <span style="color:#9CDCFE">lat_prev_err</span>
+        <span style="color:#9CDCFE">lat_prev_err</span>   = <span style="color:#9CDCFE">lat_err</span>
+        <span style="color:#9CDCFE">lat_out</span>        = <span style="color:#4FC1FF">LAT_KP</span> * <span style="color:#9CDCFE">lat_err</span> + <span style="color:#4FC1FF">LAT_KI</span> * <span style="color:#9CDCFE">lat_integral</span> + <span style="color:#4FC1FF">LAT_KD</span> * <span style="color:#9CDCFE">lat_deriv</span>
+
+        <span style="color:#6A9955"># --- Depth error: cm from target distance ---</span>
+        <span style="color:#9CDCFE">top_w</span>       = <span style="color:#4EC9B0">np</span>.<span style="color:#9CDCFE">linalg</span>.<span style="color:#DCDCAA">norm</span>(<span style="color:#9CDCFE">target_corners</span>[<span style="color:#B5CEA8">1</span>] - <span style="color:#9CDCFE">target_corners</span>[<span style="color:#B5CEA8">0</span>])
+        <span style="color:#9CDCFE">bottom_w</span>    = <span style="color:#4EC9B0">np</span>.<span style="color:#9CDCFE">linalg</span>.<span style="color:#DCDCAA">norm</span>(<span style="color:#9CDCFE">target_corners</span>[<span style="color:#B5CEA8">2</span>] - <span style="color:#9CDCFE">target_corners</span>[<span style="color:#B5CEA8">3</span>])
+        <span style="color:#9CDCFE">pixel_w</span>     = (<span style="color:#9CDCFE">top_w</span> + <span style="color:#9CDCFE">bottom_w</span>) / <span style="color:#B5CEA8">2</span>
+        <span style="color:#9CDCFE">distance_cm</span> = (<span style="color:#4FC1FF">TAG_SIZE_CM</span> * <span style="color:#4FC1FF">FOCAL_PX</span>) / <span style="color:#DCDCAA">max</span>(<span style="color:#B5CEA8">1</span>, <span style="color:#9CDCFE">pixel_w</span>)
+        <span style="color:#9CDCFE">depth_err</span>   = <span style="color:#9CDCFE">distance_cm</span> - <span style="color:#4FC1FF">STOP_DISTANCE_CM</span>   <span style="color:#6A9955"># +ve = too far → drive forward</span>
+
+        <span style="color:#9CDCFE">depth_integral</span> += <span style="color:#9CDCFE">depth_err</span>
+        <span style="color:#9CDCFE">depth_integral</span>  = <span style="color:#DCDCAA">max</span>(-<span style="color:#B5CEA8">200</span>, <span style="color:#DCDCAA">min</span>(<span style="color:#B5CEA8">200</span>, <span style="color:#9CDCFE">depth_integral</span>))
+        <span style="color:#9CDCFE">depth_deriv</span>     = <span style="color:#9CDCFE">depth_err</span> - <span style="color:#9CDCFE">depth_prev_err</span>
+        <span style="color:#9CDCFE">depth_prev_err</span>  = <span style="color:#9CDCFE">depth_err</span>
+        <span style="color:#9CDCFE">depth_out</span>       = <span style="color:#4FC1FF">DEPTH_KP</span> * <span style="color:#9CDCFE">depth_err</span> + <span style="color:#4FC1FF">DEPTH_KI</span> * <span style="color:#9CDCFE">depth_integral</span> + <span style="color:#4FC1FF">DEPTH_KD</span> * <span style="color:#9CDCFE">depth_deriv</span>
+
+        <span style="color:#6A9955"># Combine: depth sets forward speed, lateral steers</span>
+        <span style="color:#9CDCFE">left_power</span>  = <span style="color:#DCDCAA">max</span>(-<span style="color:#4FC1FF">MAX_SPEED</span>, <span style="color:#DCDCAA">min</span>(<span style="color:#4FC1FF">MAX_SPEED</span>,  <span style="color:#9CDCFE">depth_out</span> - <span style="color:#9CDCFE">lat_out</span>))
+        <span style="color:#9CDCFE">right_power</span> = <span style="color:#DCDCAA">max</span>(-<span style="color:#4FC1FF">MAX_SPEED</span>, <span style="color:#DCDCAA">min</span>(<span style="color:#4FC1FF">MAX_SPEED</span>,  <span style="color:#9CDCFE">depth_out</span> + <span style="color:#9CDCFE">lat_out</span>))
+        <span style="color:#9CDCFE">status</span>      = <span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">Tag </span><span style="color:#569CD6">{</span><span style="color:#4FC1FF">TARGET_ID</span><span style="color:#569CD6">}</span><span style="color:#CE9178">: </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">distance_cm</span>:<span style="color:#CE9178">.1f</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> cm  lateral=</span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">lat_err</span>:<span style="color:#CE9178">+.0f</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> px</span><span style="color:#CE9178">"</span>
+
+        <span style="color:#6A9955"># Annotate frame</span>
+        <span style="color:#4EC9B0">cv2</span>.<span style="color:#DCDCAA">putText</span>(
+            <span style="color:#9CDCFE">annotated</span>,
+            <span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">distance_cm</span>:<span style="color:#CE9178">.0f</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> cm  err=</span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">lat_err</span>:<span style="color:#CE9178">+.0f</span><span style="color:#569CD6">}</span><span style="color:#CE9178">px</span><span style="color:#CE9178">"</span>,
+            (<span style="color:#4EC9B0">int</span>(<span style="color:#9CDCFE">target_corners</span>[<span style="color:#B5CEA8">0</span>][<span style="color:#B5CEA8">0</span>]), <span style="color:#4EC9B0">int</span>(<span style="color:#9CDCFE">target_corners</span>[<span style="color:#B5CEA8">0</span>][<span style="color:#B5CEA8">1</span>]) - <span style="color:#B5CEA8">12</span>),
+            <span style="color:#4EC9B0">cv2</span>.<span style="color:#4FC1FF">FONT_HERSHEY_SIMPLEX</span>, <span style="color:#B5CEA8">0.6</span>, (<span style="color:#B5CEA8">0</span>, <span style="color:#B5CEA8">200</span>, <span style="color:#B5CEA8">255</span>), <span style="color:#B5CEA8">2</span>,
+        )
+    <span style="color:#C586C0">else</span>:
+        <span style="color:#6A9955"># Clear PID memory so old errors don't carry over once the tag reappears</span>
+        <span style="color:#9CDCFE">lat_integral</span> = <span style="color:#9CDCFE">lat_prev_err</span> = <span style="color:#9CDCFE">depth_integral</span> = <span style="color:#9CDCFE">depth_prev_err</span> = <span style="color:#B5CEA8">0.0</span>
+
+    <span style="color:#6A9955"># OUTPUT</span>
+    <span style="color:#9CDCFE">left</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#9CDCFE">left_power</span>)
+    <span style="color:#9CDCFE">right</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#9CDCFE">right_power</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#9CDCFE">status</span>)
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">tag_found</span>:
+        <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">plot</span>(<span style="color:#CE9178">"distance_cm"</span>, <span style="color:#9CDCFE">distance_cm</span>)
+        <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">plot</span>(<span style="color:#CE9178">"lat_err_px"</span>,  <span style="color:#9CDCFE">lat_err</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#9CDCFE">camera</span>.<span style="color:#DCDCAA">show</span>(<span style="color:#9CDCFE">annotated</span>)
+
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.05</span>)</pre>

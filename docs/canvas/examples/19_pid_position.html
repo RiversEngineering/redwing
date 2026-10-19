@@ -1,0 +1,97 @@
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#CE9178">"""Example 19 — Closed-loop position control with PID.
+
+The RP2040 runs an onboard PID loop at 100 Hz that drives a motor to a
+target encoder tick count and holds it there — like a servo, but with a
+DC motor and quadrature encoder.
+
+Two methods are available:
+  motor.go_to_position(target)         — move to an absolute tick count
+  motor.move_by(delta)                 — move a relative number of ticks
+
+Both accept an optional max_speed argument (0–100 %) to cap motor power
+during the move — useful when approaching a hard stop or when precision
+matters more than speed.
+
+Tuning tips
+-----------
+Position PID error is in encoder ticks, not ticks/s, so the gains will be
+very different from velocity PID.  Start here and adjust:
+
+  KP — increase until the motor reaches position quickly without overshooting.
+       Gains are in percent-per-tick: KP=10 gives 10% motor power per tick of
+       error (full power when error ≥ 10 ticks with KP=10).
+  KD — add to damp oscillation / overshoot near the target.
+  KI — keep small or zero; a large KI can cause slow windup oscillation.
+       Use integral_max to bound KI's contribution: integral_max = max_pct / KI.
+
+Hardware
+--------
+- Motor controller → D0
+- Quadrature encoder → D2
+"""</span>
+
+<span style="color:#C586C0">import</span> <span style="color:#4EC9B0">time</span>
+<span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#6A9955"># PID gains — in percent-per-tick (position PID only).</span>
+<span style="color:#6A9955"># KP=10 → full power (100%) when error ≥ 10 ticks; adjust to your range of motion.</span>
+<span style="color:#4FC1FF">KP</span> = <span style="color:#B5CEA8">10.0</span>
+<span style="color:#4FC1FF">KI</span> = <span style="color:#B5CEA8">0.0</span>
+<span style="color:#4FC1FF">KD</span> = <span style="color:#B5CEA8">0.5</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+
+<span style="color:#9CDCFE">motor</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">encoder</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">encoder</span>()
+<span style="color:#9CDCFE">motor</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">encoder</span>)
+<span style="color:#9CDCFE">motor</span>.<span style="color:#DCDCAA">set_pid</span>(<span style="color:#4FC1FF">KP</span>, <span style="color:#4FC1FF">KI</span>, <span style="color:#4FC1FF">KD</span>)
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#6A9955"># ── Helper: wait until the motor is within tolerance of its target ────────────</span>
+
+<span style="color:#569CD6">def</span> <span style="color:#DCDCAA">wait_for_position</span>(<span style="color:#9CDCFE">target</span>: <span style="color:#4EC9B0">int</span>, <span style="color:#9CDCFE">tolerance</span>: <span style="color:#4EC9B0">int</span> = <span style="color:#B5CEA8">10</span>, <span style="color:#9CDCFE">timeout</span>: <span style="color:#4EC9B0">float</span> = <span style="color:#B5CEA8">5.0</span>):
+    <span style="color:#CE9178">"""Block until encoder.count is within *tolerance* ticks of *target*."""</span>
+    <span style="color:#9CDCFE">deadline</span> = <span style="color:#4EC9B0">time</span>.<span style="color:#4EC9B0">time</span>() + <span style="color:#9CDCFE">timeout</span>
+    <span style="color:#C586C0">while</span> <span style="color:#4EC9B0">time</span>.<span style="color:#4EC9B0">time</span>() &lt; <span style="color:#9CDCFE">deadline</span>:
+        <span style="color:#C586C0">if</span> <span style="color:#DCDCAA">abs</span>(<span style="color:#9CDCFE">encoder</span>.<span style="color:#9CDCFE">count</span> - <span style="color:#9CDCFE">target</span>) &lt;= <span style="color:#9CDCFE">tolerance</span>:
+            <span style="color:#C586C0">return</span> <span style="color:#569CD6">True</span>
+        <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">plot</span>(<span style="color:#CE9178">"target"</span>,   <span style="color:#9CDCFE">target</span>)
+        <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">plot</span>(<span style="color:#CE9178">"position"</span>, <span style="color:#9CDCFE">encoder</span>.<span style="color:#9CDCFE">count</span>)
+        <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.02</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">Position timeout — stopped at tick </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">encoder</span>.<span style="color:#9CDCFE">count</span><span style="color:#569CD6">}</span><span style="color:#CE9178">"</span>)
+    <span style="color:#C586C0">return</span> <span style="color:#569CD6">False</span>
+
+
+<span style="color:#6A9955"># ── Demo sequence ─────────────────────────────────────────────────────────────</span>
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Resetting encoder to zero."</span>)
+<span style="color:#9CDCFE">encoder</span>.<span style="color:#DCDCAA">reset</span>()
+
+<span style="color:#6A9955"># 1. Move to an absolute position at full speed.</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"go_to_position(500) — full speed"</span>)
+<span style="color:#9CDCFE">motor</span>.<span style="color:#DCDCAA">go_to_position</span>(<span style="color:#B5CEA8">500</span>)
+<span style="color:#DCDCAA">wait_for_position</span>(<span style="color:#B5CEA8">500</span>)
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">1.0</span>)
+
+<span style="color:#6A9955"># 2. Move to a different absolute position at 40 % speed.</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"go_to_position(0) — 40 % speed cap"</span>)
+<span style="color:#9CDCFE">motor</span>.<span style="color:#DCDCAA">go_to_position</span>(<span style="color:#B5CEA8">0</span>, <span style="color:#9CDCFE">max_speed</span>=<span style="color:#B5CEA8">40</span>)
+<span style="color:#DCDCAA">wait_for_position</span>(<span style="color:#B5CEA8">0</span>)
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">1.0</span>)
+
+<span style="color:#6A9955"># 3. Relative moves: three steps of 200 ticks forward.</span>
+<span style="color:#C586C0">for</span> <span style="color:#9CDCFE">step</span> <span style="color:#569CD6">in</span> <span style="color:#4EC9B0">range</span>(<span style="color:#B5CEA8">3</span>):
+    <span style="color:#9CDCFE">target</span> = (<span style="color:#9CDCFE">step</span> + <span style="color:#B5CEA8">1</span>) * <span style="color:#B5CEA8">200</span>
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">move_by(200) — step </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">step</span> + <span style="color:#B5CEA8">1</span><span style="color:#569CD6">}</span><span style="color:#CE9178">, target ≈ </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">target</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> ticks</span><span style="color:#CE9178">"</span>)
+    <span style="color:#9CDCFE">motor</span>.<span style="color:#DCDCAA">move_by</span>(<span style="color:#B5CEA8">200</span>)
+    <span style="color:#DCDCAA">wait_for_position</span>(<span style="color:#9CDCFE">target</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.5</span>)
+
+<span style="color:#6A9955"># 4. Return to zero with a speed cap.</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"move_by back to 0 — 50 % speed cap"</span>)
+<span style="color:#9CDCFE">motor</span>.<span style="color:#DCDCAA">go_to_position</span>(<span style="color:#B5CEA8">0</span>, <span style="color:#9CDCFE">max_speed</span>=<span style="color:#B5CEA8">50</span>)
+<span style="color:#DCDCAA">wait_for_position</span>(<span style="color:#B5CEA8">0</span>)
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Done."</span>)
+<span style="color:#9CDCFE">motor</span>.<span style="color:#DCDCAA">stop</span>()</pre>

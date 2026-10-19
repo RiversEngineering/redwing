@@ -1,0 +1,41 @@
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#CE9178">"""Example 2 — Two-motor differential drive.
+
+Uses a left and right motor to drive forward, spin in place, reverse,
+and stop in sequence.
+
+Hardware
+--------
+- Left motor controller  → D0 (dual-pin, sign-magnitude)
+- Right motor controller → D1 (dual-pin, sign-magnitude)
+
+If one motor runs backward, invert it:
+    right.invert()
+"""</span>
+
+<span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+
+<span style="color:#9CDCFE">left</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">right</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>()
+
+<span style="color:#6A9955"># right.invert()          # uncomment if right wheel runs the wrong way</span>
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#6A9955"># Drive forward</span>
+<span style="color:#9CDCFE">left</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#B5CEA8">60</span>)
+<span style="color:#9CDCFE">right</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#B5CEA8">60</span>)
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">2</span>)
+
+<span style="color:#6A9955"># Spin right in place</span>
+<span style="color:#9CDCFE">left</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#B5CEA8">60</span>)
+<span style="color:#9CDCFE">right</span>.<span style="color:#DCDCAA">set_power</span>(-<span style="color:#B5CEA8">60</span>)
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.5</span>)
+
+<span style="color:#6A9955"># Reverse</span>
+<span style="color:#9CDCFE">left</span>.<span style="color:#DCDCAA">set_power</span>(-<span style="color:#B5CEA8">40</span>)
+<span style="color:#9CDCFE">right</span>.<span style="color:#DCDCAA">set_power</span>(-<span style="color:#B5CEA8">40</span>)
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">1</span>)
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">stop</span>()</pre>

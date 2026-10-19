@@ -1,0 +1,55 @@
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#CE9178">"""Example 12 — Camera color tracking with servo pan.
+
+Finds the largest blob of a chosen color in the camera image and pans
+a servo so that the robot's "head" always points at it.
+
+The camera image is 640×480 pixels. A P-controller converts the
+horizontal offset of the blob from the image center into a servo
+correction. Use robot.plot() to watch the error shrink.
+
+Hardware
+--------
+- Pan servo → S0 (single-pin port)
+- Pi camera or USB webcam (connected to Raspberry Pi)
+
+Tuning
+------
+Change TARGET_COLOR to one of: "red", "green", "blue", "yellow"
+(or tune your own HSV bounds inside camera.color_mask).
+"""</span>
+
+<span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#4FC1FF">TARGET_COLOR</span>  = <span style="color:#CE9178">"red"</span>
+<span style="color:#4FC1FF">FRAME_WIDTH</span>   = <span style="color:#B5CEA8">640</span>
+<span style="color:#4FC1FF">SERVO_CENTER</span>  = <span style="color:#B5CEA8">150</span>    <span style="color:#6A9955"># degrees (mid-point of 300° range)</span>
+<span style="color:#4FC1FF">KP</span>            = <span style="color:#B5CEA8">0.05</span>   <span style="color:#6A9955"># proportional gain: pixels → degrees of correction</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+
+<span style="color:#9CDCFE">pan</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">S0</span>.<span style="color:#DCDCAA">servo</span>()     <span style="color:#6A9955"># 0–300° pan servo</span>
+<span style="color:#9CDCFE">cam</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#9CDCFE">camera</span>
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#9CDCFE">pan</span>.<span style="color:#DCDCAA">set_angle</span>(<span style="color:#4FC1FF">SERVO_CENTER</span>)  <span style="color:#6A9955"># start centered</span>
+<span style="color:#9CDCFE">current_angle</span> = <span style="color:#4EC9B0">float</span>(<span style="color:#4FC1FF">SERVO_CENTER</span>)
+
+<span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+    <span style="color:#9CDCFE">frame</span> = <span style="color:#9CDCFE">cam</span>.<span style="color:#DCDCAA">read</span>()
+    <span style="color:#9CDCFE">mask</span>  = <span style="color:#9CDCFE">cam</span>.<span style="color:#DCDCAA">color_mask</span>(<span style="color:#9CDCFE">frame</span>, <span style="color:#4FC1FF">TARGET_COLOR</span>)
+    <span style="color:#9CDCFE">blob</span>  = <span style="color:#9CDCFE">cam</span>.<span style="color:#DCDCAA">find_largest_contour</span>(<span style="color:#9CDCFE">mask</span>)
+
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">blob</span> <span style="color:#569CD6">is</span> <span style="color:#569CD6">not</span> <span style="color:#569CD6">None</span>:
+        <span style="color:#9CDCFE">cx</span>, <span style="color:#9CDCFE">cy</span>, <span style="color:#9CDCFE">area</span> = <span style="color:#9CDCFE">blob</span>
+        <span style="color:#9CDCFE">error</span> = <span style="color:#9CDCFE">cx</span> - <span style="color:#4FC1FF">FRAME_WIDTH</span> / <span style="color:#B5CEA8">2</span>          <span style="color:#6A9955"># pixels left/right of center</span>
+        <span style="color:#9CDCFE">correction</span> = <span style="color:#4FC1FF">KP</span> * <span style="color:#9CDCFE">error</span>
+        <span style="color:#9CDCFE">current_angle</span> = <span style="color:#DCDCAA">max</span>(<span style="color:#B5CEA8">0</span>, <span style="color:#DCDCAA">min</span>(<span style="color:#B5CEA8">300</span>, <span style="color:#9CDCFE">current_angle</span> + <span style="color:#9CDCFE">correction</span>))
+        <span style="color:#9CDCFE">pan</span>.<span style="color:#DCDCAA">set_angle</span>(<span style="color:#9CDCFE">current_angle</span>)
+
+        <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">plot</span>(<span style="color:#CE9178">"blob_x"</span>,      <span style="color:#9CDCFE">cx</span>)
+        <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">plot</span>(<span style="color:#CE9178">"error_px"</span>,    <span style="color:#9CDCFE">error</span>)
+        <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">plot</span>(<span style="color:#CE9178">"servo_angle"</span>, <span style="color:#9CDCFE">current_angle</span>)
+
+    <span style="color:#9CDCFE">cam</span>.<span style="color:#DCDCAA">show</span>(<span style="color:#9CDCFE">frame</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.05</span>)</pre>

@@ -1,0 +1,60 @@
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#CE9178">"""Example 15 — Detect AprilTags with the camera.
+
+Reads the camera, finds all AprilTag 36h11 markers in the frame, draws
+a bounding box and ID number on each one, and sends the annotated frame
+to the dashboard.
+
+AprilTags are fiducial markers — printed squares that the robot can
+uniquely identify and locate. Each tag has a numeric ID encoded in its
+pattern. Print tags from:
+  https://github.com/AprilRobotics/apriltag-imgs/tree/master/tag36h11
+
+Hardware
+--------
+- Pi camera or USB webcam (connected to Raspberry Pi)
+
+No motors or Pico ports are needed for this example.
+"""</span>
+
+<span style="color:#C586C0">import</span> <span style="color:#4EC9B0">cv2</span>
+<span style="color:#C586C0">import</span> <span style="color:#4EC9B0">numpy</span> <span style="color:#C586C0">as</span> <span style="color:#4EC9B0">np</span>
+
+<span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+<span style="color:#9CDCFE">cam</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#9CDCFE">camera</span>
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#6A9955"># Build the AprilTag detector once (reused every frame)</span>
+<span style="color:#9CDCFE">dictionary</span> = <span style="color:#4EC9B0">cv2</span>.<span style="color:#9CDCFE">aruco</span>.<span style="color:#DCDCAA">getPredefinedDictionary</span>(<span style="color:#4EC9B0">cv2</span>.<span style="color:#9CDCFE">aruco</span>.<span style="color:#9CDCFE">DICT_APRILTAG_36h11</span>)
+<span style="color:#9CDCFE">detector</span>   = <span style="color:#4EC9B0">cv2</span>.<span style="color:#9CDCFE">aruco</span>.<span style="color:#4EC9B0">ArucoDetector</span>(<span style="color:#9CDCFE">dictionary</span>, <span style="color:#4EC9B0">cv2</span>.<span style="color:#9CDCFE">aruco</span>.<span style="color:#4EC9B0">DetectorParameters</span>())
+
+<span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+    <span style="color:#9CDCFE">frame</span> = <span style="color:#9CDCFE">cam</span>.<span style="color:#DCDCAA">read</span>()
+
+    <span style="color:#9CDCFE">corners</span>, <span style="color:#9CDCFE">ids</span>, <span style="color:#9CDCFE">_</span> = <span style="color:#9CDCFE">detector</span>.<span style="color:#DCDCAA">detectMarkers</span>(<span style="color:#9CDCFE">frame</span>)
+
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">ids</span> <span style="color:#569CD6">is</span> <span style="color:#569CD6">not</span> <span style="color:#569CD6">None</span>:
+        <span style="color:#6A9955"># Draw bounding boxes on a copy of the frame</span>
+        <span style="color:#9CDCFE">annotated</span> = <span style="color:#4EC9B0">cv2</span>.<span style="color:#9CDCFE">aruco</span>.<span style="color:#DCDCAA">drawDetectedMarkers</span>(<span style="color:#9CDCFE">frame</span>.<span style="color:#DCDCAA">copy</span>(), <span style="color:#9CDCFE">corners</span>, <span style="color:#9CDCFE">ids</span>)
+
+        <span style="color:#C586C0">for</span> <span style="color:#9CDCFE">i</span>, <span style="color:#9CDCFE">tag_id</span> <span style="color:#569CD6">in</span> <span style="color:#4EC9B0">enumerate</span>(<span style="color:#9CDCFE">ids</span>.<span style="color:#DCDCAA">flatten</span>()):
+            <span style="color:#6A9955"># Compute the tag's center from its four corners</span>
+            <span style="color:#9CDCFE">pts</span> = <span style="color:#9CDCFE">corners</span>[<span style="color:#9CDCFE">i</span>][<span style="color:#B5CEA8">0</span>]
+            <span style="color:#9CDCFE">cx</span>  = <span style="color:#4EC9B0">int</span>(<span style="color:#9CDCFE">pts</span>[:, <span style="color:#B5CEA8">0</span>].<span style="color:#DCDCAA">mean</span>())
+            <span style="color:#9CDCFE">cy</span>  = <span style="color:#4EC9B0">int</span>(<span style="color:#9CDCFE">pts</span>[:, <span style="color:#B5CEA8">1</span>].<span style="color:#DCDCAA">mean</span>())
+
+            <span style="color:#4EC9B0">cv2</span>.<span style="color:#DCDCAA">circle</span>(<span style="color:#9CDCFE">annotated</span>, (<span style="color:#9CDCFE">cx</span>, <span style="color:#9CDCFE">cy</span>), <span style="color:#B5CEA8">5</span>, (<span style="color:#B5CEA8">0</span>, <span style="color:#B5CEA8">255</span>, <span style="color:#B5CEA8">0</span>), -<span style="color:#B5CEA8">1</span>)
+            <span style="color:#4EC9B0">cv2</span>.<span style="color:#DCDCAA">putText</span>(
+                <span style="color:#9CDCFE">annotated</span>, <span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">ID </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">tag_id</span><span style="color:#569CD6">}</span><span style="color:#CE9178">"</span>,
+                (<span style="color:#9CDCFE">cx</span> + <span style="color:#B5CEA8">8</span>, <span style="color:#9CDCFE">cy</span> - <span style="color:#B5CEA8">8</span>),
+                <span style="color:#4EC9B0">cv2</span>.<span style="color:#4FC1FF">FONT_HERSHEY_SIMPLEX</span>, <span style="color:#B5CEA8">0.7</span>, (<span style="color:#B5CEA8">0</span>, <span style="color:#B5CEA8">255</span>, <span style="color:#B5CEA8">0</span>), <span style="color:#B5CEA8">2</span>,
+            )
+
+        <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">Detected tags: </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">ids</span>.<span style="color:#DCDCAA">flatten</span>().<span style="color:#DCDCAA">tolist</span>()<span style="color:#569CD6">}</span><span style="color:#CE9178">"</span>)
+        <span style="color:#9CDCFE">cam</span>.<span style="color:#DCDCAA">show</span>(<span style="color:#9CDCFE">annotated</span>)
+    <span style="color:#C586C0">else</span>:
+        <span style="color:#9CDCFE">cam</span>.<span style="color:#DCDCAA">show</span>(<span style="color:#9CDCFE">frame</span>)
+
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.05</span>)</pre>

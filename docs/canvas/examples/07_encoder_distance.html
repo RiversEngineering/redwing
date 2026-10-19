@@ -1,0 +1,48 @@
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#CE9178">"""Example 7 — Drive a fixed distance using an encoder.
+
+Instead of driving for a fixed time (which varies with battery level),
+this program drives until the encoder reaches a target tick count and
+then stops.
+
+You need to know your wheel's ticks-per-revolution and circumference
+to convert encoder ticks to centimetres. Start with the values below
+and tune them to match your robot.
+
+Hardware
+--------
+- Motor controller → D0
+- Quadrature encoder → D2  (both signals connected to D2's two pins)
+"""</span>
+
+<span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#4FC1FF">TICKS_PER_REV</span>  = <span style="color:#B5CEA8">48</span>       <span style="color:#6A9955"># encoder pulses per motor shaft revolution</span>
+<span style="color:#4FC1FF">GEAR_RATIO</span>     = <span style="color:#B5CEA8">30</span>       <span style="color:#6A9955"># motor shaft revolutions per wheel revolution</span>
+<span style="color:#4FC1FF">WHEEL_DIAM_CM</span>  = <span style="color:#B5CEA8">6.5</span>      <span style="color:#6A9955"># wheel diameter in centimetres</span>
+
+<span style="color:#6A9955"># Derived: encoder ticks per cm of wheel travel</span>
+<span style="color:#4FC1FF">TICKS_PER_CM</span> = (<span style="color:#4FC1FF">TICKS_PER_REV</span> * <span style="color:#4FC1FF">GEAR_RATIO</span>) / (<span style="color:#B5CEA8">3.14159</span> * <span style="color:#4FC1FF">WHEEL_DIAM_CM</span>)
+
+<span style="color:#4FC1FF">TARGET_CM</span> = <span style="color:#B5CEA8">50</span>            <span style="color:#6A9955"># drive 50 cm forward</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+
+<span style="color:#9CDCFE">motor</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">encoder</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">encoder</span>()
+<span style="color:#9CDCFE">motor</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">encoder</span>)   <span style="color:#6A9955"># tells the firmware to pair them</span>
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#9CDCFE">encoder</span>.<span style="color:#DCDCAA">reset</span>()
+<span style="color:#9CDCFE">target_ticks</span> = <span style="color:#4EC9B0">int</span>(<span style="color:#4FC1FF">TARGET_CM</span> * <span style="color:#4FC1FF">TICKS_PER_CM</span>)
+
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">Driving </span><span style="color:#569CD6">{</span><span style="color:#4FC1FF">TARGET_CM</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> cm (</span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">target_ticks</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> ticks)…</span><span style="color:#CE9178">"</span>)
+
+<span style="color:#9CDCFE">motor</span>.<span style="color:#DCDCAA">set_power</span>(<span style="color:#B5CEA8">50</span>)
+
+<span style="color:#C586C0">while</span> <span style="color:#9CDCFE">encoder</span>.<span style="color:#9CDCFE">count</span> &lt; <span style="color:#9CDCFE">target_ticks</span>:
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">  ticks: </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">encoder</span>.<span style="color:#9CDCFE">count</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> / </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">target_ticks</span><span style="color:#569CD6">}</span><span style="color:#CE9178">"</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.05</span>)
+
+<span style="color:#9CDCFE">motor</span>.<span style="color:#DCDCAA">stop</span>()
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Done."</span>)</pre>
