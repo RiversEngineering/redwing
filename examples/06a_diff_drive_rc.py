@@ -1,4 +1,4 @@
-"""Example — Gamepad-controlled differential drive (tank steering).
+"""Example — Gamepad-controlled differential drive - RC Controls.
 
 Left stick Y-axis controls forward/backward movement
 Right stick X-axis controls turning. 

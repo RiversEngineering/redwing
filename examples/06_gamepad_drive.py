@@ -1,4 +1,4 @@
-"""Example — Gamepad-controlled differential drive, RC controls.
+"""Example — Gamepad-controlled differential drive, Tank controls.
 
 Left stick Y-axis drives the left wheel; right stick Y-axis drives the
 right wheel. Press A to stop all motors.
