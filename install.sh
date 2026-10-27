@@ -216,6 +216,28 @@ grep -q "^hid-nintendo" /etc/modules 2>/dev/null || \
     echo "hid-nintendo" | sudo tee -a /etc/modules > /dev/null
 ok "hid-nintendo enabled"
 
+# ── 5c. Bootloader: cut power on halt (Pi 5 + DFRobot UPS) ────────────────────
+# By default a halted Pi 5 keeps its 3.3V/5V rails live, so the DFRobot FIT0992
+# UPS still sees a load and keeps powering the board — LEDs and peripherals
+# drain the battery overnight. POWER_OFF_ON_HALT=1 drops the rails on halt,
+# which lets the UPS switch itself off. Note --apply writes the config into the
+# newest installed bootloader image, so this may also update the bootloader.
+if grep -q "Raspberry Pi 5" /proc/device-tree/model 2>/dev/null; then
+    step "Setting bootloader POWER_OFF_ON_HALT=1..."
+    CUR_EEPROM="$(sudo rpi-eeprom-config)"
+    if grep -q '^POWER_OFF_ON_HALT=1' <<<"$CUR_EEPROM"; then
+        ok "POWER_OFF_ON_HALT already 1"
+    else
+        TMP_EEPROM="$(mktemp)"
+        sed '/^POWER_OFF_ON_HALT=/d' <<<"$CUR_EEPROM" > "$TMP_EEPROM"
+        echo "POWER_OFF_ON_HALT=1" >> "$TMP_EEPROM"
+        sudo rpi-eeprom-config --apply "$TMP_EEPROM"
+        rm -f "$TMP_EEPROM"
+        NEED_REBOOT=1
+        ok "POWER_OFF_ON_HALT=1 staged (applies after reboot)"
+    fi
+fi
+
 # ── 6. udev rules (stable /dev/rp2040 symlink for RP2040) ─────────────────────
 step "Installing udev rules..."
 sudo cp "$INSTALL_DIR/docker/99-rp2040.rules" /etc/udev/rules.d/
