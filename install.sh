@@ -28,7 +28,7 @@ REPO_URL="https://github.com/RiversEngineering/redwing"
 REPO_BRANCH="${REDWING_BRANCH:-main}"
 INSTALL_DIR="/opt/redwing"
 SERVICE_NAME="redwing"
-NEED_REBOOT=0   # set to 1 by steps whose changes only apply after a reboot
+REBOOT_REASONS=()   # steps whose changes only apply after a reboot append a note here
 
 # ── Colour helpers ────────────────────────────────────────────────────────────
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; BOLD='\033[1m'; NC='\033[0m'
@@ -233,7 +233,7 @@ if grep -q "Raspberry Pi 5" /proc/device-tree/model 2>/dev/null; then
         echo "POWER_OFF_ON_HALT=1" >> "$TMP_EEPROM"
         sudo rpi-eeprom-config --apply "$TMP_EEPROM"
         rm -f "$TMP_EEPROM"
-        NEED_REBOOT=1
+        REBOOT_REASONS+=("The bootloader POWER_OFF_ON_HALT setting is NOT applied until you reboot.")
         ok "POWER_OFF_ON_HALT=1 staged (applies after reboot)"
     fi
 fi
@@ -277,7 +277,7 @@ if [[ "$MEM_TOTAL_KB" -gt 0 && "$MEM_TOTAL_KB" -le 2621440 ]]; then   # <= 2.5 G
     if [[ -f "$CGROUP_CMDLINE" ]] && ! grep -q "cgroup_enable=memory" "$CGROUP_CMDLINE"; then
         # cmdline.txt is a single line; append the flags to it in place.
         sudo sed -i 's/$/ cgroup_enable=memory cgroup_memory=1/' "$CGROUP_CMDLINE"
-        NEED_REBOOT=1
+        REBOOT_REASONS+=("The kernel memory cgroup was just enabled — the daemon's memory reservation is NOT active until you reboot.")
         ok "Enabled kernel memory cgroup in $CGROUP_CMDLINE (reboot required)"
     elif [[ -f "$CGROUP_CMDLINE" ]]; then
         ok "Kernel memory cgroup already enabled"
@@ -338,10 +338,9 @@ echo "    Dashboard:    http://${PI_IP}/dashboard"
 echo "    Code editor:  http://${PI_IP}/editor  (password: redwing)"
 echo ""
 echo "  A reboot is required for I²C and docker group changes to take full effect."
-if [[ "$NEED_REBOOT" -eq 1 ]]; then
-    echo -e "  ${YELLOW}The kernel memory cgroup was just enabled — the daemon's memory"
-    echo -e "  reservation is NOT active until you reboot.${NC}"
-fi
+for reason in "${REBOOT_REASONS[@]}"; do
+    echo -e "  ${YELLOW}${reason}${NC}"
+done
 echo ""
 
 # Only prompt if stdin is a terminal (not piped from curl)
