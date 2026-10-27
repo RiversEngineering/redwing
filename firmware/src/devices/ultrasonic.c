@@ -40,6 +40,20 @@ void ultrasonic_deinit(uint8_t slot) {
     us[slot].active = false;
 }
 
+// Noise coupled onto the echo wire (e.g. a cable routed past the Pi) shows up
+// as spikes far shorter than any real echo (≥150 µs).  A level change only
+// counts once the pin has held the new level for this long.
+#define ECHO_DEGLITCH_US 10u
+
+// Returns true if the echo pin stays at `level` for ECHO_DEGLITCH_US.
+static bool echo_holds(uint32_t echo_mask, bool level) {
+    uint32_t t0 = time_us_32();
+    while ((time_us_32() - t0) < ECHO_DEGLITCH_US) {
+        if (((sio_hw->gpio_in & echo_mask) != 0) != level) return false;
+    }
+    return true;
+}
+
 // Fire one sensor and busy-wait for the echo (max ~25 ms timeout).
 // This is intentionally blocking — called at ~17 Hz per sensor so it's safe.
 static void trigger_and_read(uint8_t slot) {
@@ -61,22 +75,45 @@ static void trigger_and_read(uint8_t slot) {
     uint32_t baseline  = sio_hw->gpio_in;
     uint32_t echo_mask = 1u << u->echo;
 
-    // Wait for echo pin to transition LOW→HIGH (5 ms window)
-    uint32_t t_start = time_us_32();
-    while ((time_us_32() - t_start) < 5000) {
-        if ((sio_hw->gpio_in & echo_mask) && !(baseline & echo_mask)) break;
+    // Wait for echo pin to transition LOW→HIGH (5 ms window).  Spikes that
+    // don't hold HIGH for ECHO_DEGLITCH_US are ignored.
+    uint32_t t_start    = time_us_32();
+    uint32_t echo_start = 0;
+    bool     rose       = false;
+    if (!(baseline & echo_mask)) {
+        while ((time_us_32() - t_start) < 5000) {
+            if (sio_hw->gpio_in & echo_mask) {
+                uint32_t t_edge = time_us_32();
+                if (echo_holds(echo_mask, true)) {
+                    echo_start = t_edge;
+                    rose       = true;
+                    break;
+                }
+            }
+        }
     }
-    if (time_us_32() - t_start >= 5000) {
+    if (!rose) {
         u->valid = 0;
         return;
     }
 
-    // Measure how long echo stays HIGH (max 38 ms)
-    uint32_t echo_start = time_us_32();
-    while (sio_hw->gpio_in & echo_mask) {
-        if ((time_us_32() - echo_start) > 38000) break;
+    // Measure how long echo stays HIGH (max 38 ms).  Dips that don't hold
+    // LOW for ECHO_DEGLITCH_US are ignored rather than ending the echo.
+    uint32_t echo_end;
+    for (;;) {
+        if ((time_us_32() - echo_start) > 38000) {
+            echo_end = time_us_32();
+            break;
+        }
+        if (!(sio_hw->gpio_in & echo_mask)) {
+            uint32_t t_edge = time_us_32();
+            if (echo_holds(echo_mask, false)) {
+                echo_end = t_edge;
+                break;
+            }
+        }
     }
-    uint32_t echo_us = time_us_32() - echo_start;
+    uint32_t echo_us = echo_end - echo_start;
 
     uint32_t dist_mm = echo_us * 10u / 58u;
     if (echo_us < 150u || dist_mm > ULTRASONIC_MAX_MM) {
