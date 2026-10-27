@@ -27,10 +27,10 @@ services:
       - "c 13:* rw"     # input devices (gamepads)
       - "c 89:* rw"     # I2C devices (battery monitor, HAT sensors)
       - "c 189:* rmw"   # USB raw bus devices (picotool → BOOTSEL flashing)
-    pid: "host"          # share host PID namespace — required for shutdown/reboot
+    pid: "host"          # share host PID namespace — lets the daemon signal host systemd (PID 1) for clean shutdown/reboot
     cap_add:
       - MKNOD            # lets entrypoint-daemon.sh create /dev/video* nodes
-      - SYS_BOOT         # allows reboot() syscall to reach the host Pi
+      - SYS_BOOT         # fallback reboot() syscall if signalling systemd fails
       # NOTE: NET_ADMIN was tried here to let libusb's udev hotplug monitor
       # thread subscribe to netlink uevents, on the theory that a single
       # picotool process's device list goes stale after its first USB scan.

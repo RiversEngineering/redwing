@@ -590,7 +590,24 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                 pass
         await asyncio.sleep(1.0)   # give clients time to receive the notification
 
+        # Clean path: ask the host's systemd (PID 1 — visible because of
+        # pid: host) to run the normal shutdown sequence, same as
+        # `systemctl poweroff` / `systemctl reboot`. Services are stopped
+        # (including this container, which gets SIGTERM and runs main.py's
+        # _shutdown), filesystems are synced and unmounted, then power off.
+        # SIGRTMIN+4 → poweroff.target, SIGRTMIN+5 → reboot.target.
+        import signal
+        sig = signal.SIGRTMIN + (4 if action == "shutdown" else 5)
+        try:
+            os.kill(1, sig)
+            return
+        except OSError as e:
+            log.warning(f"Clean {action} via systemd failed ({e}); falling back to reboot()")
+
+        # Fallback: immediate kernel power-off/restart, skipping service
+        # shutdown. sync() first so pending writes reach the SD card.
         import ctypes
+        os.sync()
         # LINUX_REBOOT_CMD_POWER_OFF = 0x4321FEDC
         # LINUX_REBOOT_CMD_RESTART   = 0x01234567
         magic = 0x4321FEDC if action == "shutdown" else 0x01234567
