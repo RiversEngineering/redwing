@@ -31,11 +31,8 @@ void ultrasonic_init(uint8_t slot, uint8_t trig_gpio, uint8_t echo_gpio) {
 
     gpio_init(echo_gpio);
     gpio_set_dir(echo_gpio, GPIO_IN);
-    // Weak pull-down so a broken echo connection reads a steady LOW (→ -1)
-    // instead of a floating wire picking up noise as fake echoes.  The sensor
-    // is push-pull and easily overdrives it.  (A pull-up confuses some clone
-    // variants — don't switch this to pull-up.)
-    gpio_pull_down(echo_gpio);
+    // No internal pull: the HC-SR04 is push-pull and drives the pin actively.
+    // A pull-up causes continuous load current that confuses some clone variants.
 }
 
 void ultrasonic_deinit(uint8_t slot) {
