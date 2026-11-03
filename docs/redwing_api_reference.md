@@ -133,7 +133,6 @@ arm.center()          # move to midpoint of configured range
 
 arm.set_gobilda_mode("continuous")   # GoBilda dual-mode servo: "continuous" or "positional"
 ```
-S5–S7 cannot be servos (shared PWM slices with D2/D3/D7 motors).
 
 ---
 
@@ -281,7 +280,7 @@ m.set_power(75)
 m.invert()
 
 s = robot.P1.servo(max_deg=180, min_us=1000, max_us=2000)
-s.angle = 90
+s.set_angle(90)
 ```
 
 ---

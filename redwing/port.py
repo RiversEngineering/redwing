@@ -116,12 +116,12 @@ class Port:
         Example — default 300° servo::
 
             arm = robot.S0.servo()
-            arm.angle = 150  # center
+            arm.set_angle(150)  # center
 
         Example — standard 180° servo::
 
             arm = robot.S0.servo(max_deg=180, min_us=1000, max_us=2000)
-            arm.angle = 90
+            arm.set_angle(90)
         """
         self._configure("servo")
         self._conn.send_command(

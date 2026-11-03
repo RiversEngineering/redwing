@@ -65,7 +65,7 @@ class PcaServo:
     Example::
 
         arm = robot.P1.servo()
-        arm.angle = 150   # center
+        arm.set_angle(150)   # center
     """
 
     def __init__(self, channel: int, conn,
@@ -94,18 +94,16 @@ class PcaServo:
 
     @property
     def angle(self) -> float:
+        """Last commanded angle in degrees."""
         return self._angle
 
-    @angle.setter
-    def angle(self, deg: float):
+    def set_angle(self, deg: float):
+        """Command the servo to move to the given angle in degrees."""
         self._check_started()
         deg = max(self._min_deg, min(self._max_deg, float(deg)))
         self._angle = deg
         pulse_us = self._deg_to_us(deg)
         self._conn.send_command(cmd="pca_set_servo", channel=self._channel, pulse_us=pulse_us)
-
-    def set_angle(self, deg: float):
-        self.angle = deg
 
 
 class PcaPort:
@@ -168,7 +166,7 @@ class PcaPort:
         Example::
 
             arm = robot.P1.servo(max_deg=180, min_us=1000, max_us=2000)
-            arm.angle = 90
+            arm.set_angle(90)
         """
         self._configure("servo")
         self._conn.send_command(

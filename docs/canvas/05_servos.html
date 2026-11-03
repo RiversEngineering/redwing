@@ -5,7 +5,6 @@
 
 <span style="color:#6A9955"># standard 180° hobby servo:</span>
 <span style="color:#9CDCFE">arm</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">S0</span>.<span style="color:#DCDCAA">servo</span>(<span style="color:#9CDCFE">max_deg</span>=<span style="color:#B5CEA8">180</span>, <span style="color:#9CDCFE">min_us</span>=<span style="color:#B5CEA8">1000</span>, <span style="color:#9CDCFE">max_us</span>=<span style="color:#B5CEA8">2000</span>)</pre>
-<p>Use <code>S0</code>–<code>S4</code> freely. <code>S5</code>, <code>S6</code>, <code>S7</code> can't be used as servos if there's a motor on <code>D2</code>, <code>D3</code>, <code>D7</code> (respectively).</p>
 
 <h3>Moving (after <code>robot.start()</code>)</h3>
 <pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">set_angle</span>(<span style="color:#B5CEA8">90</span>)    <span style="color:#6A9955"># move to 90° (clamped to the servo's range)</span>

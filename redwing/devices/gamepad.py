@@ -27,7 +27,7 @@ Example::
         # Edge: toggle arm position on each A press (not every loop tick)
         if robot.gamepad.just_pressed_a:
             arm_up = not arm_up
-            arm.angle = 90 if arm_up else 0
+            arm.set_angle(90 if arm_up else 0)
 
         # Level: hold B to run the intake
         intake.speed = 80 if robot.gamepad.b else 0

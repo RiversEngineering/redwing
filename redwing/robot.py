@@ -62,7 +62,7 @@ class Robot:
     **Dual-pin ports D0–D7** (two wires, labeled A and B):
         Sign-magnitude motors, quadrature encoders, ultrasonic sensors.
         All motor speed pins (B) use PWM slices 4–7 (20 kHz), so motors
-        and servos (S0–S4) never conflict.
+        and servos (S0–S7) never conflict.
         D6 (GP24/GP25) also serves as UART1 when ``robot.uart1()`` is called.
         D7 (GP12/GP13) also serves as UART0 when ``robot.uart()`` is called.
 
@@ -419,9 +419,6 @@ class Robot:
     ) -> Servo:
         """Configure *port* as an RC servo and return a Servo object.
 
-        S5 (GP26/ADC0), S6 (GP27/ADC1), and S7 (GP28/ADC2) cannot be used as servos —
-        they share PWM slices with motor ports D2, D3, and D7 respectively.
-
         Parameters
         ----------
         min_angle / max_angle:
@@ -441,7 +438,7 @@ class Robot:
                               min_angle=-90, max_angle=90,
                               min_pulse_us=1000, max_pulse_us=2000)
             robot.start()
-            arm.angle = 0   # centre
+            arm.set_angle(0)   # centre
         """
         self._check_not_started("configure a servo")
         port._configure("servo")
