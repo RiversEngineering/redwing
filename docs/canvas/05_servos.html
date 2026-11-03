@@ -1,0 +1,43 @@
+<h2>Redwing Quick Reference: Servos</h2>
+
+<h3>Setup (before <code>robot.start()</code>)</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">arm</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">S0</span>.<span style="color:#DCDCAA">servo</span>()    <span style="color:#6A9955"># S ports only (S0–S7), 0–300° range</span>
+
+<span style="color:#6A9955"># standard 180° hobby servo:</span>
+<span style="color:#9CDCFE">arm</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">S0</span>.<span style="color:#DCDCAA">servo</span>(<span style="color:#9CDCFE">max_deg</span>=<span style="color:#B5CEA8">180</span>, <span style="color:#9CDCFE">min_us</span>=<span style="color:#B5CEA8">1000</span>, <span style="color:#9CDCFE">max_us</span>=<span style="color:#B5CEA8">2000</span>)</pre>
+<p>Use <code>S0</code>–<code>S4</code> freely. <code>S5</code>, <code>S6</code>, <code>S7</code> can't be used as servos if there's a motor on <code>D2</code>, <code>D3</code>, <code>D7</code> (respectively).</p>
+
+<h3>Moving (after <code>robot.start()</code>)</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">set_angle</span>(<span style="color:#B5CEA8">90</span>)    <span style="color:#6A9955"># move to 90° (clamped to the servo's range)</span>
+<span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">center</span>()         <span style="color:#6A9955"># move to the middle of the range</span>
+<span style="color:#9CDCFE">arm</span>.<span style="color:#9CDCFE">angle</span>            <span style="color:#6A9955"># last angle you commanded (read-only)</span></pre>
+<p>A servo has no position sensor you can read. <code>arm.angle</code> is what you asked for, not where the servo actually is.</p>
+
+<h3>GoBilda continuous rotation</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">set_gobilda_mode</span>(<span style="color:#CE9178">'continuous'</span>)   <span style="color:#6A9955"># once, after robot.start()</span>
+<span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">set_angle</span>(<span style="color:#B5CEA8">50</span>)     <span style="color:#6A9955"># half speed forward (-100 to 100)</span>
+<span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">set_angle</span>(<span style="color:#B5CEA8">0</span>)      <span style="color:#6A9955"># stop</span>
+
+<span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">set_gobilda_mode</span>(<span style="color:#CE9178">'positional'</span>)   <span style="color:#6A9955"># back to 0–300°</span></pre>
+
+<h3>Example: hold A to close the claw</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+<span style="color:#9CDCFE">claw</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">S0</span>.<span style="color:#DCDCAA">servo</span>()
+<span style="color:#9CDCFE">gp</span>    = <span style="color:#9CDCFE">robot</span>.<span style="color:#9CDCFE">gamepad</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+    <span style="color:#6A9955"># INPUT</span>
+    <span style="color:#9CDCFE">pressed</span> = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">a</span>
+
+    <span style="color:#6A9955"># DECIDE</span>
+    <span style="color:#9CDCFE">angle</span> = <span style="color:#B5CEA8">100</span>              <span style="color:#6A9955"># default: open</span>
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">pressed</span>:
+        <span style="color:#9CDCFE">angle</span> = <span style="color:#B5CEA8">200</span>          <span style="color:#6A9955"># A held: closed</span>
+
+    <span style="color:#6A9955"># OUTPUT</span>
+    <span style="color:#9CDCFE">claw</span>.<span style="color:#DCDCAA">set_angle</span>(<span style="color:#9CDCFE">angle</span>)
+
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.02</span>)</pre>
