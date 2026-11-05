@@ -245,8 +245,11 @@ static void handle_command(uint8_t type, const uint8_t *payload, uint8_t len) {
                         gpio_set_dir(gpio, GPIO_IN);
                         gpio_pull_up(gpio);
                         break;
+                    case PORT_UNCONFIGURED:
+                        // Drive LOW again so the line can't float (see port_drive_idle).
+                        port_drive_idle(cmd->port_id);
+                        break;
                     default:
-                        // UNCONFIGURED or other: leave as input — safe.
                         break;
                 }
             }

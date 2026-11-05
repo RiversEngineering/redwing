@@ -166,6 +166,8 @@ class IPCServer:
                 pd["max_angle"]    = max_a
                 pd["min_pulse_us"] = min_us
                 pd["max_pulse_us"] = max_us
+            # Firmware clamps every pulse to its own per-port range — keep it in sync.
+            self._rp.enqueue(proto.cmd_set_servo_range(port, min_us, max_us))
 
         elif c == "gobilda_set_mode":
             port = int(cmd["port"])

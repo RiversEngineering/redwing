@@ -312,6 +312,8 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                     pd["max_angle"]    = max_a
                     pd["min_pulse_us"] = min_us
                     pd["max_pulse_us"] = max_us
+                # Firmware clamps every pulse to its own per-port range — keep it in sync.
+                rp.enqueue(proto.cmd_set_servo_range(port, min_us, max_us))
 
             elif cmd == "set_servo_gobilda_interface":
                 # Switches how the dashboard (and subsequent set_servo commands)

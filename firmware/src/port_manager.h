@@ -140,6 +140,10 @@ void port_stop_all(void);
 // Called by CMD_RESET when a new student program starts.
 void port_reset(void);
 
+// Drive an unconfigured S port's pin LOW so it can't float and pick up
+// crosstalk from neighbouring servo signals.  No-op for non-S ports.
+void port_drive_idle(uint8_t port_id);
+
 // Run one PID iteration for all motor ports with PID enabled.
 // Called at 100 Hz from a repeating timer.
 void port_pid_update(void);

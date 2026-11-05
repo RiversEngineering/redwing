@@ -58,6 +58,22 @@ static bool valid_port(uint8_t port_id) {
     return IS_VALID_PORT(port_id);
 }
 
+// Unconfigured S ports are actively driven LOW instead of left floating.
+// A floating signal line picks up the edges of a neighbouring servo signal
+// (e.g. S5 → S6/S7) and RC motor controllers read that crosstalk as valid
+// pulses and spin.  The RP2040's internal pull-down (~50–80 kΩ, enabled by
+// default) is too weak to prevent this, so the pin is driven as an output.
+// A constant LOW line carries no pulses, so ESCs stay in their neutral/failsafe
+// state.  S ports are currently only used for motors and servos — revisit this
+// if sensors (e.g. IR distance on S5–S7) are attached to unconfigured ports.
+void port_drive_idle(uint8_t id) {
+    if (!IS_SINGLE_PORT(id)) return;
+    uint8_t gpio = ports[id].pin_a;
+    gpio_init(gpio);
+    gpio_set_dir(gpio, GPIO_OUT);
+    gpio_put(gpio, 0);
+}
+
 static void port_deinit(uint8_t id) {
     PortState *p = &ports[id];
     switch (p->type) {
@@ -105,6 +121,8 @@ static void port_deinit(uint8_t id) {
         default:
             break;
     }
+    // Never leave an S port floating between configurations.
+    port_drive_idle(id);
 }
 
 // ─── Init ────────────────────────────────────────────────────────────────────
@@ -125,6 +143,9 @@ void port_manager_init(void) {
         ports[i].pid_integral_max = 0.0f;
         ports[i].pid_last_count   = 0;
         ports[i].pid_d_alpha      = 1.0f;
+    }
+    for (uint8_t i = 0; i < PORT_COUNT_SINGLE; i++) {
+        port_drive_idle(i);
     }
     // Initialise I²C0 at 400 kHz on GP4 (SDA) / GP5 (SCL).
     // BNO085 breakout boards include onboard 4.7 kΩ pull-ups suitable for 400 kHz.
@@ -225,6 +246,12 @@ bool port_configure(uint8_t id, uint8_t port_type) {
             break;
 
         case PORT_SERVO:
+            // Reset the clamp range: a previous PORT_MOTOR_SERVO config leaves
+            // it at 1100–1900 µs, which would limit the servo to ~90–210°.
+            // The daemon sends CMD_SET_SERVO_RANGE afterwards if a narrower
+            // or different range is wanted.
+            p->servo_min_us   = SERVO_MIN_US_DEFAULT;
+            p->servo_max_us   = SERVO_MAX_US_DEFAULT;
             p->servo_pulse_us = 1500;  // start at midpoint
             servo_init(a, p->servo_min_us, p->servo_max_us);
             break;
@@ -558,6 +585,8 @@ void port_reset(void) {
         p->pid_integral    = 0.0f;
         p->pid_last_error  = 0.0f;
         p->enc_slot        = -1;
+        p->servo_min_us    = SERVO_MIN_US_DEFAULT;
+        p->servo_max_us    = SERVO_MAX_US_DEFAULT;
     }
 }
 
