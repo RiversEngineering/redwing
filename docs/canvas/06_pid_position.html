@@ -1,0 +1,79 @@
+<h2>Redwing Quick Reference: PID Position Control</h2>
+<p>PID position control turns a DC motor + encoder into a servo you can trust: you give it a target encoder count, and the Pico drives the motor there and <strong>holds it</strong>, pushing back if something knocks it away. Unlike a servo, you can always read where it really is with <code>enc.count</code>.</p>
+
+<h3>Setup (before <code>robot.start()</code>)</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">arm</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">enc</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">encoder</span>()
+<span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">enc</span>)      <span style="color:#6A9955"># PID needs to know which encoder belongs to this motor</span>
+<span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">set_pid</span>(<span style="color:#B5CEA8">10</span>, <span style="color:#B5CEA8">0</span>, <span style="color:#B5CEA8">0.5</span>)      <span style="color:#6A9955"># KP, KI, KD</span></pre>
+<p>Wire the encoder so <code>enc.count</code> goes <em>up</em> when the motor has positive power (use <code>enc.invert()</code> if it doesn't). If they disagree, PID pushes the wrong way and the arm runs away to the end of its travel.</p>
+
+<h3>Moving (after <code>robot.start()</code>)</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">go_to_position</span>(<span style="color:#B5CEA8">500</span>)                <span style="color:#6A9955"># drive to tick 500 and HOLD there</span>
+<span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">go_to_position</span>(<span style="color:#B5CEA8">0</span>, <span style="color:#9CDCFE">max_speed</span>=<span style="color:#B5CEA8">40</span>)    <span style="color:#6A9955"># same, but never above 40% power</span>
+<span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">move_by</span>(<span style="color:#B5CEA8">100</span>)                       <span style="color:#6A9955"># 100 ticks further from where it is now</span>
+<span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">move_by</span>(-<span style="color:#B5CEA8">100</span>)                      <span style="color:#6A9955"># 100 ticks back</span>
+
+<span style="color:#9CDCFE">enc</span>.<span style="color:#9CDCFE">count</span>                              <span style="color:#6A9955"># where the arm actually is right now</span>
+<span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">stop</span>()                             <span style="color:#6A9955"># turn PID off (motor goes limp!)</span></pre>
+<p>These commands return right away; the Pico does the moving in the background. Your loop keeps running, and the arm keeps holding its target until you give it a new one. Calling <code>arm.set_power()</code> or <code>arm.stop()</code> turns PID off, so an arm will drop.</p>
+
+<h3>Where is zero?</h3>
+<p>Targets are measured from wherever the encoder was last zeroed: when the program starts, or when you call <code>enc.reset()</code>. Always start with the arm in the same spot (e.g. resting down against its stop) so <code>0</code> means the same thing every run.</p>
+
+<h3>Ticks → degrees</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#4FC1FF">TICKS_PER_DEG</span> = <span style="color:#B5CEA8">1425.1</span> / <span style="color:#B5CEA8">360</span>    <span style="color:#6A9955"># encoder ticks per ARM revolution / 360</span>
+
+<span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">go_to_position</span>(<span style="color:#B5CEA8">90</span> * <span style="color:#4FC1FF">TICKS_PER_DEG</span>)    <span style="color:#6A9955"># raise the arm to 90°</span>
+
+<span style="color:#9CDCFE">angle</span> = <span style="color:#9CDCFE">enc</span>.<span style="color:#9CDCFE">count</span> / <span style="color:#4FC1FF">TICKS_PER_DEG</span>         <span style="color:#6A9955"># where the arm is, in degrees</span></pre>
+<p><strong>Find <code>TICKS_PER_DEG</code> yourself:</strong> <code>reset()</code> the encoder, move the arm by hand from straight down to straight up (180°), read <code>enc.count</code>, and divide by 180. Gears and chains between the motor and the arm change this number.</p>
+
+<h3>Tuning the gains</h3>
+<p><code>set_pid(KP, KI, KD)</code> uses <em>% power per tick of error</em>. With <code>KP = 10</code>, the arm gets full power when it's 10+ ticks from its target.</p>
+<ul>
+  <li><strong>KP</strong> (push): start at 10. Too low → slow, stops short of the target. Too high → overshoots and wobbles.</li>
+  <li><strong>KD</strong> (brake): start at 0.5. Raise it to calm overshoot and wobble near the target.</li>
+  <li><strong>KI</strong> (patience): start at 0. If gravity makes the arm sag a little below its target, try a <em>small</em> value with a cap: <code>arm.set_pid(10, 0.5, 0.5, integral_max=40)</code>. The cap limits KI to <code>KI × integral_max</code> = 20% power.</li>
+</ul>
+<p>Use <code>robot.plot()</code> on the target and position to <em>see</em> what the arm is doing while you tune.</p>
+
+<h3>Example: arm with three preset positions</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#4FC1FF">TICKS_PER_DEG</span> = <span style="color:#B5CEA8">1425.1</span> / <span style="color:#B5CEA8">360</span>    <span style="color:#6A9955"># measure this on YOUR arm</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+<span style="color:#9CDCFE">arm</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">enc</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">encoder</span>()
+<span style="color:#9CDCFE">gp</span>    = <span style="color:#9CDCFE">robot</span>.<span style="color:#9CDCFE">gamepad</span>
+<span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">enc</span>)
+<span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">set_pid</span>(<span style="color:#B5CEA8">10</span>, <span style="color:#B5CEA8">0</span>, <span style="color:#B5CEA8">0.5</span>)
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#9CDCFE">enc</span>.<span style="color:#DCDCAA">reset</span>()                  <span style="color:#6A9955"># start with the arm resting DOWN: that spot is 0°</span>
+<span style="color:#9CDCFE">target</span> = <span style="color:#B5CEA8">0</span>                   <span style="color:#6A9955"># where we want the arm, in degrees</span>
+<span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">go_to_position</span>(<span style="color:#B5CEA8">0</span>)        <span style="color:#6A9955"># hold it there</span>
+
+<span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+    <span style="color:#6A9955"># INPUT</span>
+    <span style="color:#9CDCFE">angle</span> = <span style="color:#9CDCFE">enc</span>.<span style="color:#9CDCFE">count</span> / <span style="color:#4FC1FF">TICKS_PER_DEG</span>
+
+    <span style="color:#6A9955"># DECIDE</span>
+    <span style="color:#9CDCFE">new_target</span> = <span style="color:#9CDCFE">target</span>              <span style="color:#6A9955"># default: keep the same target</span>
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">just_pressed_a</span>:
+        <span style="color:#9CDCFE">new_target</span> = <span style="color:#B5CEA8">0</span>               <span style="color:#6A9955"># A: down</span>
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">just_pressed_b</span>:
+        <span style="color:#9CDCFE">new_target</span> = <span style="color:#B5CEA8">45</span>              <span style="color:#6A9955"># B: halfway</span>
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">just_pressed_y</span>:
+        <span style="color:#9CDCFE">new_target</span> = <span style="color:#B5CEA8">90</span>              <span style="color:#6A9955"># Y: straight up</span>
+
+    <span style="color:#6A9955"># OUTPUT</span>
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">new_target</span> != <span style="color:#9CDCFE">target</span>:         <span style="color:#6A9955"># only send a NEW target</span>
+        <span style="color:#9CDCFE">target</span> = <span style="color:#9CDCFE">new_target</span>
+        <span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">go_to_position</span>(<span style="color:#9CDCFE">target</span> * <span style="color:#4FC1FF">TICKS_PER_DEG</span>, <span style="color:#9CDCFE">max_speed</span>=<span style="color:#B5CEA8">60</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">plot</span>(<span style="color:#CE9178">"target"</span>, <span style="color:#9CDCFE">target</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">plot</span>(<span style="color:#CE9178">"angle"</span>, <span style="color:#9CDCFE">angle</span>)
+
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.02</span>)</pre>
+<p>Use <code>max_speed</code> to keep a heavy arm from slamming into place. Only call <code>go_to_position()</code> when the target <em>changes</em>. Each call restarts the PID, so calling it every loop with the same target throws away KI's progress.</p>
