@@ -34,9 +34,15 @@
 <ul>
   <li><strong>KP</strong> (push): start at 10. Too low → slow, stops short of the target. Too high → overshoots and wobbles.</li>
   <li><strong>KD</strong> (brake): start at 0.5. Raise it to calm overshoot and wobble near the target.</li>
-  <li><strong>KI</strong> (patience): start at 0. If gravity makes the arm sag a little below its target, try a <em>small</em> value with a cap: <code>arm.set_pid(10, 0.5, 0.5, integral_max=40)</code>. The cap limits KI to <code>KI × integral_max</code> = 20% power.</li>
+  <li><strong>KI</strong> (patience): start at 0. If gravity makes the arm sag a little below its target, try a <em>small</em> value with a cap: and cap it with <code>integral_max</code> (below).</li>
 </ul>
 <p>Use <code>robot.plot()</code> on the target and position to <em>see</em> what the arm is doing while you tune.</p>
+
+<h3>Capping KI: <code>integral_max</code></h3>
+<p>KI works by adding up the error over time, so the longer the arm is off target, the harder KI pushes. If the arm is stuck (blocked by a hand or a hard stop, or just slow to get there), that sum keeps growing. This is called <strong>integral windup</strong>. When the arm finally gets free, all that stored-up push makes it shoot past its target before KI can unwind.</p>
+<p><code>integral_max</code> puts a ceiling on the sum, so KI can never add more than <code>KI × integral_max</code> % power:</p>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">set_pid</span>(<span style="color:#B5CEA8">10</span>, <span style="color:#B5CEA8">0.5</span>, <span style="color:#B5CEA8">0.5</span>, <span style="color:#9CDCFE">integral_max</span>=<span style="color:#B5CEA8">40</span>)    <span style="color:#6A9955"># KI can add at most 0.5 × 40 = 20% power</span></pre>
+<p>Pick it backwards: decide the most power KI should ever add (enough to hold the arm up against gravity, say 20%), then <code>integral_max = that % ÷ KI</code>. Leave it out and there's no cap.</p>
 
 <h3>Keeping KI: <code>keep_integral</code></h3>
 <p>Each <code>go_to_position()</code> call normally restarts KI from zero. That's right for jumping to a new position, but not when your code sends a new target <em>every loop</em> (e.g. a joystick nudging the arm). Then KI never gets time to build up and fight gravity. Pass <code>keep_integral=True</code> so KI carries over between calls:</p>
