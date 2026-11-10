@@ -38,6 +38,17 @@
 </ul>
 <p>Use <code>robot.plot()</code> on the target and position to <em>see</em> what the arm is doing while you tune.</p>
 
+<h3>Keeping KI: <code>keep_integral</code></h3>
+<p>Each <code>go_to_position()</code> call normally restarts KI from zero. That's right for jumping to a new position, but not when your code sends a new target <em>every loop</em> (e.g. a joystick nudging the arm). Then KI never gets time to build up and fight gravity. Pass <code>keep_integral=True</code> so KI carries over between calls:</p>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">target</span> = <span style="color:#9CDCFE">target</span> + <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_y</span> * <span style="color:#B5CEA8">2</span>          <span style="color:#6A9955"># joystick nudges the target a little every loop</span>
+<span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">go_to_position</span>(<span style="color:#9CDCFE">target</span>, <span style="color:#9CDCFE">keep_integral</span>=<span style="color:#569CD6">True</span>)</pre>
+<p>Always set <code>integral_max</code> in <code>set_pid()</code> when you use this. Without a cap, KI built up holding the arm in one direction can push against you for a moment when you reverse.</p>
+
+<h3>Stop the buzzing: deadband</h3>
+<p>Gears and chains have a little slop (<em>backlash</em>). The arm can end up hunting back and forth by a few ticks around its target, buzzing and never settling. A deadband tells PID: inside ±N ticks of the target, you're close enough, so stop pushing.</p>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">set_position_options</span>(<span style="color:#9CDCFE">deadband</span>=<span style="color:#B5CEA8">5</span>)     <span style="color:#6A9955"># setup: "close enough" = within 5 ticks</span></pre>
+<p>Inside the deadband the motor output is 0 and KI is frozen. Start around 3–5 ticks. Too big, and the arm stops noticeably short of the target or sags under its own weight before PID pushes back.</p>
+
 <h3>Example: arm with three preset positions</h3>
 <pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
 
