@@ -311,8 +311,11 @@ static void handle_command(uint8_t type, const uint8_t *payload, uint8_t len) {
         case CMD_SET_POS_OPTIONS: {
             if (len < sizeof(CmdSetPosOptions)) goto bad_len;
             const CmdSetPosOptions *cmd = (const CmdSetPosOptions *)payload;
+            // output_boost was appended later; older daemons send the short form.
+            float boost = (len >= sizeof(CmdSetPosOptionsFull))
+                        ? ((const CmdSetPosOptionsFull *)payload)->output_boost : 0.0f;
             port_set_pos_options(cmd->port_id, cmd->deadband, cmd->output_floor,
-                                 cmd->ramp_rate, cmd->d_alpha, cmd->approach_factor);
+                                 cmd->ramp_rate, cmd->d_alpha, cmd->approach_factor, boost);
             usb_comm_send_ack(type);
             break;
         }

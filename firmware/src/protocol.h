@@ -183,6 +183,7 @@ typedef struct { uint8_t ch; }                                         CmdPcaChO
 typedef struct { uint8_t port_id; int32_t target; uint16_t speed_limit; }           CmdSetPosition;
 typedef struct { uint8_t port_id; int32_t target; uint16_t speed_limit; uint8_t flags; } CmdSetPositionFull;
 typedef struct { uint8_t port_id; float deadband; float output_floor; float ramp_rate; float d_alpha; float approach_factor; } CmdSetPosOptions;
+typedef struct { uint8_t port_id; float deadband; float output_floor; float ramp_rate; float d_alpha; float approach_factor; float output_boost; } CmdSetPosOptionsFull;
 typedef struct { uint8_t port_id; uint8_t inverted; } CmdInvertEncoder;
 typedef struct { uint8_t port_id; uint8_t mode; }    CmdGoBildaMode;
 

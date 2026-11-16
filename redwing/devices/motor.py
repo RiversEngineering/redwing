@@ -312,7 +312,7 @@ class Motor:
 
     def set_position_options(self, deadband: float = 0, output_floor: float = 0,
                              ramp_rate: float = 0, d_alpha: float = 1.0,
-                             approach_factor: float = 0):
+                             approach_factor: float = 0, output_boost: float = 0):
         """Configure position PID options. All settings persist until changed.
 
         Args:
@@ -336,6 +336,14 @@ class Motor:
                 With ramp_rate=300, factor=0.1 starts decelerating ~30 ticks before
                 the ramp setpoint reaches the target. Lower values decelerate earlier
                 and more gradually; try 0.05–0.15.
+            output_boost: Dead-zone compensation (%). Any nonzero PID output is
+                pushed away from zero by this amount, and the rest of the range is
+                scaled so ``max_speed`` is still the maximum (e.g. boost=8: a PID
+                output of 2% becomes ~9.8%, 100% stays 100%). Set it to roughly
+                the smallest power that makes the mechanism start moving. Helps
+                geared/chain arms that settle in slow "steps" while the integral
+                builds up. Unlike ``output_floor``, small outputs stay
+                proportional, so it doesn't over-push while holding. Default 0 (off).
 
         Example::
 
@@ -357,6 +365,7 @@ class Motor:
             ramp_rate=float(ramp_rate),
             d_alpha=float(d_alpha),
             approach_factor=float(approach_factor),
+            output_boost=float(output_boost),
         )
 
     def move_by(self, delta: float, max_speed: float = None, keep_integral: bool = False):

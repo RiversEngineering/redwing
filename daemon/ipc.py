@@ -133,6 +133,7 @@ class IPCServer:
                 float(cmd.get("ramp_rate",       0.0)),
                 float(cmd.get("d_alpha",         1.0)),
                 float(cmd.get("approach_factor", 0.0)),
+                float(cmd.get("output_boost",    0.0)),
             ))
 
         elif c == "set_pid":

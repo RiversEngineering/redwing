@@ -39,6 +39,7 @@ typedef struct {
     // Position PID options
     float    pos_deadband;      // ticks; |error| ≤ this → zero output, integral frozen (0 = off)
     float    pos_output_floor;  // %; minimum output magnitude when outside deadband (0 = off)
+    float    pos_output_boost;  // %; fixed offset added in the direction of any nonzero output (0 = off)
     float    pos_ramp_rate;       // ticks/s; internal setpoint ramps at this rate (0 = instant)
     float    pos_approach_factor; // 0 = off; >0: caps ramp step to |remaining| × factor near target
     float    pos_ramp_setpoint;   // internal: current interpolated setpoint for ramp
@@ -119,7 +120,11 @@ void port_set_encoder_inverted(uint8_t port_id, bool inverted);
 //   output_floor: %; minimum motor output when outside deadband (overcomes stiction). 0 = off.
 //   ramp_rate:    ticks/s; max rate the internal setpoint moves toward the target. 0 = instant.
 //   d_alpha:      EMA alpha for derivative filter; 1.0 = no filter, lower = more smoothing.
-void port_set_pos_options(uint8_t port_id, float deadband, float output_floor, float ramp_rate, float d_alpha, float approach_factor);
+//   approach_factor: 0 = off; >0 caps ramp step to |remaining| × factor near target.
+//   output_boost: %; dead-zone compensation. Any nonzero output is shifted away from zero
+//                 by this amount, with the remaining range rescaled so the speed limit is
+//                 still the maximum. Unlike output_floor, small outputs stay proportional.
+void port_set_pos_options(uint8_t port_id, float deadband, float output_floor, float ramp_rate, float d_alpha, float approach_factor, float output_boost);
 
 // Set PID gains.
 void port_set_pid(uint8_t port_id, float kp, float ki, float kd);

@@ -86,6 +86,7 @@ m.set_position_options(
     ramp_rate=300,         # max ticks/s the internal setpoint ramps toward target
     d_alpha=0.15,          # derivative low-pass filter (0-1, lower = more filtering)
     approach_factor=0.1,   # setpoint decelerates automatically near the target
+    output_boost=8,        # % added to any nonzero output (dead-zone compensation)
 )
 </code></pre>
 

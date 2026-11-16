@@ -508,7 +508,7 @@ void port_set_encoder_inverted(uint8_t id, bool inverted) {
     encoder_set_inverted(p->enc_self_slot, inverted);
 }
 
-void port_set_pos_options(uint8_t id, float deadband, float output_floor, float ramp_rate, float d_alpha, float approach_factor) {
+void port_set_pos_options(uint8_t id, float deadband, float output_floor, float ramp_rate, float d_alpha, float approach_factor, float output_boost) {
     if (!valid_port(id)) return;
     PortState *p = &ports[id];
     p->pos_deadband       = (deadband > 0.0f)                         ? deadband       : 0.0f;
@@ -516,6 +516,7 @@ void port_set_pos_options(uint8_t id, float deadband, float output_floor, float 
     p->pos_ramp_rate      = (ramp_rate > 0.0f)                        ? ramp_rate      : 0.0f;
     p->pid_d_alpha        = (d_alpha > 0.0f && d_alpha <= 1.0f)       ? d_alpha        : 1.0f;
     p->pos_approach_factor = (approach_factor > 0.0f && approach_factor <= 1.0f) ? approach_factor : 0.0f;
+    p->pos_output_boost   = (output_boost > 0.0f)                     ? output_boost   : 0.0f;
 }
 
 void port_set_pid(uint8_t id, float kp, float ki, float kd) {
@@ -665,6 +666,20 @@ void port_pid_update(void) {
                 output = p->pid_kp * error + p->pid_ki * p->pid_integral + p->pid_kd * derivative;
                 if (output >  limit) { output =  limit; p->pid_integral -= error * dt; }
                 if (output < -limit) { output = -limit; p->pid_integral -= error * dt; }
+
+                // Output boost (dead-zone compensation): shift any nonzero output away
+                // from zero by a fixed amount so small PID outputs actually move the
+                // motor. The PID range [0, limit] maps onto [boost, limit], so the
+                // speed limit is still the maximum and saturation is unchanged.
+                if (p->pos_output_boost > 0.0f && output != 0.0f) {
+                    float mag = fabsf(output);
+                    if (p->pos_output_boost >= limit) {
+                        mag = limit;
+                    } else {
+                        mag = p->pos_output_boost + mag * (1.0f - p->pos_output_boost / limit);
+                    }
+                    output = (output > 0.0f) ? mag : -mag;
+                }
 
                 // Output floor: guarantee minimum output to overcome stiction.
                 if (p->pos_output_floor > 0.0f &&
