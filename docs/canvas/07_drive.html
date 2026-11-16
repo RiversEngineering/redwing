@@ -1,0 +1,145 @@
+<h2>Redwing Quick Reference: Drive Systems</h2>
+<p>A drive object runs all your wheels together. It uses the encoders to measure how far the robot has gone and the IMU to measure which way it's facing, so you can say "go forward 0.5 m" or "turn left 90°", and read back where the robot is.</p>
+
+<h3>Which way is which</h3>
+<table style="border-collapse:collapse;margin:8px 0;" border="1" cellpadding="6">
+<tr><td><code>x</code></td><td>meters forward from where the robot started</td></tr>
+<tr><td><code>y</code></td><td>meters <strong>left</strong> from where the robot started</td></tr>
+<tr><td><code>heading</code></td><td>degrees, 0 at start, <strong>counter-clockwise (left) is positive</strong>, wraps 0–360 (a small right turn reads 350)</td></tr>
+</table>
+
+<h3>Setup: differential (tank) drive</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">left_motor</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">right_motor</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">left_enc</span>    = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">encoder</span>()
+<span style="color:#9CDCFE">right_enc</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D3</span>.<span style="color:#DCDCAA">encoder</span>()
+
+<span style="color:#9CDCFE">drive</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">differential_drive</span>(
+    <span style="color:#9CDCFE">left_motor</span>=<span style="color:#9CDCFE">left_motor</span>,   <span style="color:#9CDCFE">right_motor</span>=<span style="color:#9CDCFE">right_motor</span>,
+    <span style="color:#9CDCFE">left_encoder</span>=<span style="color:#9CDCFE">left_enc</span>,   <span style="color:#9CDCFE">right_encoder</span>=<span style="color:#9CDCFE">right_enc</span>,
+    <span style="color:#9CDCFE">imu</span>=<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">imu</span>(),
+    <span style="color:#9CDCFE">wheel_diameter_mm</span>=<span style="color:#B5CEA8">96</span>,
+    <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#B5CEA8">280</span>,      <span style="color:#6A9955"># center of left wheel to center of right wheel</span>
+    <span style="color:#9CDCFE">ticks_per_rev</span>=<span style="color:#B5CEA8">537.7</span>,     <span style="color:#6A9955"># encoder ticks per WHEEL revolution</span>
+)</pre>
+<p><strong>Two motors per side?</strong> Group them, then pass <code>left=</code>/<code>right=</code> instead of the four motor/encoder arguments:</p>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">left</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">motor_group</span>(<span style="color:#9CDCFE">front_left</span>, <span style="color:#9CDCFE">back_left</span>,   <span style="color:#9CDCFE">encoder</span>=<span style="color:#9CDCFE">left_enc</span>)
+<span style="color:#9CDCFE">right</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">motor_group</span>(<span style="color:#9CDCFE">front_right</span>, <span style="color:#9CDCFE">back_right</span>, <span style="color:#9CDCFE">encoder</span>=<span style="color:#9CDCFE">right_enc</span>)
+
+<span style="color:#9CDCFE">drive</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">differential_drive</span>(<span style="color:#9CDCFE">left</span>=<span style="color:#9CDCFE">left</span>, <span style="color:#9CDCFE">right</span>=<span style="color:#9CDCFE">right</span>, <span style="color:#9CDCFE">imu</span>=<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">imu</span>(), ...)</pre>
+
+<h3>Setup: mecanum drive</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">fl</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">fl_enc</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D4</span>.<span style="color:#DCDCAA">encoder</span>()    <span style="color:#6A9955"># front-left</span>
+<span style="color:#9CDCFE">fr</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">fr_enc</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D5</span>.<span style="color:#DCDCAA">encoder</span>()    <span style="color:#6A9955"># front-right</span>
+<span style="color:#9CDCFE">bl</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">bl_enc</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D6</span>.<span style="color:#DCDCAA">encoder</span>()    <span style="color:#6A9955"># back-left</span>
+<span style="color:#9CDCFE">br</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D3</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">br_enc</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D7</span>.<span style="color:#DCDCAA">encoder</span>()    <span style="color:#6A9955"># back-right</span>
+
+<span style="color:#9CDCFE">drive</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">mecanum_drive</span>(
+    <span style="color:#9CDCFE">fl</span>=(<span style="color:#9CDCFE">fl</span>, <span style="color:#9CDCFE">fl_enc</span>), <span style="color:#9CDCFE">fr</span>=(<span style="color:#9CDCFE">fr</span>, <span style="color:#9CDCFE">fr_enc</span>),
+    <span style="color:#9CDCFE">bl</span>=(<span style="color:#9CDCFE">bl</span>, <span style="color:#9CDCFE">bl_enc</span>), <span style="color:#9CDCFE">br</span>=(<span style="color:#9CDCFE">br</span>, <span style="color:#9CDCFE">br_enc</span>),
+    <span style="color:#9CDCFE">imu</span>=<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">imu</span>(),
+    <span style="color:#9CDCFE">wheel_diameter_mm</span>=<span style="color:#B5CEA8">96</span>,
+    <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#B5CEA8">300</span>,      <span style="color:#6A9955"># left wheels to right wheels</span>
+    <span style="color:#9CDCFE">wheelbase_mm</span>=<span style="color:#B5CEA8">280</span>,        <span style="color:#6A9955"># front wheels to back wheels</span>
+    <span style="color:#9CDCFE">ticks_per_rev</span>=<span style="color:#B5CEA8">537.7</span>,
+)</pre>
+<p>This uses all eight D ports. Name each motor by where it <em>is</em> on the robot, not by how it's wired.</p>
+
+<h3>Check before the first run</h3>
+<ol>
+  <li><strong>Every motor</strong> spins its wheel forward with positive power. If not, <code>motor.invert()</code>.</li>
+  <li><strong>Every encoder</strong> count goes <em>up</em> when its wheel rolls forward. If not, <code>enc.invert()</code>.</li>
+  <li><strong><code>ticks_per_rev</code></strong> is measured by hand (see the Encoders reference). A wrong value makes every distance wrong by the same factor.</li>
+</ol>
+<p>If <code>forward()</code> never stops, or <code>turn_left()</code> turns right, one of these is wrong.</p>
+
+<h3>Moving (after <code>robot.start()</code>)</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">forward</span>(<span style="color:#B5CEA8">0.5</span>)              <span style="color:#6A9955"># 0.5 m forward, then stop  (power=50 default)</span>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">backward</span>(<span style="color:#B5CEA8">0.3</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">30</span>)
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">turn_left</span>(<span style="color:#B5CEA8">90</span>)             <span style="color:#6A9955"># turn in place               (power=40 default)</span>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">turn_right</span>(<span style="color:#B5CEA8">45</span>)
+
+<span style="color:#6A9955"># mecanum only</span>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">strafe_right</span>(<span style="color:#B5CEA8">0.3</span>)         <span style="color:#6A9955"># slide sideways, still facing forward</span>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">strafe_left</span>(<span style="color:#B5CEA8">0.3</span>)
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">strafe</span>(<span style="color:#B5CEA8">0.4</span>, <span style="color:#B5CEA8">45</span>)           <span style="color:#6A9955"># any direction: 0=fwd, 90=right, 180=back, 270=left</span></pre>
+<p>These <strong>wait until the move is done</strong>, so your program pauses on that line. Use them for autonomous step-by-step routines, not inside a gamepad loop.</p>
+
+<h3>Driving continuously (gamepad, sensors)</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">drive</span>(<span style="color:#9CDCFE">forward</span>=<span style="color:#B5CEA8">50</span>, <span style="color:#9CDCFE">turn</span>=<span style="color:#B5CEA8">0</span>)        <span style="color:#6A9955"># differential: turn + = left, - = right</span>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">move</span>(<span style="color:#9CDCFE">vx</span>=<span style="color:#B5CEA8">50</span>, <span style="color:#9CDCFE">vy</span>=<span style="color:#B5CEA8">0</span>, <span style="color:#9CDCFE">omega</span>=<span style="color:#B5CEA8">0</span>)       <span style="color:#6A9955"># mecanum: vy + = right, omega + = left</span>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">stop</span>()</pre>
+<p>All values are % power, -100 to 100. These return right away and keep the motors running until you send something else or <code>stop()</code>.</p>
+
+<h3>Where am I?</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">x</span>, <span style="color:#9CDCFE">y</span>, <span style="color:#9CDCFE">heading</span> = <span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">pose</span>     <span style="color:#6A9955"># meters, meters, degrees</span>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">x</span>;  <span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">y</span>;  <span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">heading</span>
+
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">reset_pose</span>()             <span style="color:#6A9955"># call this spot (0, 0, 0°)</span></pre>
+<p>The pose updates on its own 50 times a second, and shows up live on the dashboard Map tab.</p>
+
+<h3>What the IMU does</h3>
+<ul>
+  <li>Gives the drive its <code>heading</code>. Wheels slip in turns, so heading from encoders alone drifts fast. Always pass <code>imu=robot.imu()</code> if you have one.</li>
+  <li>Makes <code>turn_left()</code>/<code>turn_right()</code> stop at the right angle (within about 1.5°).</li>
+  <li>Does <em>not</em> steer <code>forward()</code> straight. If the robot curves, check the motors and wheels.</li>
+  <li>BNO085/BNO055: heading doesn't drift. MPU-6050: drifts about 0.5–2° per minute.</li>
+</ul>
+
+<h3>Example: drive a square</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+<span style="color:#9CDCFE">left_motor</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">right_motor</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>()
+<span style="color:#9CDCFE">left_enc</span>    = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">encoder</span>()
+<span style="color:#9CDCFE">right_enc</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D3</span>.<span style="color:#DCDCAA">encoder</span>()
+
+<span style="color:#9CDCFE">drive</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">differential_drive</span>(
+    <span style="color:#9CDCFE">left_motor</span>=<span style="color:#9CDCFE">left_motor</span>,   <span style="color:#9CDCFE">right_motor</span>=<span style="color:#9CDCFE">right_motor</span>,
+    <span style="color:#9CDCFE">left_encoder</span>=<span style="color:#9CDCFE">left_enc</span>,   <span style="color:#9CDCFE">right_encoder</span>=<span style="color:#9CDCFE">right_enc</span>,
+    <span style="color:#9CDCFE">imu</span>=<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">imu</span>(),
+    <span style="color:#9CDCFE">wheel_diameter_mm</span>=<span style="color:#B5CEA8">96</span>, <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#B5CEA8">280</span>, <span style="color:#9CDCFE">ticks_per_rev</span>=<span style="color:#B5CEA8">537.7</span>,
+)
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#C586C0">for</span> <span style="color:#9CDCFE">side</span> <span style="color:#569CD6">in</span> <span style="color:#4EC9B0">range</span>(<span style="color:#B5CEA8">4</span>):
+    <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">forward</span>(<span style="color:#B5CEA8">0.5</span>)
+    <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">turn_left</span>(<span style="color:#B5CEA8">90</span>)
+
+<span style="color:#9CDCFE">x</span>, <span style="color:#9CDCFE">y</span>, <span style="color:#9CDCFE">heading</span> = <span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">pose</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Ended at x:"</span>, <span style="color:#9CDCFE">x</span>, <span style="color:#CE9178">" y:"</span>, <span style="color:#9CDCFE">y</span>, <span style="color:#CE9178">" heading:"</span>, <span style="color:#9CDCFE">heading</span>)</pre>
+
+<h3>Example: mecanum with a gamepad</h3>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
+
+<span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
+<span style="color:#9CDCFE">fl</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">fl_enc</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D4</span>.<span style="color:#DCDCAA">encoder</span>()
+<span style="color:#9CDCFE">fr</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">fr_enc</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D5</span>.<span style="color:#DCDCAA">encoder</span>()
+<span style="color:#9CDCFE">bl</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">bl_enc</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D6</span>.<span style="color:#DCDCAA">encoder</span>()
+<span style="color:#9CDCFE">br</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D3</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">br_enc</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D7</span>.<span style="color:#DCDCAA">encoder</span>()
+
+<span style="color:#9CDCFE">drive</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">mecanum_drive</span>(
+    <span style="color:#9CDCFE">fl</span>=(<span style="color:#9CDCFE">fl</span>, <span style="color:#9CDCFE">fl_enc</span>), <span style="color:#9CDCFE">fr</span>=(<span style="color:#9CDCFE">fr</span>, <span style="color:#9CDCFE">fr_enc</span>),
+    <span style="color:#9CDCFE">bl</span>=(<span style="color:#9CDCFE">bl</span>, <span style="color:#9CDCFE">bl_enc</span>), <span style="color:#9CDCFE">br</span>=(<span style="color:#9CDCFE">br</span>, <span style="color:#9CDCFE">br_enc</span>),
+    <span style="color:#9CDCFE">imu</span>=<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">imu</span>(),
+    <span style="color:#9CDCFE">wheel_diameter_mm</span>=<span style="color:#B5CEA8">96</span>, <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#B5CEA8">300</span>, <span style="color:#9CDCFE">wheelbase_mm</span>=<span style="color:#B5CEA8">280</span>, <span style="color:#9CDCFE">ticks_per_rev</span>=<span style="color:#B5CEA8">537.7</span>,
+)
+<span style="color:#9CDCFE">gp</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#9CDCFE">gamepad</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
+
+<span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
+    <span style="color:#6A9955"># INPUT</span>
+    <span style="color:#9CDCFE">forward</span> = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_y</span> * <span style="color:#B5CEA8">100</span>      <span style="color:#6A9955"># stick up = forward</span>
+    <span style="color:#9CDCFE">right</span>   = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_x</span> * <span style="color:#B5CEA8">100</span>      <span style="color:#6A9955"># stick right = slide right</span>
+    <span style="color:#9CDCFE">spin</span>    = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">right_x</span> * <span style="color:#B5CEA8">100</span>     <span style="color:#6A9955"># stick right = turn right</span>
+
+    <span style="color:#6A9955"># DECIDE</span>
+    <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">just_pressed_a</span>:
+        <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">reset_pose</span>()         <span style="color:#6A9955"># A: call this spot (0, 0, 0°)</span>
+
+    <span style="color:#6A9955"># OUTPUT</span>
+    <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">move</span>(<span style="color:#9CDCFE">vx</span>=<span style="color:#9CDCFE">forward</span>, <span style="color:#9CDCFE">vy</span>=<span style="color:#9CDCFE">right</span>, <span style="color:#9CDCFE">omega</span>=-<span style="color:#9CDCFE">spin</span>)    <span style="color:#6A9955"># omega + is LEFT, so flip it</span>
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"x:"</span>, <span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">x</span>, <span style="color:#CE9178">" y:"</span>, <span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">y</span>, <span style="color:#CE9178">" heading:"</span>, <span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">heading</span>)
+
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.02</span>)</pre>
