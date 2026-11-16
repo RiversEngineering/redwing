@@ -229,8 +229,8 @@ class DifferentialDrive:
                 self._last_hdg = new_hdg
         else:
             # No IMU: derive heading from wheel speed difference.
-            # dl - dr > 0 when left wheel moves more → CCW → positive dhdg.
-            dhdg = math.degrees((dl - dr) / self._track)  # CCW positive
+            # dr - dl > 0 when right wheel moves more → CCW → positive dhdg.
+            dhdg = math.degrees((dr - dl) / self._track)  # CCW positive
 
         with self._lock:
             self._heading = (self._heading + dhdg) % 360.0
