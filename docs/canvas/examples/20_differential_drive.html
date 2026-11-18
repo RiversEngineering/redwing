@@ -70,12 +70,11 @@ Tune the constants below to match your robot before running.
 <span style="color:#6A9955"># lm = robot.motor(robot.D0)</span>
 <span style="color:#6A9955"># rm = robot.motor(robot.D1)</span>
 <span style="color:#6A9955"># rm.invert()</span>
-<span style="color:#6A9955"># le = robot.encoder(robot.D2)</span>
-<span style="color:#6A9955"># re = robot.encoder(robot.D3)</span>
+<span style="color:#6A9955"># lm.attach_encoder(robot.encoder(robot.D2))</span>
+<span style="color:#6A9955"># rm.attach_encoder(robot.encoder(robot.D3))</span>
 <span style="color:#6A9955">#</span>
 <span style="color:#6A9955"># drive = robot.differential_drive(</span>
-<span style="color:#6A9955">#     left_motor=lm,   right_motor=rm,</span>
-<span style="color:#6A9955">#     left_encoder=le, right_encoder=re,</span>
+<span style="color:#6A9955">#     left_motor=lm, right_motor=rm,    # attached encoders used automatically</span>
 <span style="color:#6A9955">#     imu=robot.imu(),</span>
 <span style="color:#6A9955">#     wheel_diameter_mm=WHEEL_DIAM_MM,</span>
 <span style="color:#6A9955">#     track_width_mm=TRACK_WIDTH_MM,</span>

@@ -845,7 +845,17 @@ class Robot:
 
         The odometry loop starts automatically when ``robot.start()`` is called.
 
-        Accepts two call styles:
+        Accepts three call styles:
+
+        **Attached style** (simplest) — attach each encoder to its motor
+        first, then pass just the motors::
+
+            lm.attach_encoder(le)
+            rm.attach_encoder(re)
+            drive = robot.differential_drive(
+                left_motor=lm, right_motor=rm,
+                wheel_diameter_mm=60, track_width_mm=150, ticks_per_rev=1440,
+            )
 
         **Group style** (recommended for 4-motor drives) — pass
         :class:`~redwing.devices.motor.MotorGroup` objects created with
@@ -875,9 +885,12 @@ class Robot:
             :class:`~redwing.devices.motor.MotorGroup` for each side.
             The group's encoder is used automatically.
         left_motor / right_motor:
-            Single :class:`~redwing.devices.motor.Motor` per side (explicit style).
+            Single :class:`~redwing.devices.motor.Motor` per side.  If the
+            motor has an encoder attached (``motor.attach_encoder()``), it is
+            used automatically.
         left_encoder / right_encoder:
-            :class:`~redwing.devices.encoder.Encoder` per side (explicit style).
+            :class:`~redwing.devices.encoder.Encoder` per side.  Only needed
+            when the motor has no attached encoder; overrides it if given.
         imu:
             Optional BNO085/BNO055 :class:`~redwing.devices.imu.IMU` for heading
             fusion.  Strongly recommended — reduces angular drift significantly.
@@ -909,10 +922,12 @@ class Robot:
                 "Provide either left=/right= (MotorGroup) or "
                 "left_motor=/right_motor= (Motor)."
             )
+        left_encoder  = left_encoder or getattr(left_motor, "encoder", None)
+        right_encoder = right_encoder or getattr(right_motor, "encoder", None)
         if left_encoder is None or right_encoder is None:
             raise ValueError(
-                "No encoder found. Either pass encoder= to motor_group(), or "
-                "pass left_encoder=/right_encoder= explicitly."
+                "No encoder found. Call motor.attach_encoder(enc), pass "
+                "encoder= to motor_group(), or pass left_encoder=/right_encoder=."
             )
 
         drive = DifferentialDrive(
@@ -955,9 +970,12 @@ class Robot:
         Parameters
         ----------
         fl, fr, bl, br:
-            ``(Motor, Encoder)`` tuples for each corner — front-left, front-right,
-            back-left, back-right.  Designate positions based on your robot's
-            physical layout, not wiring order.
+            Front-left, front-right, back-left, back-right corners.  Each is a
+            :class:`~redwing.devices.motor.Motor` with an attached encoder
+            (``motor.attach_encoder()``), a ``(Motor, Encoder)`` tuple, or a
+            :class:`~redwing.devices.motor.MotorGroup` with ``encoder=``.
+            Designate positions based on your robot's physical layout, not
+            wiring order.
         imu:
             Optional BNO085/BNO055 :class:`~redwing.devices.imu.IMU`.
         wheel_diameter_mm:
@@ -974,14 +992,13 @@ class Robot:
         Example::
 
             # Configure motors and encoders (call .invert() as needed)
-            fl_m = robot.motor(robot.D0);  fl_e = robot.encoder(robot.S0)
-            fr_m = robot.motor(robot.D1);  fr_e = robot.encoder(robot.S1)
-            bl_m = robot.motor(robot.D2);  bl_e = robot.encoder(robot.S2)
-            br_m = robot.motor(robot.D3);  br_e = robot.encoder(robot.S3)
+            fl = robot.D0.motor();  fl.attach_encoder(robot.D4.encoder())
+            fr = robot.D1.motor();  fr.attach_encoder(robot.D5.encoder())
+            bl = robot.D2.motor();  bl.attach_encoder(robot.D6.encoder())
+            br = robot.D3.motor();  br.attach_encoder(robot.D7.encoder())
 
             drive = robot.mecanum_drive(
-                fl=(fl_m, fl_e),  fr=(fr_m, fr_e),
-                bl=(bl_m, bl_e),  br=(br_m, br_e),
+                fl=fl, fr=fr, bl=bl, br=br,
                 imu=robot.imu(),
                 wheel_diameter_mm=100,
                 track_width_mm=300,
@@ -1005,9 +1022,17 @@ class Robot:
                         f"Pass encoder= to motor_group() or use a (Motor, Encoder) tuple."
                     )
                 return (corner, corner.encoder)
+            if isinstance(corner, Motor):
+                if corner.encoder is None:
+                    raise ValueError(
+                        f"Motor for '{name}' has no encoder. Call "
+                        f"motor.attach_encoder(enc) or use a (Motor, Encoder) tuple."
+                    )
+                return (corner, corner.encoder)
             if not (isinstance(corner, tuple) and len(corner) == 2):
                 raise TypeError(
-                    f"'{name}' must be a MotorGroup or a (Motor, Encoder) tuple."
+                    f"'{name}' must be a Motor with an attached encoder, "
+                    f"a MotorGroup, or a (Motor, Encoder) tuple."
                 )
             return corner
 

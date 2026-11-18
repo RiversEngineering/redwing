@@ -70,12 +70,11 @@ drive = robot.differential_drive(
 # lm = robot.motor(robot.D0)
 # rm = robot.motor(robot.D1)
 # rm.invert()
-# le = robot.encoder(robot.D2)
-# re = robot.encoder(robot.D3)
+# lm.attach_encoder(robot.encoder(robot.D2))
+# rm.attach_encoder(robot.encoder(robot.D3))
 #
 # drive = robot.differential_drive(
-#     left_motor=lm,   right_motor=rm,
-#     left_encoder=le, right_encoder=re,
+#     left_motor=lm, right_motor=rm,    # attached encoders used automatically
 #     imu=robot.imu(),
 #     wheel_diameter_mm=WHEEL_DIAM_MM,
 #     track_width_mm=TRACK_WIDTH_MM,

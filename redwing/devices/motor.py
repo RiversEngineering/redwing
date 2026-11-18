@@ -208,6 +208,11 @@ class Motor:
         )
 
     @property
+    def encoder(self) -> "Encoder | None":
+        """The encoder attached with :meth:`attach_encoder`, or ``None``."""
+        return self._encoder
+
+    @property
     def velocity(self) -> float:
         """Target velocity in encoder ticks per second (closed-loop only)."""
         if self._encoder is None:

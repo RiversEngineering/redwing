@@ -11,32 +11,31 @@
 <h3>Setup: differential (tank) drive</h3>
 <pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">left_motor</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
 <span style="color:#9CDCFE">right_motor</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>()
-<span style="color:#9CDCFE">left_enc</span>    = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">encoder</span>()
-<span style="color:#9CDCFE">right_enc</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D3</span>.<span style="color:#DCDCAA">encoder</span>()
+<span style="color:#9CDCFE">left_motor</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">encoder</span>())
+<span style="color:#9CDCFE">right_motor</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D3</span>.<span style="color:#DCDCAA">encoder</span>())
 
 <span style="color:#9CDCFE">drive</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">differential_drive</span>(
     <span style="color:#9CDCFE">left_motor</span>=<span style="color:#9CDCFE">left_motor</span>,   <span style="color:#9CDCFE">right_motor</span>=<span style="color:#9CDCFE">right_motor</span>,
-    <span style="color:#9CDCFE">left_encoder</span>=<span style="color:#9CDCFE">left_enc</span>,   <span style="color:#9CDCFE">right_encoder</span>=<span style="color:#9CDCFE">right_enc</span>,
     <span style="color:#9CDCFE">imu</span>=<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">imu</span>(),
     <span style="color:#9CDCFE">wheel_diameter_mm</span>=<span style="color:#B5CEA8">96</span>,
     <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#B5CEA8">280</span>,      <span style="color:#6A9955"># center of left wheel to center of right wheel</span>
     <span style="color:#9CDCFE">ticks_per_rev</span>=<span style="color:#B5CEA8">537.7</span>,     <span style="color:#6A9955"># encoder ticks per WHEEL revolution</span>
 )</pre>
-<p><strong>Two motors per side?</strong> Group them, then pass <code>left=</code>/<code>right=</code> instead of the four motor/encoder arguments:</p>
+<p>The drive uses each motor's attached encoder, so you don't pass the encoders again.</p>
+<p><strong>Two motors per side?</strong> Group them, then pass <code>left=</code>/<code>right=</code> instead of the motors:</p>
 <pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">left</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">motor_group</span>(<span style="color:#9CDCFE">front_left</span>, <span style="color:#9CDCFE">back_left</span>,   <span style="color:#9CDCFE">encoder</span>=<span style="color:#9CDCFE">left_enc</span>)
 <span style="color:#9CDCFE">right</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">motor_group</span>(<span style="color:#9CDCFE">front_right</span>, <span style="color:#9CDCFE">back_right</span>, <span style="color:#9CDCFE">encoder</span>=<span style="color:#9CDCFE">right_enc</span>)
 
 <span style="color:#9CDCFE">drive</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">differential_drive</span>(<span style="color:#9CDCFE">left</span>=<span style="color:#9CDCFE">left</span>, <span style="color:#9CDCFE">right</span>=<span style="color:#9CDCFE">right</span>, <span style="color:#9CDCFE">imu</span>=<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">imu</span>(), ...)</pre>
 
 <h3>Setup: mecanum drive</h3>
-<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">fl</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">fl_enc</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D4</span>.<span style="color:#DCDCAA">encoder</span>()    <span style="color:#6A9955"># front-left</span>
-<span style="color:#9CDCFE">fr</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">fr_enc</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D5</span>.<span style="color:#DCDCAA">encoder</span>()    <span style="color:#6A9955"># front-right</span>
-<span style="color:#9CDCFE">bl</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">bl_enc</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D6</span>.<span style="color:#DCDCAA">encoder</span>()    <span style="color:#6A9955"># back-left</span>
-<span style="color:#9CDCFE">br</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D3</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">br_enc</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D7</span>.<span style="color:#DCDCAA">encoder</span>()    <span style="color:#6A9955"># back-right</span>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">fl</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">fl</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D4</span>.<span style="color:#DCDCAA">encoder</span>())    <span style="color:#6A9955"># front-left</span>
+<span style="color:#9CDCFE">fr</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">fr</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D5</span>.<span style="color:#DCDCAA">encoder</span>())    <span style="color:#6A9955"># front-right</span>
+<span style="color:#9CDCFE">bl</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">bl</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D6</span>.<span style="color:#DCDCAA">encoder</span>())    <span style="color:#6A9955"># back-left</span>
+<span style="color:#9CDCFE">br</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D3</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">br</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D7</span>.<span style="color:#DCDCAA">encoder</span>())    <span style="color:#6A9955"># back-right</span>
 
 <span style="color:#9CDCFE">drive</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">mecanum_drive</span>(
-    <span style="color:#9CDCFE">fl</span>=(<span style="color:#9CDCFE">fl</span>, <span style="color:#9CDCFE">fl_enc</span>), <span style="color:#9CDCFE">fr</span>=(<span style="color:#9CDCFE">fr</span>, <span style="color:#9CDCFE">fr_enc</span>),
-    <span style="color:#9CDCFE">bl</span>=(<span style="color:#9CDCFE">bl</span>, <span style="color:#9CDCFE">bl_enc</span>), <span style="color:#9CDCFE">br</span>=(<span style="color:#9CDCFE">br</span>, <span style="color:#9CDCFE">br_enc</span>),
+    <span style="color:#9CDCFE">fl</span>=<span style="color:#9CDCFE">fl</span>, <span style="color:#9CDCFE">fr</span>=<span style="color:#9CDCFE">fr</span>, <span style="color:#9CDCFE">bl</span>=<span style="color:#9CDCFE">bl</span>, <span style="color:#9CDCFE">br</span>=<span style="color:#9CDCFE">br</span>,
     <span style="color:#9CDCFE">imu</span>=<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">imu</span>(),
     <span style="color:#9CDCFE">wheel_diameter_mm</span>=<span style="color:#B5CEA8">96</span>,
     <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#B5CEA8">300</span>,      <span style="color:#6A9955"># left wheels to right wheels</span>
@@ -48,7 +47,7 @@
 <h3>Check before the first run</h3>
 <ol>
   <li><strong>Every motor</strong> spins its wheel forward with positive power. If not, <code>motor.invert()</code>.</li>
-  <li><strong>Every encoder</strong> count goes <em>up</em> when its wheel rolls forward. If not, <code>enc.invert()</code>.</li>
+  <li><strong>Every encoder</strong> count goes <em>up</em> when its wheel rolls forward. If not, <code>motor.encoder.invert()</code>.</li>
   <li><strong><code>ticks_per_rev</code></strong> is measured by hand (see the Encoders reference). A wrong value makes every distance wrong by the same factor.</li>
 </ol>
 <p>If <code>forward()</code> never stops, or <code>turn_left()</code> turns right, one of these is wrong.</p>
@@ -92,12 +91,11 @@
 <span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
 <span style="color:#9CDCFE">left_motor</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
 <span style="color:#9CDCFE">right_motor</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>()
-<span style="color:#9CDCFE">left_enc</span>    = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">encoder</span>()
-<span style="color:#9CDCFE">right_enc</span>   = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D3</span>.<span style="color:#DCDCAA">encoder</span>()
+<span style="color:#9CDCFE">left_motor</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">encoder</span>())
+<span style="color:#9CDCFE">right_motor</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D3</span>.<span style="color:#DCDCAA">encoder</span>())
 
 <span style="color:#9CDCFE">drive</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">differential_drive</span>(
     <span style="color:#9CDCFE">left_motor</span>=<span style="color:#9CDCFE">left_motor</span>,   <span style="color:#9CDCFE">right_motor</span>=<span style="color:#9CDCFE">right_motor</span>,
-    <span style="color:#9CDCFE">left_encoder</span>=<span style="color:#9CDCFE">left_enc</span>,   <span style="color:#9CDCFE">right_encoder</span>=<span style="color:#9CDCFE">right_enc</span>,
     <span style="color:#9CDCFE">imu</span>=<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">imu</span>(),
     <span style="color:#9CDCFE">wheel_diameter_mm</span>=<span style="color:#B5CEA8">96</span>, <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#B5CEA8">280</span>, <span style="color:#9CDCFE">ticks_per_rev</span>=<span style="color:#B5CEA8">537.7</span>,
 )
@@ -114,14 +112,13 @@
 <pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
 
 <span style="color:#9CDCFE">robot</span> = <span style="color:#4EC9B0">Robot</span>()
-<span style="color:#9CDCFE">fl</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">fl_enc</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D4</span>.<span style="color:#DCDCAA">encoder</span>()
-<span style="color:#9CDCFE">fr</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">fr_enc</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D5</span>.<span style="color:#DCDCAA">encoder</span>()
-<span style="color:#9CDCFE">bl</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">bl_enc</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D6</span>.<span style="color:#DCDCAA">encoder</span>()
-<span style="color:#9CDCFE">br</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D3</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">br_enc</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D7</span>.<span style="color:#DCDCAA">encoder</span>()
+<span style="color:#9CDCFE">fl</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">fl</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D4</span>.<span style="color:#DCDCAA">encoder</span>())
+<span style="color:#9CDCFE">fr</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D1</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">fr</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D5</span>.<span style="color:#DCDCAA">encoder</span>())
+<span style="color:#9CDCFE">bl</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D2</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">bl</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D6</span>.<span style="color:#DCDCAA">encoder</span>())
+<span style="color:#9CDCFE">br</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D3</span>.<span style="color:#DCDCAA">motor</span>();  <span style="color:#9CDCFE">br</span>.<span style="color:#DCDCAA">attach_encoder</span>(<span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D7</span>.<span style="color:#DCDCAA">encoder</span>())
 
 <span style="color:#9CDCFE">drive</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">mecanum_drive</span>(
-    <span style="color:#9CDCFE">fl</span>=(<span style="color:#9CDCFE">fl</span>, <span style="color:#9CDCFE">fl_enc</span>), <span style="color:#9CDCFE">fr</span>=(<span style="color:#9CDCFE">fr</span>, <span style="color:#9CDCFE">fr_enc</span>),
-    <span style="color:#9CDCFE">bl</span>=(<span style="color:#9CDCFE">bl</span>, <span style="color:#9CDCFE">bl_enc</span>), <span style="color:#9CDCFE">br</span>=(<span style="color:#9CDCFE">br</span>, <span style="color:#9CDCFE">br_enc</span>),
+    <span style="color:#9CDCFE">fl</span>=<span style="color:#9CDCFE">fl</span>, <span style="color:#9CDCFE">fr</span>=<span style="color:#9CDCFE">fr</span>, <span style="color:#9CDCFE">bl</span>=<span style="color:#9CDCFE">bl</span>, <span style="color:#9CDCFE">br</span>=<span style="color:#9CDCFE">br</span>,
     <span style="color:#9CDCFE">imu</span>=<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">imu</span>(),
     <span style="color:#9CDCFE">wheel_diameter_mm</span>=<span style="color:#B5CEA8">96</span>, <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#B5CEA8">300</span>, <span style="color:#9CDCFE">wheelbase_mm</span>=<span style="color:#B5CEA8">280</span>, <span style="color:#9CDCFE">ticks_per_rev</span>=<span style="color:#B5CEA8">537.7</span>,
 )

@@ -45,23 +45,23 @@ robot = redwing.Robot()
 
 # Configure each corner: motor + its encoder.
 # Call .invert() on any motor that runs backwards.
-fl_m = robot.motor(robot.D0);  fl_e = robot.encoder(robot.D4)
-fr_m = robot.motor(robot.D1);  fr_e = robot.encoder(robot.D5)
-bl_m = robot.motor(robot.D2);  bl_e = robot.encoder(robot.D6)
-br_m = robot.motor(robot.D3);  br_e = robot.encoder(robot.D7)
+fl_m = robot.motor(robot.D0);  fl_m.attach_encoder(robot.encoder(robot.D4))
+fr_m = robot.motor(robot.D1);  fr_m.attach_encoder(robot.encoder(robot.D5))
+bl_m = robot.motor(robot.D2);  bl_m.attach_encoder(robot.encoder(robot.D6))
+br_m = robot.motor(robot.D3);  br_m.attach_encoder(robot.encoder(robot.D7))
 
 # fr_m.invert()          # uncomment if front-right runs backwards
 # br_m.invert()          # uncomment if back-right runs backwards
 
-# Wrap each corner into a (Motor, Encoder) pair for the drive.
+# Pass each corner's motor; its attached encoder is used automatically.
 # If a corner uses TWO motors (e.g. a larger robot), use motor_group:
 #   fl_group = robot.motor_group(fl_m1, fl_m2, encoder=fl_e)
-# then pass fl_group directly instead of (fl_m, fl_e).
+# then pass fl_group instead of fl_m.
 drive = robot.mecanum_drive(
-    fl=(fl_m, fl_e),
-    fr=(fr_m, fr_e),
-    bl=(bl_m, bl_e),
-    br=(br_m, br_e),
+    fl=fl_m,
+    fr=fr_m,
+    bl=bl_m,
+    br=br_m,
     imu=robot.imu(),           # remove this line if no IMU is attached
     wheel_diameter_mm=WHEEL_DIAM_MM,
     track_width_mm=TRACK_WIDTH_MM,

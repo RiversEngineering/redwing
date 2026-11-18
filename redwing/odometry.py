@@ -12,13 +12,12 @@ Quick start — differential drive::
     rm = robot.motor(robot.D1)
     rm.invert()                 # flip right motor if it spins backwards
 
-    le = robot.encoder(robot.D2)
-    re = robot.encoder(robot.D3)
+    lm.attach_encoder(robot.encoder(robot.D2))
+    rm.attach_encoder(robot.encoder(robot.D3))
     imu = robot.imu()           # optional but strongly recommended
 
     drive = robot.differential_drive(
-        left_motor=lm,   right_motor=rm,
-        left_encoder=le, right_encoder=re,
+        left_motor=lm, right_motor=rm,    # attached encoders used automatically
         imu=imu,
         wheel_diameter_mm=60,
         track_width_mm=150,
@@ -33,10 +32,8 @@ Quick start — differential drive::
 Quick start — mecanum drive::
 
     drive = robot.mecanum_drive(
-        fl=(fl_motor, fl_enc),
-        fr=(fr_motor, fr_enc),
-        bl=(bl_motor, bl_enc),
-        br=(br_motor, br_enc),
+        fl=fl_motor, fr=fr_motor,     # each with an attached encoder
+        bl=bl_motor, br=br_motor,
         wheel_diameter_mm=100,
         track_width_mm=300,
         wheelbase_mm=280,
@@ -445,7 +442,10 @@ class MecanumDrive:
     fl, fr, bl, br:
         Each is a ``(Motor, Encoder)`` tuple for that corner, e.g.::
 
-            fl=(robot.motor(robot.D0), robot.encoder(robot.S0))
+            fl=(robot.motor(robot.D0), robot.encoder(robot.D4))
+
+        (:meth:`Robot.mecanum_drive` also accepts a Motor with an attached
+        encoder or a MotorGroup, and converts it to this form.)
 
     imu:
         Optional BNO085/BNO055 IMU for heading fusion.
