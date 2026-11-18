@@ -320,6 +320,32 @@ sudo systemctl daemon-reload
 sudo systemctl enable "${SERVICE_NAME}.service"
 ok "redwing.service installed and enabled"
 
+# ── 9. Shell shortcuts ────────────────────────────────────────────────────────
+# Functions rather than scripts so `cd` changes the user's own shell. The block
+# between the markers is replaced on every run, so re-running install.sh
+# updates it instead of appending a duplicate.
+step "Adding redwing-pull / redwing-rebuild shell shortcuts..."
+USER_BASHRC="$(getent passwd "$INSTALL_USER" | cut -d: -f6)/.bashrc"
+sudo touch "$USER_BASHRC"
+sudo sed -i '/^# >>> redwing shortcuts >>>$/,/^# <<< redwing shortcuts <<<$/d' "$USER_BASHRC"
+sudo tee -a "$USER_BASHRC" > /dev/null <<EOF
+# >>> redwing shortcuts >>>
+# Added by install.sh — re-running it replaces this block.
+# redwing-pull:    update the code (library, examples, firmware .uf2)
+# redwing-rebuild: update, then rebuild the containers (needed for daemon/dashboard changes)
+redwing-pull() {
+    cd ${INSTALL_DIR} && git pull --ff-only
+}
+redwing-rebuild() {
+    cd ${INSTALL_DIR} && git pull --ff-only \\
+        && sudo docker compose -f ${COMPOSE_FILE} build \\
+        && sudo systemctl restart ${SERVICE_NAME}
+}
+# <<< redwing shortcuts <<<
+EOF
+sudo chown "${INSTALL_USER}:${INSTALL_USER}" "$USER_BASHRC"
+ok "Shortcuts added to $USER_BASHRC"
+
 # ── Done ──────────────────────────────────────────────────────────────────────
 PI_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
 
@@ -331,6 +357,10 @@ echo "    sudo systemctl start   redwing"
 echo "    sudo systemctl stop    redwing"
 echo "    sudo systemctl restart redwing"
 echo "    journalctl -u redwing -f        # live logs"
+echo ""
+echo "  Update shortcuts (open a new terminal first):"
+echo "    redwing-pull                    # git pull"
+echo "    redwing-rebuild                 # git pull + rebuild containers + restart"
 echo ""
 echo "  After reboot:"
 echo "    Landing page: http://${PI_IP}"
