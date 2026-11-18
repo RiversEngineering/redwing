@@ -312,6 +312,8 @@ drive.drive(forward=50, turn=0)      # continuous, non-blocking, -100..100
 drive.forward(0.5)                    # blocking: 0.5 m, power=50 default
 drive.backward(0.3)
 drive.turn_left(90); drive.turn_right(90)   # blocking, degrees, power=40 default
+drive.turn_to(180)                     # blocking, absolute heading, shorter way round
+drive.turn_to(0, direction="left")     # or "right"; force the turn direction
 drive.rotate(-45)                      # negative = CW
 drive.stop()
 
@@ -321,6 +323,8 @@ drive.reset_pose(x=0, y=0, heading_deg=0)
 drive.correct_pose(x, y, heading_deg=None)   # snap to external fix (e.g. AprilTag)
 ```
 `strafe*()` raise `NotImplementedError` on differential drive.
+
+Blocking moves slow down near the end. `motor.set_min_power(18)` sets the lowest power the drive will give that motor (default 20% straight, 15% turning; a group uses its highest). It does not affect `set_power()`, `drive()`/`move()`, or position PID (use `output_floor`/`output_boost`).
 
 ### Mecanum (holonomic, 4-wheel)
 
@@ -338,6 +342,7 @@ drive.forward(0.5); drive.backward(0.3)
 drive.strafe_left(0.3); drive.strafe_right(0.3)
 drive.strafe(0.4, 45)                  # blocking, robot-relative angle: 0=fwd,90=right,180=back,270=left
 drive.turn_left(90); drive.rotate(-90)
+drive.turn_to(90, direction="right")   # same turn_to() as DifferentialDrive
 drive.stop()
 drive.pose   # same pose API as DifferentialDrive
 ```

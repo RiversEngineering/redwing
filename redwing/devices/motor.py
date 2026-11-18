@@ -76,6 +76,20 @@ class MotorGroup:
         """Power of the first motor in the group (proxy for the group's power)."""
         return self._motors[0].power
 
+    def set_min_power(self, value: float) -> None:
+        """Set the drive-system minimum power on every motor in the group."""
+        for m in self._motors:
+            m.set_min_power(value)
+
+    @property
+    def min_power(self) -> "float | None":
+        """Highest :attr:`Motor.min_power` in the group, or ``None`` if none set.
+
+        The highest one is used so that every motor in the group still moves.
+        """
+        values = [m.min_power for m in self._motors if m.min_power is not None]
+        return max(values) if values else None
+
     def __repr__(self) -> str:
         ids = [m._id for m in self._motors]
         enc = self._encoder._id if self._encoder else None
@@ -103,6 +117,7 @@ class Motor:
         self._type = motor_type
         self._power = 0.0
         self._encoder = None
+        self._min_power = None
         self._inverted       = False
         self._code_invert_set = False  # True once student code sets motor.inverted
         self._robot = robot
@@ -185,6 +200,34 @@ class Motor:
     def stop(self):
         """Stop this motor immediately (set power to 0)."""
         self.set_power(0)
+
+    def set_min_power(self, value: float):
+        """Set the lowest power (%) a drive system will give this motor.
+
+        Used only by the blocking moves of
+        :class:`~redwing.odometry.DifferentialDrive` and
+        :class:`~redwing.odometry.MecanumDrive` (``forward()``, ``turn_left()``,
+        ``turn_to()``, ...), which slow down near the end of a move.  Set it to
+        roughly the smallest power that still makes the wheel turn, so the
+        robot doesn't stall just short of its target.
+
+        Does **not** affect ``set_power()``, ``drive.drive()`` /
+        ``drive.move()``, or position PID (see ``output_floor`` and
+        ``output_boost`` in :meth:`set_position_options` for that).
+
+        Example::
+
+            left.set_min_power(18)
+        """
+        value = float(value)
+        if not 0.0 <= value <= 100.0:
+            raise ValueError("min_power must be between 0 and 100.")
+        self._min_power = value
+
+    @property
+    def min_power(self) -> "float | None":
+        """Minimum drive-system power set by :meth:`set_min_power`, or ``None``."""
+        return self._min_power
 
     # ------------------------------------------------------------------
     # Closed-loop velocity control

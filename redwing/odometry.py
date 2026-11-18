@@ -86,7 +86,9 @@ if TYPE_CHECKING:
 _ODOM_HZ   = 50          # odometry update rate (Hz)
 _ODOM_DT   = 1.0 / _ODOM_HZ
 _RAMP_FRAC = 0.25        # slow down in the last 25% of travel
-_MIN_PWR   = 20.0        # minimum power during ramp-down
+_MIN_PWR   = 20.0        # default minimum power during straight-move ramp-down
+_MIN_TURN_PWR = 15.0     # default minimum power while turning
+_SLOW_DEG  = 20.0        # turns slow down within this many degrees of the target
 _DIST_TOL  = 0.01        # 1 cm positional tolerance
 _ANG_TOL   = 1.5         # 1.5° angular tolerance
 
@@ -100,6 +102,35 @@ def _wrap(deg: float) -> float:
 def _hdiff(new_deg: float, old_deg: float) -> float:
     """Signed shortest-arc difference (new − old), clamped to (−180, 180]."""
     return _wrap(new_deg - old_deg)
+
+
+def _turn_angle(current_deg: float, target_deg: float, direction: str) -> float:
+    """Signed turn (CCW positive) from *current_deg* to *target_deg*.
+
+    *direction* is ``"shortest"``, ``"left"`` (CCW) or ``"right"`` (CW).
+    """
+    d = str(direction).lower()
+    if d == "shortest":
+        return _hdiff(target_deg, current_deg)
+    if d == "left":
+        return (target_deg - current_deg) % 360.0
+    if d == "right":
+        return -((current_deg - target_deg) % 360.0)
+    raise ValueError("direction must be 'shortest', 'left', or 'right'.")
+
+
+def _floor(motor, default: float | None) -> float | None:
+    """The motor's own min_power if it set one, otherwise *default*."""
+    mp = getattr(motor, "min_power", None)
+    return default if mp is None else mp
+
+
+def _floored(power: float, motor, default: float | None) -> float:
+    """Power magnitude raised to the motor's floor, capped at 100."""
+    f = _floor(motor, default)
+    if f is not None:
+        power = max(power, f)
+    return min(power, 100.0)
 
 
 # ── DifferentialDrive ───────────────────────────────────────────────────────────
@@ -332,11 +363,22 @@ class DifferentialDrive:
         """Move backward by *distance_m* metres, then stop."""
         self._linear_move(abs(distance_m), -abs(power))
 
+    def _push(self, sign: float, power: float) -> None:
+        """Drive both sides straight, each at or above its minimum power."""
+        self._lm.set_power(sign * _floored(power, self._lm, _MIN_PWR))
+        self._rm.set_power(sign * _floored(power, self._rm, _MIN_PWR))
+
+    def _spin(self, sign: float, power: float) -> None:
+        """Spin in place (sign +1 = CCW), each side at or above its minimum."""
+        self._lm.set_power(-sign * _floored(power, self._lm, _MIN_TURN_PWR))
+        self._rm.set_power( sign * _floored(power, self._rm, _MIN_TURN_PWR))
+
     def _linear_move(self, dist_m: float, power: float) -> None:
         start_l  = self._le.count
         start_r  = self._re.count
         ramp_start = dist_m * (1.0 - _RAMP_FRAC)
-        self.drive(power)
+        sign = 1.0 if power >= 0 else -1.0
+        self._push(sign, abs(power))
         while True:
             dl       = abs(self._le.count - start_l) * self._mpt
             dr       = abs(self._re.count - start_r) * self._mpt
@@ -345,8 +387,7 @@ class DifferentialDrive:
                 break
             if traveled > ramp_start:
                 frac = max(0.0, (dist_m - traveled) / (dist_m * _RAMP_FRAC))
-                p    = max(_MIN_PWR, abs(power) * frac)
-                self.drive(p if power > 0 else -p)
+                self._push(sign, abs(power) * frac)
             time.sleep(0.02)
         self.stop()
 
@@ -360,28 +401,32 @@ class DifferentialDrive:
 
         For clearer code prefer :meth:`turn_left` / :meth:`turn_right`.
         """
+        if abs(angle_deg) <= _ANG_TOL:
+            return
         pwr  = abs(power)
         sign = 1.0 if angle_deg >= 0 else -1.0   # +1 = CCW
 
         if self._imu and self._imu.connected:
-            start = self._imu.heading
-            self.drive(0.0, sign * pwr)
+            last   = self._imu.heading
+            turned = 0.0
+            self._spin(sign, pwr)
             while True:
-                turned    = _hdiff(self._imu.heading, start)  # CCW positive
-                remaining = angle_deg - turned                 # same sign as angle_deg
-                if abs(remaining) <= _ANG_TOL:
+                now     = self._imu.heading
+                turned += _hdiff(now, last)        # CCW positive, unwrapped
+                last    = now
+                remaining = angle_deg - turned      # same sign as angle_deg until passed
+                # Stop inside tolerance, or once past the target (never spin around again).
+                if abs(remaining) <= _ANG_TOL or remaining * sign < 0:
                     break
-                if abs(remaining) < 20.0:
-                    p = max(15.0, pwr * abs(remaining) / 20.0)
-                    self.drive(0.0, sign * p)
+                if abs(remaining) < _SLOW_DEG:
+                    self._spin(sign, pwr * abs(remaining) / _SLOW_DEG)
                 time.sleep(0.02)
         else:
             arc      = math.radians(abs(angle_deg)) * self._track * 0.5
             start_l  = self._le.count
             start_r  = self._re.count
-            # CCW: right wheel faster → right forward, left backward → drive(0, +)
-            # CW:  left wheel faster  → left forward, right backward → drive(0, -)
-            self.drive(0.0, sign * pwr)
+            # CCW: right forward, left backward.  CW: the reverse.
+            self._spin(sign, pwr)
             while True:
                 dl       = abs(self._le.count - start_l) * self._mpt
                 dr       = abs(self._re.count - start_r) * self._mpt
@@ -399,6 +444,29 @@ class DifferentialDrive:
     def turn_right(self, angle_deg: float, power: float = 40.0) -> None:
         """Turn right (clockwise) by *angle_deg* degrees."""
         self.rotate(-abs(angle_deg), power)
+
+    def turn_to(self, heading_deg: float, direction: str = "shortest",
+                power: float = 40.0) -> None:
+        """Turn in place to face an absolute *heading_deg* (same frame as :attr:`heading`).
+
+        Because the target is absolute, any overshoot from one turn is
+        corrected by the next instead of adding up.
+
+        Parameters
+        ----------
+        heading_deg:
+            Heading to face, in degrees (0 = startup, positive = CCW).
+        direction:
+            ``"shortest"`` (default) takes the shorter way round,
+            ``"left"`` always turns counter-clockwise, ``"right"`` always
+            turns clockwise.
+
+        Example::
+
+            drive.turn_to(90)                      # face 90°, shorter way
+            drive.turn_to(0, direction="left")     # back to 0°, turning left
+        """
+        self.rotate(_turn_angle(self.heading, heading_deg, direction), power)
 
     # ── Strafe guard ───────────────────────────────────────────────────────────
 
@@ -625,16 +693,33 @@ class MecanumDrive:
         omega:
             Rotation power.  Positive = **counter-clockwise** (left), negative = CW.
         """
-        fl = vx + vy - omega
-        fr = vx - vy + omega
-        bl = vx - vy - omega
-        br = vx + vy + omega
-        mx = max(abs(fl), abs(fr), abs(bl), abs(br), 100.0)
-        s  = 100.0 / mx
-        self._motors[0].set_power(fl * s)
-        self._motors[1].set_power(fr * s)
-        self._motors[2].set_power(bl * s)
-        self._motors[3].set_power(br * s)
+        for m, p in zip(self._motors, self._mix(vx, vy, omega)):
+            m.set_power(p)
+
+    @staticmethod
+    def _mix(vx: float, vy: float, omega: float) -> list[float]:
+        """Wheel powers (FL, FR, BL, BR), scaled down so none exceeds 100."""
+        w  = [vx + vy - omega, vx - vy + omega, vx - vy - omega, vx + vy + omega]
+        mx = max(max(abs(p) for p in w), 100.0)
+        return [p * 100.0 / mx for p in w]
+
+    def _move_floored(self, vx: float, vy: float, omega: float,
+                      default: float | None) -> None:
+        """Like :meth:`move`, but scale all four wheels up together until each
+        main wheel reaches its minimum power.  Scaling them together keeps the
+        direction of travel.  Wheels under half the fastest one (e.g. the
+        idle pair on a diagonal) are ignored."""
+        w    = self._mix(vx, vy, omega)
+        peak = max(abs(p) for p in w)
+        s    = 1.0
+        if peak > 0:
+            for m, p in zip(self._motors, w):
+                f = _floor(m, default)
+                if f is not None and abs(p) >= 0.5 * peak:
+                    s = max(s, f / abs(p))
+            s = min(s, 100.0 / peak)
+        for m, p in zip(self._motors, w):
+            m.set_power(p * s)
 
     def stop(self) -> None:
         """Stop all four motors."""
@@ -686,7 +771,7 @@ class MecanumDrive:
     def _strafe_move(self, dist_m: float, vx: float, vy: float) -> None:
         starts     = [enc.count for enc in self._encs]
         ramp_start = dist_m * (1.0 - _RAMP_FRAC)
-        self.move(vx, vy)
+        self._move_floored(vx, vy, 0.0, None)
         while True:
             ds = [(self._encs[i].count - starts[i]) * self._mpt
                   for i in range(4)]
@@ -699,7 +784,7 @@ class MecanumDrive:
             if traveled > ramp_start:
                 frac  = max(0.0, (dist_m - traveled) / (dist_m * _RAMP_FRAC))
                 scale = max(_MIN_PWR / 100.0, frac)
-                self.move(vx * scale, vy * scale)
+                self._move_floored(vx * scale, vy * scale, 0.0, None)
             time.sleep(0.02)
         self.stop()
 
@@ -707,25 +792,31 @@ class MecanumDrive:
 
     def rotate(self, angle_deg: float, power: float = 40.0) -> None:
         """Rotate in place.  Positive = CCW (left).  Negative = CW (right)."""
+        if abs(angle_deg) <= _ANG_TOL:
+            return
         pwr  = abs(power)
         sign = 1.0 if angle_deg >= 0 else -1.0
 
         if self._imu and self._imu.connected:
-            start = self._imu.heading
-            self.move(0.0, 0.0, sign * pwr)
+            last   = self._imu.heading
+            turned = 0.0
+            self._move_floored(0.0, 0.0, sign * pwr, _MIN_TURN_PWR)
             while True:
-                turned    = _hdiff(self._imu.heading, start)
+                now     = self._imu.heading
+                turned += _hdiff(now, last)        # CCW positive, unwrapped
+                last    = now
                 remaining = angle_deg - turned
-                if abs(remaining) <= _ANG_TOL:
+                # Stop inside tolerance, or once past the target (never spin around again).
+                if abs(remaining) <= _ANG_TOL or remaining * sign < 0:
                     break
-                if abs(remaining) < 20.0:
-                    p = max(15.0, pwr * abs(remaining) / 20.0)
-                    self.move(0.0, 0.0, sign * p)
+                if abs(remaining) < _SLOW_DEG:
+                    p = pwr * abs(remaining) / _SLOW_DEG
+                    self._move_floored(0.0, 0.0, sign * p, _MIN_TURN_PWR)
                 time.sleep(0.02)
         else:
             arc    = math.radians(abs(angle_deg)) * self._rk
             starts = [enc.count for enc in self._encs]
-            self.move(0.0, 0.0, sign * pwr)
+            self._move_floored(0.0, 0.0, sign * pwr, _MIN_TURN_PWR)
             while True:
                 traveled = sum(
                     abs(self._encs[i].count - starts[i]) * self._mpt
@@ -744,3 +835,12 @@ class MecanumDrive:
     def turn_right(self, angle_deg: float, power: float = 40.0) -> None:
         """Turn right (clockwise) by *angle_deg* degrees."""
         self.rotate(-abs(angle_deg), power)
+
+    def turn_to(self, heading_deg: float, direction: str = "shortest",
+                power: float = 40.0) -> None:
+        """Turn in place to face an absolute *heading_deg*.
+
+        Same as :meth:`DifferentialDrive.turn_to`; *direction* is
+        ``"shortest"`` (default), ``"left"``, or ``"right"``.
+        """
+        self.rotate(_turn_angle(self.heading, heading_deg, direction), power)
