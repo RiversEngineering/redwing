@@ -18,7 +18,7 @@ Diagram
 -------
   +----wall----+
   |            |
-  | →  robot   |  ← right wall at 90°
+  | →  robot   |  ← right wall at 270°
   |            |
 """
 
@@ -41,8 +41,9 @@ robot.start()
 prev_error = 0.0
 
 while True:
-    # Measure distance on the right side (90° clockwise from forward)
-    right_dist = lidar.nearest_in_range(center_deg=90, half_width_deg=20)
+    # Measure distance on the right side.  LIDAR angles go counter-clockwise
+    # from forward (90° = left), so the right side is 270°.
+    right_dist = lidar.nearest_in_range(center_deg=270, half_width_deg=20)
 
     if right_dist <= 0 or right_dist > 200:
         # No wall detected — drive straight

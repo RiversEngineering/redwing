@@ -77,7 +77,8 @@ You can measure this by driving 1 m and reading encoder.count.
     <span style="color:#C586C0">for</span> <span style="color:#9CDCFE">angle_deg</span>, <span style="color:#9CDCFE">dist_cm</span> <span style="color:#569CD6">in</span> <span style="color:#9CDCFE">lidar</span>.<span style="color:#DCDCAA">scan</span>():
         <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">dist_cm</span> &lt;= <span style="color:#B5CEA8">0</span> <span style="color:#569CD6">or</span> <span style="color:#9CDCFE">dist_cm</span> &gt; <span style="color:#B5CEA8">400</span>:
             <span style="color:#C586C0">continue</span>
-        <span style="color:#6A9955"># Robot-relative polar → Cartesian</span>
+        <span style="color:#6A9955"># Robot-relative polar → world Cartesian.  LIDAR angles and heading are</span>
+        <span style="color:#6A9955"># both counter-clockwise from forward, so they simply add.</span>
         <span style="color:#9CDCFE">angle_rad</span>  = <span style="color:#4EC9B0">math</span>.<span style="color:#DCDCAA">radians</span>(<span style="color:#9CDCFE">angle_deg</span>) + <span style="color:#9CDCFE">heading</span>
         <span style="color:#9CDCFE">px</span> = <span style="color:#9CDCFE">x</span> + <span style="color:#9CDCFE">dist_cm</span> * <span style="color:#4EC9B0">math</span>.<span style="color:#DCDCAA">cos</span>(<span style="color:#9CDCFE">angle_rad</span>)
         <span style="color:#9CDCFE">py</span> = <span style="color:#9CDCFE">y</span> + <span style="color:#9CDCFE">dist_cm</span> * <span style="color:#4EC9B0">math</span>.<span style="color:#DCDCAA">sin</span>(<span style="color:#9CDCFE">angle_rad</span>)

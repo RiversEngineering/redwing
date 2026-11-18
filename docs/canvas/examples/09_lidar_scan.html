@@ -28,7 +28,8 @@ Hardware
 <span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
     <span style="color:#6A9955"># nearest_in_range(center, half_width) looks in the arc</span>
     <span style="color:#6A9955"># from (center - half_width) to (center + half_width) degrees.</span>
-    <span style="color:#6A9955"># 0° is always robot-forward after the offset is applied.</span>
+    <span style="color:#6A9955"># 0° is always robot-forward after the offset is applied;</span>
+    <span style="color:#6A9955"># angles go counter-clockwise, so 90° = left and 270° = right.</span>
     <span style="color:#9CDCFE">front</span> = <span style="color:#9CDCFE">lidar</span>.<span style="color:#DCDCAA">nearest_in_range</span>(<span style="color:#9CDCFE">center_deg</span>=<span style="color:#B5CEA8">0</span>, <span style="color:#9CDCFE">half_width_deg</span>=<span style="color:#B5CEA8">30</span>)
 
     <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">Nearest in front: </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">front</span>:<span style="color:#CE9178">.0f</span><span style="color:#569CD6">}</span><span style="color:#CE9178"> cm</span><span style="color:#CE9178">"</span>)

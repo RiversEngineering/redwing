@@ -77,7 +77,8 @@ while True:
     for angle_deg, dist_cm in lidar.scan():
         if dist_cm <= 0 or dist_cm > 400:
             continue
-        # Robot-relative polar → Cartesian
+        # Robot-relative polar → world Cartesian.  LIDAR angles and heading are
+        # both counter-clockwise from forward, so they simply add.
         angle_rad  = math.radians(angle_deg) + heading
         px = x + dist_cm * math.cos(angle_rad)
         py = y + dist_cm * math.sin(angle_rad)

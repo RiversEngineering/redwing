@@ -18,7 +18,7 @@ Diagram
 -------
   +----wall----+
   |            |
-  | →  robot   |  ← right wall at 90°
+  | →  robot   |  ← right wall at 270°
   |            |
 """</span>
 
@@ -41,8 +41,9 @@ Diagram
 <span style="color:#9CDCFE">prev_error</span> = <span style="color:#B5CEA8">0.0</span>
 
 <span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
-    <span style="color:#6A9955"># Measure distance on the right side (90° clockwise from forward)</span>
-    <span style="color:#9CDCFE">right_dist</span> = <span style="color:#9CDCFE">lidar</span>.<span style="color:#DCDCAA">nearest_in_range</span>(<span style="color:#9CDCFE">center_deg</span>=<span style="color:#B5CEA8">90</span>, <span style="color:#9CDCFE">half_width_deg</span>=<span style="color:#B5CEA8">20</span>)
+    <span style="color:#6A9955"># Measure distance on the right side.  LIDAR angles go counter-clockwise</span>
+    <span style="color:#6A9955"># from forward (90° = left), so the right side is 270°.</span>
+    <span style="color:#9CDCFE">right_dist</span> = <span style="color:#9CDCFE">lidar</span>.<span style="color:#DCDCAA">nearest_in_range</span>(<span style="color:#9CDCFE">center_deg</span>=<span style="color:#B5CEA8">270</span>, <span style="color:#9CDCFE">half_width_deg</span>=<span style="color:#B5CEA8">20</span>)
 
     <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">right_dist</span> &lt;= <span style="color:#B5CEA8">0</span> <span style="color:#569CD6">or</span> <span style="color:#9CDCFE">right_dist</span> &gt; <span style="color:#B5CEA8">200</span>:
         <span style="color:#6A9955"># No wall detected — drive straight</span>

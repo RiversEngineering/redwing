@@ -143,13 +143,14 @@
     <span style="color:#9CDCFE">wheel_diameter_mm</span>=<span style="color:#B5CEA8">96</span>, <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#B5CEA8">300</span>, <span style="color:#9CDCFE">wheelbase_mm</span>=<span style="color:#B5CEA8">280</span>, <span style="color:#9CDCFE">ticks_per_rev</span>=<span style="color:#B5CEA8">537.7</span>,
 )
 <span style="color:#9CDCFE">gp</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#9CDCFE">gamepad</span>
+<span style="color:#9CDCFE">gp</span>.<span style="color:#DCDCAA">set_axis_mode</span>(<span style="color:#CE9178">"ros"</span>)            <span style="color:#6A9955"># sticks use the robot frame: x = up, y = left</span>
 <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
 
 <span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
     <span style="color:#6A9955"># INPUT</span>
-    <span style="color:#9CDCFE">forward</span> = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_y</span> * <span style="color:#B5CEA8">100</span>      <span style="color:#6A9955"># stick up = +1 = forward</span>
-    <span style="color:#9CDCFE">slide</span>   = -<span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_x</span> * <span style="color:#B5CEA8">100</span>     <span style="color:#6A9955"># stick right is +1, but +vy is LEFT, so flip it</span>
-    <span style="color:#9CDCFE">spin</span>    = -<span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">right_x</span> * <span style="color:#B5CEA8">100</span>    <span style="color:#6A9955"># same for rotation: +omega is LEFT</span>
+    <span style="color:#9CDCFE">forward</span> = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_x</span> * <span style="color:#B5CEA8">100</span>      <span style="color:#6A9955"># left stick up    = forward</span>
+    <span style="color:#9CDCFE">slide</span>   = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_y</span> * <span style="color:#B5CEA8">100</span>      <span style="color:#6A9955"># left stick left  = slide left</span>
+    <span style="color:#9CDCFE">spin</span>    = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">right_y</span> * <span style="color:#B5CEA8">100</span>     <span style="color:#6A9955"># right stick left = rotate left</span>
 
     <span style="color:#6A9955"># DECIDE</span>
     <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">just_pressed_a</span>:

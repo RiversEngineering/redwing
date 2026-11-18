@@ -9,6 +9,19 @@
 <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">right_x</span>
 <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">right_y</span></pre>
 
+<h3>Axis mode: driving with x forward</h3>
+<p>Drive systems use the robot's frame: <strong>+x is forward and +y is left</strong>. Switch the sticks to match, and their values go straight into <code>drive.move()</code>:</p>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">gp</span>.<span style="color:#DCDCAA">set_axis_mode</span>(<span style="color:#CE9178">"ros"</span>)      <span style="color:#6A9955"># setup: x = stick up, y = stick LEFT</span>
+
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">move</span>(<span style="color:#9CDCFE">vx</span>=<span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_x</span> * <span style="color:#B5CEA8">100</span>,       <span style="color:#6A9955"># left stick up    = forward</span>
+           <span style="color:#9CDCFE">vy</span>=<span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_y</span> * <span style="color:#B5CEA8">100</span>,       <span style="color:#6A9955"># left stick left  = slide left</span>
+           <span style="color:#9CDCFE">omega</span>=<span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">right_y</span> * <span style="color:#B5CEA8">100</span>)   <span style="color:#6A9955"># right stick left = rotate left</span></pre>
+<table style="border-collapse:collapse;margin:8px 0;" border="1" cellpadding="6">
+<tr><th>Mode</th><th><code>x</code></th><th><code>y</code></th></tr>
+<tr><td><code>"cartesian"</code> (default)</td><td>right = +1</td><td>up = +1</td></tr>
+<tr><td><code>"ros"</code></td><td>up = +1</td><td>left = +1</td></tr>
+</table>
+
 <h3>Throttle &amp; turn</h3>
 <p><strong>Throttle</strong> = forward/back. <strong>Turn</strong> = rotation. Save stick readings in named variables first, then pass the variables to <code>set_power()</code>.</p>
 <pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">throttle</span> = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_y</span> * <span style="color:#B5CEA8">100</span>    <span style="color:#6A9955"># scale -1..1 to -100..100</span>

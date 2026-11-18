@@ -14,9 +14,9 @@
   let showLidar  = false;
 
   // ── LIDAR display config ───────────────────────────────────────────────
-  let lidarOffset  = 0;    // degrees CW rotation
-  let lidarXOffset = 0;    // cm right of centre
-  let lidarYOffset = 0;    // cm forward of centre
+  let lidarOffset  = 0;    // degrees CCW rotation (+ = sensor turned left)
+  let lidarXOffset = 0;    // cm forward of centre
+  let lidarYOffset = 0;    // cm left of centre
   let lidarMaxCm   = 400;  // cm (display only, never code-locked)
 
   // Initialise from state on mount.
@@ -293,7 +293,7 @@
           </span>
         </div>
 
-        <!-- X offset — right/left of centre (locked by code) -->
+        <!-- X offset — forward/back of centre (locked by code) -->
         <div class="flex items-center gap-2" style:opacity={locked ? 0.45 : 1}>
           <span class="text-[10px] text-slate-500 uppercase tracking-widest w-16 flex-shrink-0">X offset</span>
           <input type="range" min="-100" max="100" step="1"
@@ -307,7 +307,7 @@
           </span>
         </div>
 
-        <!-- Y offset — forward/back of centre (locked by code) -->
+        <!-- Y offset — left/right of centre (locked by code) -->
         <div class="flex items-center gap-2" style:opacity={locked ? 0.45 : 1}>
           <span class="text-[10px] text-slate-500 uppercase tracking-widest w-16 flex-shrink-0">Y offset</span>
           <input type="range" min="-100" max="100" step="1"
@@ -334,6 +334,9 @@
           </span>
         </div>
 
+        <div class="text-[10px] text-slate-700 text-center">
+          rotation + = turned left (CCW) · X + = forward · Y + = left
+        </div>
         {#if locked}
           <div class="text-[10px] text-slate-700 italic text-center">rotation + XY set by code</div>
         {/if}

@@ -28,7 +28,8 @@ robot.start()
 while True:
     # nearest_in_range(center, half_width) looks in the arc
     # from (center - half_width) to (center + half_width) degrees.
-    # 0° is always robot-forward after the offset is applied.
+    # 0° is always robot-forward after the offset is applied;
+    # angles go counter-clockwise, so 90° = left and 270° = right.
     front = lidar.nearest_in_range(center_deg=0, half_width_deg=30)
 
     robot.log(f"Nearest in front: {front:.0f} cm")

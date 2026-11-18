@@ -48,7 +48,9 @@ _TRIGGER_THRESHOLD = 0.1
 class Gamepad:
     """Read-only access to gamepad axes and buttons.
 
-    Axes return floats in **-1.0 … +1.0**.
+    Axes return floats in **-1.0 … +1.0**.  By default ``x`` is horizontal
+    and ``y`` is vertical; :meth:`set_axis_mode` (``"ros"``) swaps to the
+    robot frame (``x`` = up, ``y`` = left).
     Boolean buttons return **True** while held.
     ``just_pressed_*`` properties return **True only once per press**.
     """
@@ -58,6 +60,54 @@ class Gamepad:
         # Stores the previous boolean state for each just_pressed edge detector.
         # Keys match the gamepad dict keys (plus "_edge" suffix for analog inputs).
         self._prev: dict[str, bool] = {}
+        self._ros = False   # axis mode; see set_axis_mode()
+
+    # ------------------------------------------------------------------
+    # Axis mode
+    # ------------------------------------------------------------------
+
+    def set_axis_mode(self, mode: str) -> None:
+        """Choose how the stick axes are labelled.
+
+        ``"cartesian"`` (default)
+            Like a graph: ``x`` is horizontal (+ = right) and ``y`` is
+            vertical (+ = up / pushed forward).
+
+        ``"ros"``
+            Like the robot's own frame (ROS REP 103): ``x`` is vertical
+            (+ = up / pushed forward) and ``y`` is horizontal (+ = **left**).
+            Stick values then feed straight into drive commands, where +x is
+            forward and +y is left::
+
+                gp.set_axis_mode("ros")
+                drive.move(vx=gp.left_x * 100,      # stick up    = forward
+                           vy=gp.left_y * 100,      # stick left  = slide left
+                           omega=gp.right_y * 100)  # right stick left = rotate left
+
+        Only the four stick properties change; buttons, D-pad and triggers
+        are the same in both modes.
+        """
+        m = str(mode).lower()
+        if m not in ("cartesian", "ros"):
+            raise ValueError("axis mode must be 'cartesian' or 'ros'.")
+        self._ros = (m == "ros")
+
+    @property
+    def axis_mode(self) -> str:
+        """Current axis mode: ``"cartesian"`` or ``"ros"``."""
+        return "ros" if self._ros else "cartesian"
+
+    def _stick(self, horiz_key: str, vert_key: str, axis: str) -> float:
+        """Read one stick axis, applying the axis mode.
+
+        Raw values: horizontal + = right, vertical + = up.
+        """
+        gp = self._gp()
+        if not self._ros:
+            return float(gp.get(horiz_key if axis == "x" else vert_key, 0.0))
+        if axis == "x":
+            return float(gp.get(vert_key, 0.0))      # up = +x
+        return -float(gp.get(horiz_key, 0.0))        # left = +y
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -78,23 +128,27 @@ class Gamepad:
 
     @property
     def left_x(self) -> float:
-        """Left stick horizontal. -1.0 = full left, +1.0 = full right."""
-        return float(self._gp().get("lx", 0.0))
+        """Left stick x.  Cartesian mode: horizontal, +1.0 = full right.
+        ROS mode: vertical, +1.0 = pushed forward."""
+        return self._stick("lx", "ly", "x")
 
     @property
     def left_y(self) -> float:
-        """Left stick vertical. +1.0 = pushed forward, -1.0 = pulled back."""
-        return float(self._gp().get("ly", 0.0))
+        """Left stick y.  Cartesian mode: vertical, +1.0 = pushed forward.
+        ROS mode: horizontal, +1.0 = full **left**."""
+        return self._stick("lx", "ly", "y")
 
     @property
     def right_x(self) -> float:
-        """Right stick horizontal. -1.0 = full left, +1.0 = full right."""
-        return float(self._gp().get("rx", 0.0))
+        """Right stick x.  Cartesian mode: horizontal, +1.0 = full right.
+        ROS mode: vertical, +1.0 = pushed forward."""
+        return self._stick("rx", "ry", "x")
 
     @property
     def right_y(self) -> float:
-        """Right stick vertical. +1.0 = pushed forward, -1.0 = pulled back."""
-        return float(self._gp().get("ry", 0.0))
+        """Right stick y.  Cartesian mode: vertical, +1.0 = pushed forward.
+        ROS mode: horizontal, +1.0 = full **left**."""
+        return self._stick("rx", "ry", "y")
 
     # ------------------------------------------------------------------
     # Face buttons — level (held) and edge (just pressed)

@@ -2,7 +2,9 @@
 
 The LIDAR connects directly to the Raspberry Pi via USB (not through the Pico).
 Scan data is stored in SharedState.lidar_scan as a list of (angle_deg, distance_cm)
-tuples that the student library can read via robot.lidar().
+tuples that the student library can read via robot.lidar().  Angles are
+counter-clockwise from the sensor's forward direction (ROS REP 103), not the
+RPLIDAR's native clockwise order.
 
 Configuration:
   Set REDWING_LIDAR to the serial port (e.g. /dev/ttyUSB0).
@@ -51,8 +53,10 @@ class LidarCapture:
             scan_buf: list = []
             for new_scan, quality, angle, dist in lidar.iter_measures():
                 if new_scan and len(scan_buf) >= 72:
+                    # RPLIDAR angles run clockwise; store them counter-clockwise
+                    # (0° = sensor forward, 90° = left) to match the robot frame.
                     points = [
-                        (round(a, 1), round(d / 10.0, 1))
+                        (round((360.0 - a) % 360.0, 1), round(d / 10.0, 1))
                         for q, a, d in scan_buf
                         if q >= _SCAN_QUALITY_MIN and d > 0
                     ]

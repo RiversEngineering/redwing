@@ -1069,23 +1069,29 @@ class Robot:
         ``REDWING_LIDAR`` must be set to the serial port in ``docker-compose.yml``
         (e.g. ``REDWING_LIDAR: /dev/ttyUSB0``).
 
+        Angles follow the robot frame: 0° = forward, counter-clockwise
+        positive (90° = left, 270° = right).
+
         Parameters
         ----------
         offset_deg:
-            Clockwise rotation of the sensor's forward direction relative to
-            the robot's forward direction.  Use this when the LIDAR is mounted
-            at an angle so that all angles returned by the library are already
-            in robot-relative coordinates.
+            Counter-clockwise rotation of the sensor's forward direction
+            relative to the robot's forward direction.  Use this when the
+            LIDAR is mounted at an angle so that all angles returned by the
+            library are already in robot-relative coordinates.
 
             * ``0``   — sensor faces forward (default)
-            * ``90``  — sensor rotated 90° clockwise
+            * ``90``  — sensor rotated 90° left (counter-clockwise)
             * ``180`` — sensor faces backward
-            * ``270`` — sensor rotated 90° counter-clockwise (or ``-90``)
+            * ``270`` — sensor rotated 90° right (clockwise) (or ``-90``)
+        x_offset_cm / y_offset_cm:
+            Sensor position relative to the robot's centre: ``x`` + = forward,
+            ``y`` + = left.
 
         Example::
 
-            lidar = robot.lidar()            # sensor points forward
-            lidar = robot.lidar(offset=180)  # sensor mounted pointing backward
+            lidar = robot.lidar()                # sensor points forward
+            lidar = robot.lidar(offset_deg=180)  # sensor mounted pointing backward
 
             while True:
                 front = lidar.nearest_in_range(0, 45)   # always robot-forward
@@ -1149,13 +1155,13 @@ class Robot:
     def map_point(self, x: float, y: float) -> None:
         """Push one world-frame obstacle point to the dashboard map.
 
-        Call inside your loop after transforming a LIDAR reading to world
-        coordinates using your dead-reckoning pose estimate.
+        World frame, in centimetres: +x = forward from the start, +y = left
+        (same as the drive systems' pose).  Call inside your loop after
+        transforming a LIDAR reading to world coordinates using your pose::
 
-        Example::
-
-            wx = pose_x + dist * math.sin(math.radians(pose_heading + angle))
-            wy = pose_y + dist * math.cos(math.radians(pose_heading + angle))
+            a  = math.radians(pose_heading + angle)   # both CCW from forward
+            wx = pose_x + dist * math.cos(a)
+            wy = pose_y + dist * math.sin(a)
             robot.map_point(wx, wy)
         """
         self._conn.send_command(cmd="map_point", x=float(x), y=float(y))
@@ -1169,8 +1175,8 @@ class Robot:
         Example::
 
             world_pts = [
-                (pose_x + d * math.sin(math.radians(pose_hdg + a)),
-                 pose_y + d * math.cos(math.radians(pose_hdg + a)))
+                (pose_x + d * math.cos(math.radians(pose_hdg + a)),
+                 pose_y + d * math.sin(math.radians(pose_hdg + a)))
                 for a, d in lidar.scan()
             ]
             robot.map_points(world_pts)
@@ -1189,10 +1195,12 @@ class Robot:
         Parameters
         ----------
         x, y:
-            World position in centimetres (same coordinate system as
-            ``map_point``).
+            World position in centimetres (+x = forward from the start,
+            +y = left; same as ``map_point``).
         heading_deg:
-            Robot heading in degrees, 0° = forward, clockwise positive.
+            Robot heading in degrees, 0° = the starting direction,
+            counter-clockwise (left) positive.  Drive systems send this
+            automatically.
 
         Example::
 

@@ -223,11 +223,14 @@ Robot frame: +X forward, +Y left, +Z up. MPU-6050 heading drifts over time (no m
 ## 360° LIDAR (USB, e.g. RPLIDAR)
 
 ```python
-lidar = robot.lidar(offset_deg=0)   # offset = sensor's CW rotation vs. robot forward
+lidar = robot.lidar(offset_deg=0)   # offset = sensor's CCW rotation vs. robot forward
+# optional x_offset_cm= (+ forward), y_offset_cm= (+ left): sensor position vs. robot centre
+# angles: 0° = forward, counter-clockwise: 90° = left, 270° = right
 
 lidar.scan()                          # [(angle_deg, distance_cm), ...] sorted by angle
 lidar.nearest()                        # closest distance in any direction
 lidar.nearest_in_range(0, 30)           # closest within ±30° of 0° (robot-forward)
+lidar.nearest_in_range(270, 30)         # ...on the right side
 lidar.nearest_with_angle()               # (angle_deg, distance_cm) of closest point
 ```
 
@@ -238,7 +241,9 @@ lidar.nearest_with_angle()               # (angle_deg, distance_cm) of closest p
 ```python
 gp = robot.gamepad     # no setup call needed, works immediately
 
-gp.left_x, gp.left_y, gp.right_x, gp.right_y   # -1.0..1.0
+gp.left_x, gp.left_y, gp.right_x, gp.right_y   # -1.0..1.0; default: x = right, y = up
+gp.set_axis_mode("ros")                          # x = up, y = LEFT: feeds drives directly
+                                                 # ("cartesian" = default)
 gp.a, gp.b, gp.x, gp.y                          # True while held
 gp.just_pressed_a                                # True once per press (edge)
 gp.dpad_up / dpad_down / dpad_left / dpad_right   # + just_pressed_dpad_*
@@ -360,9 +365,9 @@ robot.stop()                                       # stop all motors immediately
 robot.sleep(0.02)                                   # like time.sleep, but syncs to fresh sensor data
 robot.uptime                                         # seconds since daemon start
 
-robot.map_point(x, y)              # push one world-frame point to dashboard Map tab
+robot.map_point(x, y)              # push one world-frame point (cm; +x forward, +y left) to Map tab
 robot.map_points([(x1,y1), (x2,y2)])
-robot.map_pose(x, y, heading_deg=0)
+robot.map_pose(x, y, heading_deg=0)   # heading CCW positive; drives send this automatically
 robot.clear_map()
 ```
 

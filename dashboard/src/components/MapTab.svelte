@@ -2,9 +2,11 @@
   /**
    * MapTab — world-centric persistent map built from robot.map_point() calls.
    *
-   * Coordinate system:
-   *   World x = right (cm), world y = forward (cm).
-   *   SVG uses cy = -y to flip the Y axis so forward = up on screen.
+   * Coordinate system (ROS REP 103, same as the drive systems' pose):
+   *   World x = forward from the start (cm), world y = left (cm),
+   *   heading counter-clockwise from +x (degrees).
+   *   Drawn with +x up and +y left on screen, so the robot starts facing up:
+   *   SVG point = (-y, -x)  — see svgPt().
    *
    * Data sources:
    *   mapPoints store  — accumulated obstacle points pushed by student code
@@ -14,6 +16,10 @@
   import { send } from '../lib/ws.js';
   import { mapPoints, mapPose, clearMap, robotShapeRects } from '../lib/stores.js';
   import { robotState } from '../lib/stores.js';
+  import { scanToRobot } from '../lib/lidar.js';
+
+  /** World (x forward, y left) → SVG (x right, y down), with world +x drawn up. */
+  const svgPt = (x, y) => [-y, -x];
 
   // ── Robot shape editor ────────────────────────────────────────────────────
   let showShapePanel = false;
@@ -33,16 +39,18 @@
 
   // Pose to use for shape rendering: real pose or origin fallback
   $: shapePose = $mapPose ?? { x: 0, y: 0, heading: 0 };
-  // SVG group transform: translate to pose, rotate by heading (CW in SVG = CW in world ✓)
-  $: shapeTransform = `translate(${shapePose.x},${-shapePose.y}) rotate(${shapePose.heading})`;
+  // SVG group transform: translate to pose, then rotate.  Heading is CCW but
+  // SVG rotate() is CW on screen, so negate it.
+  $: shapeTransform = `translate(${-shapePose.y},${-shapePose.x}) rotate(${-shapePose.heading})`;
 
   // ── View state ─────────────────────────────────────────────────────────────
   let viewCX    = 0;     // world-X at viewport centre (cm)
   let viewCY    = 0;     // world-Y at viewport centre (cm)
   let viewRange = 300;   // half-width of the viewport (cm)
 
-  // ── Derived bounds ─────────────────────────────────────────────────────────
-  $: viewBox = `${viewCX - viewRange} ${-(viewCY + viewRange)} ${viewRange * 2} ${viewRange * 2}`;
+  // ── Derived bounds (SVG space) ─────────────────────────────────────────────
+  $: [svgCX, svgCY] = svgPt(viewCX, viewCY);
+  $: viewBox = `${svgCX - viewRange} ${svgCY - viewRange} ${viewRange * 2} ${viewRange * 2}`;
 
   // ── Grid ───────────────────────────────────────────────────────────────────
   function gridStep(range) {
@@ -54,15 +62,17 @@
   }
 
   $: step = gridStep(viewRange);
+  // Grid in SVG space: vertical lines are constant world-y, horizontal are
+  // constant world-x; the 0 lines are the world axes.
   $: gridLines = (() => {
     const lines = [];
-    const lo = Math.floor((viewCX - viewRange) / step) * step;
-    const hi = Math.ceil ((viewCX + viewRange) / step) * step;
+    const lo = Math.floor((svgCX - viewRange) / step) * step;
+    const hi = Math.ceil ((svgCX + viewRange) / step) * step;
     for (let v = lo; v <= hi; v += step) {
       lines.push({ vertical: true,  v });
     }
-    const loY = Math.floor((viewCY - viewRange) / step) * step;
-    const hiY = Math.ceil ((viewCY + viewRange) / step) * step;
+    const loY = Math.floor((svgCY - viewRange) / step) * step;
+    const hiY = Math.ceil ((svgCY + viewRange) / step) * step;
     for (let v = loY; v <= hiY; v += step) {
       lines.push({ vertical: false, v });
     }
@@ -75,10 +85,9 @@
     const scan = $robotState?.lidar;
     if (!pose || !scan?.length) return [];
     const { x, y, heading } = pose;
-    return scan.map(([angle, dist]) => {
-      const rad = (heading + angle) * Math.PI / 180;
-      return [x + dist * Math.sin(rad), y + dist * Math.cos(rad)];
-    });
+    const h = heading * Math.PI / 180, c = Math.cos(h), s = Math.sin(h);
+    return scanToRobot(scan, $robotState?.lidar_config).map(([rx, ry]) =>
+      [x + rx * c - ry * s, y + rx * s + ry * c]);
   })();
 
   // ── Controls ───────────────────────────────────────────────────────────────
@@ -112,9 +121,10 @@
   function poseArrowPath(pose, size) {
     const { x, y, heading } = pose;
     const h = heading * Math.PI / 180;
-    const tip  = [x + size * Math.sin(h),       -(y + size * Math.cos(h))];
-    const left = [x + size * 0.5 * Math.sin(h + 2.3), -(y + size * 0.5 * Math.cos(h + 2.3))];
-    const rite = [x + size * 0.5 * Math.sin(h - 2.3), -(y + size * 0.5 * Math.cos(h - 2.3))];
+    const at = (r, a) => svgPt(x + r * Math.cos(a), y + r * Math.sin(a));
+    const tip  = at(size,       h);
+    const left = at(size * 0.5, h + 2.3);
+    const rite = at(size * 0.5, h - 2.3);
     return `M ${tip[0]} ${tip[1]} L ${left[0]} ${left[1]} L ${rite[0]} ${rite[1]} Z`;
   }
 
@@ -213,7 +223,7 @@
                            text-amber-300 hover:bg-amber-600/35 transition-colors self-end"
                     on:click={addRect}>Add</button>
           </div>
-          <p class="text-[9px] text-slate-700">X off: +right / −left from centre &nbsp;·&nbsp; Y off: +forward / −back</p>
+          <p class="text-[9px] text-slate-700">W: side to side · H: front to back &nbsp;·&nbsp; X off: +forward / −back &nbsp;·&nbsp; Y off: +left / −right</p>
         </div>
 
         <!-- Existing rectangles list -->
@@ -258,22 +268,22 @@
       <!-- Grid lines -->
       {#each gridLines as gl}
         {#if gl.vertical}
-          <line x1={gl.v} y1={-(viewCY + viewRange)} x2={gl.v} y2={-(viewCY - viewRange)}
+          <line x1={gl.v} y1={svgCY - viewRange} x2={gl.v} y2={svgCY + viewRange}
                 stroke={gl.v === 0 ? '#2a5a3a' : '#1a2a1a'} stroke-width={viewRange * 0.002} />
         {:else}
-          <line x1={viewCX - viewRange} y1={-gl.v} x2={viewCX + viewRange} y2={-gl.v}
+          <line x1={svgCX - viewRange} y1={gl.v} x2={svgCX + viewRange} y2={gl.v}
                 stroke={gl.v === 0 ? '#2a5a3a' : '#1a2a1a'} stroke-width={viewRange * 0.002} />
         {/if}
       {/each}
 
       <!-- Accumulated obstacle points (pushed by student code) -->
       {#each $mapPoints as [x, y]}
-        <circle cx={x} cy={-y} r={dotR} fill="#4ade80" opacity="0.7" />
+        <circle cx={-y} cy={-x} r={dotR} fill="#4ade80" opacity="0.7" />
       {/each}
 
       <!-- Current LIDAR scan in world frame (lighter, shown when pose is known) -->
       {#each worldScan as [x, y]}
-        <circle cx={x} cy={-y} r={scanDotR} fill="#67e8f9" opacity="0.5" />
+        <circle cx={-y} cy={-x} r={scanDotR} fill="#67e8f9" opacity="0.5" />
       {/each}
 
       <!-- Robot shape rectangles (rendered at pose, or at origin if no pose) -->
@@ -281,13 +291,13 @@
         <g transform={shapeTransform}>
           {#each $robotShapeRects as r}
             <!--
-              In robot frame: x=right, y=forward.
-              In SVG group (after y-flip in shapeTransform): SVG y = -world y.
-              So rect top-left in SVG = (x - w/2, -(y + h/2))
+              Robot frame: x = forward, y = left; width = side to side,
+              height = front to back.  Inside the group the robot faces up,
+              so robot (x, y) is SVG (-y, -x).
             -->
             <rect
-              x={r.x - r.width  / 2}
-              y={-(r.y + r.height / 2)}
+              x={-r.y - r.width  / 2}
+              y={-r.x - r.height / 2}
               width={r.width}
               height={r.height}
               fill="rgba(251,191,36,0.07)"
@@ -306,7 +316,7 @@
       <!-- Robot pose indicator -->
       {#if $mapPose}
         <!-- Trail dot at robot position -->
-        <circle cx={$mapPose.x} cy={-$mapPose.y} r={arrowSize * 0.4}
+        <circle cx={-$mapPose.y} cy={-$mapPose.x} r={arrowSize * 0.4}
                 fill="#fbbf24" opacity="0.9" />
         <!-- Heading arrow -->
         <path d={poseArrowPath($mapPose, arrowSize)} fill="#fbbf24" opacity="0.95" />

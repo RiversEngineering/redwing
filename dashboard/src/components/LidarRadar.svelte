@@ -1,12 +1,10 @@
 <script>
   import { robotState } from '../lib/stores.js';
+  import { scanToRobot } from '../lib/lidar.js';
 
   const R = 160;   // SVG coordinate radius
 
   $: cfg     = $robotState?.lidar_config ?? {};
-  $: offset  = cfg.offset   ?? 0;
-  $: xOff    = cfg.x_offset ?? 0;
-  $: yOff    = cfg.y_offset ?? 0;
   $: maxCm   = cfg.max_cm   ?? 400;
 
   $: scan    = $robotState?.lidar ?? [];
@@ -15,32 +13,15 @@
   // Range rings: four evenly-spaced rings scaled to maxCm
   $: rings = [0.25, 0.5, 0.75, 1.0].map(f => Math.round(f * maxCm));
 
-  /** Convert polar (sensor angle °, distance cm) to SVG (x, y).
-   *  Applies rotation offset and XY mounting offset. */
-  function toXY(angle_deg, dist_cm) {
-    // 1. Apply rotation offset
-    const corrected = (angle_deg - offset + 360) % 360;
-    const rad = corrected * Math.PI / 180;
+  // Robot-frame points (+x forward, +y left), mounting offsets applied
+  $: points = scanToRobot(scan, cfg).map(([x, y]) => toSvg(x, y));
 
-    // 2. Sensor Cartesian (0° = forward = +Y, 90° = right = +X)
-    let sx = dist_cm * Math.sin(rad);
-    let sy = dist_cm * Math.cos(rad);
-
-    // 3. Translate to robot-centre frame if XY offset is set
-    if (xOff !== 0 || yOff !== 0) {
-      const rx = sx + xOff;
-      const ry = sy + yOff;
-      const newDist  = Math.sqrt(rx * rx + ry * ry);
-      const newAngle = (Math.atan2(rx, ry) * 180 / Math.PI + 360) % 360;
-      sx = newDist * Math.sin(newAngle * Math.PI / 180);
-      sy = newDist * Math.cos(newAngle * Math.PI / 180);
-    }
-
-    // 4. Clamp to maxCm and convert to SVG coords (SVG: +Y is down, -90° = top)
-    const dist2 = Math.sqrt(sx * sx + sy * sy);
-    const r     = Math.min(dist2, maxCm) / maxCm * R;
-    const svgRad = Math.atan2(sx, sy) - Math.PI / 2; // rotate so forward = top
-    return [R + r * Math.cos(svgRad), R + r * Math.sin(svgRad)];
+  /** Robot-frame (x forward, y left) → SVG, forward = top, left = left.
+   *  Points beyond maxCm are pulled in to the outer ring. */
+  function toSvg(x, y) {
+    const d = Math.sqrt(x * x + y * y);
+    const k = (d > maxCm ? maxCm / d : 1) * R / maxCm;
+    return [R - y * k, R - x * k];
   }
 </script>
 
@@ -71,10 +52,9 @@
     <text x={R} y="11" text-anchor="middle"
           fill="#22c55e" font-size="9" font-family="sans-serif" opacity="0.6">▲</text>
 
-    <!-- LIDAR points (offset already baked into toXY) -->
+    <!-- LIDAR points (mounting offsets applied in scanToRobot) -->
     {#if hasData}
-      {#each scan as [angle, dist]}
-        {@const [px, py] = toXY(angle, dist)}
+      {#each points as [px, py]}
         <circle cx={px} cy={py} r="1.8" fill="#4ade80" opacity="0.8" />
       {/each}
     {:else}

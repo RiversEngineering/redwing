@@ -94,9 +94,9 @@ class SharedState:
         self.lidar_scan: list | None = None
 
         # LIDAR display configuration
-        self.lidar_offset_deg: float  = 0.0    # mounting rotation offset (degrees CW)
-        self.lidar_x_offset_cm: float = 0.0    # LIDAR X position from robot centre (+ve = right)
-        self.lidar_y_offset_cm: float = 0.0    # LIDAR Y position from robot centre (+ve = forward)
+        self.lidar_offset_deg: float  = 0.0    # mounting rotation offset (degrees CCW)
+        self.lidar_x_offset_cm: float = 0.0    # LIDAR X position from robot centre (+ve = forward)
+        self.lidar_y_offset_cm: float = 0.0    # LIDAR Y position from robot centre (+ve = left)
         self.lidar_max_cm: float      = 400.0  # radar display radius (cm) — never code-locked
         self.lidar_code_configured: bool = False  # True once student code sets offset/xy
 
