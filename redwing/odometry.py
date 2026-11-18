@@ -43,7 +43,7 @@ Quick start — mecanum drive::
 
     drive.forward(0.5)
     drive.strafe_right(0.3)
-    drive.rotate(-90)       # 90° counter-clockwise
+    drive.turn_by(-90)      # 90° clockwise (right)
     drive.strafe(0.4, 45)   # move diagonally at 45° (forward-right)
 
 Coordinate frame
@@ -363,6 +363,15 @@ class DifferentialDrive:
         """Move backward by *distance_m* metres, then stop."""
         self._linear_move(abs(distance_m), -abs(power))
 
+    def move_by(self, distance_m: float, power: float = 50.0) -> None:
+        """Move straight by *distance_m* metres, then stop.
+
+        Positive = **forward**, negative = **backward**.
+        """
+        if distance_m == 0:
+            return
+        self._linear_move(abs(distance_m), abs(power) if distance_m > 0 else -abs(power))
+
     def _push(self, sign: float, power: float) -> None:
         """Drive both sides straight, each at or above its minimum power."""
         self._lm.set_power(sign * _floored(power, self._lm, _MIN_PWR))
@@ -393,13 +402,11 @@ class DifferentialDrive:
 
     # ── Dead-reckoning rotation ────────────────────────────────────────────────
 
-    def rotate(self, angle_deg: float, power: float = 40.0) -> None:
-        """Rotate in place by *angle_deg* degrees.
+    def turn_by(self, angle_deg: float, power: float = 40.0) -> None:
+        """Turn in place by *angle_deg* degrees.
 
         Positive angle = **counter-clockwise** (left turn).
         Negative angle = **clockwise** (right turn).
-
-        For clearer code prefer :meth:`turn_left` / :meth:`turn_right`.
         """
         if abs(angle_deg) <= _ANG_TOL:
             return
@@ -437,13 +444,17 @@ class DifferentialDrive:
 
         self.stop()
 
+    def rotate(self, angle_deg: float, power: float = 40.0) -> None:
+        """Old name for :meth:`turn_by`, kept so existing programs still run."""
+        self.turn_by(angle_deg, power)
+
     def turn_left(self, angle_deg: float, power: float = 40.0) -> None:
         """Turn left (counter-clockwise) by *angle_deg* degrees."""
-        self.rotate(abs(angle_deg), power)
+        self.turn_by(abs(angle_deg), power)
 
     def turn_right(self, angle_deg: float, power: float = 40.0) -> None:
         """Turn right (clockwise) by *angle_deg* degrees."""
-        self.rotate(-abs(angle_deg), power)
+        self.turn_by(-abs(angle_deg), power)
 
     def turn_to(self, heading_deg: float, direction: str = "shortest",
                 power: float = 40.0) -> None:
@@ -466,7 +477,7 @@ class DifferentialDrive:
             drive.turn_to(90)                      # face 90°, shorter way
             drive.turn_to(0, direction="left")     # back to 0°, turning left
         """
-        self.rotate(_turn_angle(self.heading, heading_deg, direction), power)
+        self.turn_by(_turn_angle(self.heading, heading_deg, direction), power)
 
     # ── Strafe guard ───────────────────────────────────────────────────────────
 
@@ -481,6 +492,11 @@ class DifferentialDrive:
         )
 
     def strafe(self, *_a, **_kw):
+        raise NotImplementedError(
+            "Differential drive cannot strafe. Use MecanumDrive for sideways movement."
+        )
+
+    def strafe_by(self, *_a, **_kw):
         raise NotImplementedError(
             "Differential drive cannot strafe. Use MecanumDrive for sideways movement."
         )
@@ -736,6 +752,12 @@ class MecanumDrive:
         """Move backward by *distance_m* metres."""
         self._strafe_move(abs(distance_m), -abs(power), 0.0)
 
+    def move_by(self, distance_m: float, power: float = 50.0) -> None:
+        """Move straight by *distance_m* metres.  Positive = forward, negative = backward."""
+        if distance_m == 0:
+            return
+        self._strafe_move(abs(distance_m), abs(power) if distance_m > 0 else -abs(power), 0.0)
+
     def strafe_left(self, distance_m: float, power: float = 50.0) -> None:
         """Strafe left by *distance_m* metres."""
         self._strafe_move(abs(distance_m), 0.0, -abs(power))
@@ -743,6 +765,13 @@ class MecanumDrive:
     def strafe_right(self, distance_m: float, power: float = 50.0) -> None:
         """Strafe right by *distance_m* metres."""
         self._strafe_move(abs(distance_m), 0.0, abs(power))
+
+    def strafe_by(self, distance_m: float, power: float = 50.0) -> None:
+        """Strafe sideways by *distance_m* metres.  Positive = **right**, negative = left
+        (same as ``vy`` in :meth:`move`)."""
+        if distance_m == 0:
+            return
+        self._strafe_move(abs(distance_m), 0.0, abs(power) if distance_m > 0 else -abs(power))
 
     def strafe(self, distance_m: float, angle_deg: float,
                power: float = 50.0) -> None:
@@ -790,8 +819,8 @@ class MecanumDrive:
 
     # ── Dead-reckoning rotation ────────────────────────────────────────────────
 
-    def rotate(self, angle_deg: float, power: float = 40.0) -> None:
-        """Rotate in place.  Positive = CCW (left).  Negative = CW (right)."""
+    def turn_by(self, angle_deg: float, power: float = 40.0) -> None:
+        """Turn in place.  Positive = CCW (left).  Negative = CW (right)."""
         if abs(angle_deg) <= _ANG_TOL:
             return
         pwr  = abs(power)
@@ -828,13 +857,17 @@ class MecanumDrive:
 
         self.stop()
 
+    def rotate(self, angle_deg: float, power: float = 40.0) -> None:
+        """Old name for :meth:`turn_by`, kept so existing programs still run."""
+        self.turn_by(angle_deg, power)
+
     def turn_left(self, angle_deg: float, power: float = 40.0) -> None:
         """Turn left (counter-clockwise) by *angle_deg* degrees."""
-        self.rotate(abs(angle_deg), power)
+        self.turn_by(abs(angle_deg), power)
 
     def turn_right(self, angle_deg: float, power: float = 40.0) -> None:
         """Turn right (clockwise) by *angle_deg* degrees."""
-        self.rotate(-abs(angle_deg), power)
+        self.turn_by(-abs(angle_deg), power)
 
     def turn_to(self, heading_deg: float, direction: str = "shortest",
                 power: float = 40.0) -> None:
@@ -843,4 +876,4 @@ class MecanumDrive:
         Same as :meth:`DifferentialDrive.turn_to`; *direction* is
         ``"shortest"`` (default), ``"left"``, or ``"right"``.
         """
-        self.rotate(_turn_angle(self.heading, heading_deg, direction), power)
+        self.turn_by(_turn_angle(self.heading, heading_deg, direction), power)

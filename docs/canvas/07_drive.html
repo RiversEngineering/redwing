@@ -60,9 +60,14 @@
 <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">turn_to</span>(<span style="color:#B5CEA8">180</span>)              <span style="color:#6A9955"># turn to FACE heading 180°, the shorter way</span>
 <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">turn_to</span>(<span style="color:#B5CEA8">0</span>, <span style="color:#9CDCFE">direction</span>=<span style="color:#CE9178">"left"</span>)    <span style="color:#6A9955"># ...or force "left" / "right"</span>
 
+<span style="color:#6A9955"># same moves with a sign instead of a direction in the name</span>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">move_by</span>(-<span style="color:#B5CEA8">0.3</span>)             <span style="color:#6A9955"># + forward, - backward</span>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">turn_by</span>(-<span style="color:#B5CEA8">45</span>)              <span style="color:#6A9955"># + left, - right</span>
+
 <span style="color:#6A9955"># mecanum only</span>
 <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">strafe_right</span>(<span style="color:#B5CEA8">0.3</span>)         <span style="color:#6A9955"># slide sideways, still facing forward</span>
 <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">strafe_left</span>(<span style="color:#B5CEA8">0.3</span>)
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">strafe_by</span>(-<span style="color:#B5CEA8">0.3</span>)           <span style="color:#6A9955"># + right, - left</span>
 <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">strafe</span>(<span style="color:#B5CEA8">0.4</span>, <span style="color:#B5CEA8">45</span>)           <span style="color:#6A9955"># any direction: 0=fwd, 90=right, 180=back, 270=left</span></pre>
 <p>These <strong>wait until the move is done</strong>, so your program pauses on that line. Use them for autonomous step-by-step routines, not inside a gamepad loop.</p>
 <p><strong>Prefer <code>turn_to()</code> for routines.</strong> The robot keeps spinning a little after each turn. <code>turn_left(90)</code> four times adds those extra degrees up; <code>turn_to()</code> aims at a fixed heading, so each turn fixes the last one's error. Still turning a few degrees too far? Aim a few degrees short.</p>

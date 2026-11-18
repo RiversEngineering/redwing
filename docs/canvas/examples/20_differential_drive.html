@@ -107,9 +107,9 @@ Tune the constants below to match your robot before running.
 <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">backward</span>(<span style="color:#B5CEA8">0.2</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">40</span>)
 <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.3</span>)
 
-<span style="color:#6A9955"># Turn left using the signed rotate() method</span>
-<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Rotating 45° counter-clockwise"</span>)
-<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">rotate</span>(<span style="color:#B5CEA8">45</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">35</span>)
+<span style="color:#6A9955"># Turn left using the signed turn_by() method</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Turning 45° counter-clockwise"</span>)
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">turn_by</span>(<span style="color:#B5CEA8">45</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">35</span>)
 <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.3</span>)
 
 <span style="color:#6A9955"># Continuous drive example: gentle arc for 1 second</span>

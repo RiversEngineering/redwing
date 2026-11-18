@@ -107,9 +107,9 @@ robot.log("Reversing 0.2 m")
 drive.backward(0.2, power=40)
 robot.sleep(0.3)
 
-# Turn left using the signed rotate() method
-robot.log("Rotating 45° counter-clockwise")
-drive.rotate(45, power=35)
+# Turn left using the signed turn_by() method
+robot.log("Turning 45° counter-clockwise")
+drive.turn_by(45, power=35)
 robot.sleep(0.3)
 
 # Continuous drive example: gentle arc for 1 second
