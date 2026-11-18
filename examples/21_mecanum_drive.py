@@ -94,22 +94,23 @@ drive.strafe_left(0.4, power=50)
 robot.sleep(0.3)
 
 # Diagonal movement using strafe(distance, angle)
-# Angle: 0° = forward, 90° = right, 180° = backward, 270° = left
-robot.log("Diagonal: forward-right 0.5 m at 45°")
+# Angle: counter-clockwise from forward, like heading:
+#   0° = forward, 90° = left, 180° = backward, 270° = right
+robot.log("Diagonal: forward-left 0.5 m at 45°")
 drive.strafe(0.5, angle_deg=45, power=50)
 robot.sleep(0.3)
 
-robot.log("Diagonal: back to start at 225° (back-left)")
+robot.log("Diagonal: back to start at 225° (back-right)")
 drive.strafe(0.5, angle_deg=225, power=50)
 robot.sleep(0.3)
 
 # Rotations — robot stays in place
-robot.log("Turn right 90°")
-drive.turn_right(90, power=40)
+robot.log("Rotate right 90°")
+drive.rotate_right(90, power=40)
 robot.sleep(0.3)
 
-robot.log("Turn left 90°  (back to original heading)")
-drive.turn_left(90, power=40)
+robot.log("Rotate left 90°  (back to original heading)")
+drive.rotate_left(90, power=40)
 robot.sleep(0.3)
 
 # Pose after the above moves should be close to (0, 0, 0°)
@@ -118,7 +119,7 @@ robot.log(f"Pose after rotations → x={x:.2f} m  y={y:.2f} m  heading={hdg:.1f}
 
 # Continuous holonomic motion: move(vx, vy, omega)
 #   vx    = forward/backward  (-100 to +100)
-#   vy    = right strafe       (-100 to +100, positive = right)
+#   vy    = sideways strafe    (-100 to +100, positive = left)
 #   omega = rotation           (-100 to +100, positive = CCW)
 robot.log("Continuous: circle (forward + CCW rotation) for 2 s")
 drive.move(vx=40, vy=0, omega=20)
@@ -127,7 +128,7 @@ drive.stop()
 robot.sleep(0.3)
 
 robot.log("Continuous: crab sideways right for 1 s")
-drive.move(vx=0, vy=50, omega=0)
+drive.move(vx=0, vy=-50, omega=0)   # negative vy = right
 robot.sleep(1.0)
 drive.stop()
 robot.sleep(0.3)

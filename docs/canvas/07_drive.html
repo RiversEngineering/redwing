@@ -1,12 +1,15 @@
 <h2>Redwing Quick Reference: Drive Systems</h2>
-<p>A drive object runs all your wheels together. It uses the encoders to measure how far the robot has gone and the IMU to measure which way it's facing, so you can say "go forward 0.5 m" or "turn left 90°", and read back where the robot is.</p>
+<p>A drive object runs all your wheels together. It uses the encoders to measure how far the robot has gone and the IMU to measure which way it's facing, so you can say "go forward 0.5 m" or "rotate left 90°", and read back where the robot is.</p>
 
 <h3>Which way is which</h3>
+<p>Redwing uses the standard robotics convention: <strong>+X is forward, +Y is left, and counter-clockwise (left) rotation is positive.</strong> Every position, heading and signed command follows it.</p>
 <table style="border-collapse:collapse;margin:8px 0;" border="1" cellpadding="6">
-<tr><td><code>x</code></td><td>meters forward from where the robot started</td></tr>
-<tr><td><code>y</code></td><td>meters <strong>left</strong> from where the robot started</td></tr>
-<tr><td><code>heading</code></td><td>degrees, 0 at start, <strong>counter-clockwise (left) is positive</strong>, wraps 0–360 (a small right turn reads 350)</td></tr>
+<tr><th></th><th>Positive (+)</th><th>Negative (−)</th></tr>
+<tr><td><code>x</code>, <code>move_by()</code>, <code>vx</code>, <code>forward</code></td><td>forward</td><td>backward</td></tr>
+<tr><td><code>y</code>, <code>strafe_by()</code>, <code>vy</code></td><td><strong>left</strong></td><td>right</td></tr>
+<tr><td><code>heading</code>, <code>rotate_by()</code>, <code>omega</code>, <code>turn</code></td><td><strong>left</strong> (counter-clockwise)</td><td>right (clockwise)</td></tr>
 </table>
+<p><code>x</code> and <code>y</code> are meters from where the robot started. <code>heading</code> is degrees, 0 at start, and wraps 0–360 (a small rotation right reads 350).</p>
 
 <h3>Setup: differential (tank) drive</h3>
 <pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">left_motor</span>  = <span style="color:#9CDCFE">robot</span>.<span style="color:#4FC1FF">D0</span>.<span style="color:#DCDCAA">motor</span>()
@@ -50,37 +53,38 @@
   <li><strong>Every encoder</strong> count goes <em>up</em> when its wheel rolls forward. If not, <code>motor.encoder.invert()</code>.</li>
   <li><strong><code>ticks_per_rev</code></strong> is measured by hand (see the Encoders reference). A wrong value makes every distance wrong by the same factor.</li>
 </ol>
-<p>If <code>forward()</code> never stops, or <code>turn_left()</code> turns right, one of these is wrong.</p>
+<p>If <code>forward()</code> never stops, or <code>rotate_left()</code> rotates right, one of these is wrong.</p>
 
 <h3>Moving (after <code>robot.start()</code>)</h3>
 <pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">forward</span>(<span style="color:#B5CEA8">0.5</span>)              <span style="color:#6A9955"># 0.5 m forward, then stop  (power=50 default)</span>
 <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">backward</span>(<span style="color:#B5CEA8">0.3</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">30</span>)
-<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">turn_left</span>(<span style="color:#B5CEA8">90</span>)             <span style="color:#6A9955"># turn in place by 90°        (power=40 default)</span>
-<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">turn_right</span>(<span style="color:#B5CEA8">45</span>)
-<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">turn_to</span>(<span style="color:#B5CEA8">180</span>)              <span style="color:#6A9955"># turn to FACE heading 180°, the shorter way</span>
-<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">turn_to</span>(<span style="color:#B5CEA8">0</span>, <span style="color:#9CDCFE">direction</span>=<span style="color:#CE9178">"left"</span>)    <span style="color:#6A9955"># ...or force "left" / "right"</span>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">rotate_left</span>(<span style="color:#B5CEA8">90</span>)           <span style="color:#6A9955"># rotate in place by 90°      (power=40 default)</span>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">rotate_right</span>(<span style="color:#B5CEA8">45</span>)
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">rotate_to</span>(<span style="color:#B5CEA8">180</span>)            <span style="color:#6A9955"># rotate to FACE heading 180°, the shorter way</span>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">rotate_to</span>(<span style="color:#B5CEA8">0</span>, <span style="color:#9CDCFE">direction</span>=<span style="color:#CE9178">"left"</span>)  <span style="color:#6A9955"># ...or force "left" / "right"</span>
 
 <span style="color:#6A9955"># same moves with a sign instead of a direction in the name</span>
 <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">move_by</span>(-<span style="color:#B5CEA8">0.3</span>)             <span style="color:#6A9955"># + forward, - backward</span>
-<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">turn_by</span>(-<span style="color:#B5CEA8">45</span>)              <span style="color:#6A9955"># + left, - right</span>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">rotate_by</span>(-<span style="color:#B5CEA8">45</span>)            <span style="color:#6A9955"># + left, - right</span>
 
 <span style="color:#6A9955"># mecanum only</span>
-<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">strafe_right</span>(<span style="color:#B5CEA8">0.3</span>)         <span style="color:#6A9955"># slide sideways, still facing forward</span>
-<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">strafe_left</span>(<span style="color:#B5CEA8">0.3</span>)
-<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">strafe_by</span>(-<span style="color:#B5CEA8">0.3</span>)           <span style="color:#6A9955"># + right, - left</span>
-<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">strafe</span>(<span style="color:#B5CEA8">0.4</span>, <span style="color:#B5CEA8">45</span>)           <span style="color:#6A9955"># any direction: 0=fwd, 90=right, 180=back, 270=left</span></pre>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">strafe_left</span>(<span style="color:#B5CEA8">0.3</span>)          <span style="color:#6A9955"># slide sideways, still facing forward</span>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">strafe_right</span>(<span style="color:#B5CEA8">0.3</span>)
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">strafe_by</span>(-<span style="color:#B5CEA8">0.3</span>)           <span style="color:#6A9955"># + left, - right</span>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">strafe</span>(<span style="color:#B5CEA8">0.4</span>, <span style="color:#B5CEA8">45</span>)           <span style="color:#6A9955"># any direction, counter-clockwise from forward:</span>
+                                <span style="color:#6A9955"># 0=fwd, 90=left, 180=back, 270=right</span></pre>
 <p>These <strong>wait until the move is done</strong>, so your program pauses on that line. Use them for autonomous step-by-step routines, not inside a gamepad loop.</p>
-<p><strong>Prefer <code>turn_to()</code> for routines.</strong> The robot keeps spinning a little after each turn. <code>turn_left(90)</code> four times adds those extra degrees up; <code>turn_to()</code> aims at a fixed heading, so each turn fixes the last one's error. Still turning a few degrees too far? Aim a few degrees short.</p>
+<p><strong>Prefer <code>rotate_to()</code> for routines.</strong> The robot keeps spinning a little after each rotation. <code>rotate_left(90)</code> four times adds those extra degrees up; <code>rotate_to()</code> aims at a fixed heading, so each rotation fixes the last one's error. Still rotating a few degrees too far? Aim a few degrees short.</p>
 
 <h3>Robot stalls just short of the target?</h3>
 <p>Moves slow down near the end. If a wheel stops turning before the robot gets there, set that motor's minimum power (setup, before <code>robot.start()</code>):</p>
 <pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">left_motor</span>.<span style="color:#DCDCAA">set_min_power</span>(<span style="color:#B5CEA8">25</span>)     <span style="color:#6A9955"># lowest power that still turns this wheel</span>
 <span style="color:#9CDCFE">right_motor</span>.<span style="color:#DCDCAA">set_min_power</span>(<span style="color:#B5CEA8">18</span>)</pre>
-<p>Default without it: 20% for straight moves, 15% for turns. This only affects the drive's moves, not <code>set_power()</code> or <code>drive.drive()</code>.</p>
+<p>Default without it: 20% for straight moves, 15% for rotations. This only affects the drive's moves, not <code>set_power()</code> or <code>drive.drive()</code>.</p>
 
 <h3>Driving continuously (gamepad, sensors)</h3>
 <pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">drive</span>(<span style="color:#9CDCFE">forward</span>=<span style="color:#B5CEA8">50</span>, <span style="color:#9CDCFE">turn</span>=<span style="color:#B5CEA8">0</span>)        <span style="color:#6A9955"># differential: turn + = left, - = right</span>
-<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">move</span>(<span style="color:#9CDCFE">vx</span>=<span style="color:#B5CEA8">50</span>, <span style="color:#9CDCFE">vy</span>=<span style="color:#B5CEA8">0</span>, <span style="color:#9CDCFE">omega</span>=<span style="color:#B5CEA8">0</span>)       <span style="color:#6A9955"># mecanum: vy + = right, omega + = left</span>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">move</span>(<span style="color:#9CDCFE">vx</span>=<span style="color:#B5CEA8">50</span>, <span style="color:#9CDCFE">vy</span>=<span style="color:#B5CEA8">0</span>, <span style="color:#9CDCFE">omega</span>=<span style="color:#B5CEA8">0</span>)       <span style="color:#6A9955"># mecanum: vy + = left, omega + = left</span>
 <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">stop</span>()</pre>
 <p>All values are % power, -100 to 100. These return right away and keep the motors running until you send something else or <code>stop()</code>.</p>
 
@@ -93,8 +97,8 @@
 
 <h3>What the IMU does</h3>
 <ul>
-  <li>Gives the drive its <code>heading</code>. Wheels slip in turns, so heading from encoders alone drifts fast. Always pass <code>imu=robot.imu()</code> if you have one.</li>
-  <li>Tells <code>turn_left()</code>, <code>turn_right()</code> and <code>turn_to()</code> when to cut power (within about 1.5°). The robot can coast a little past that.</li>
+  <li>Gives the drive its <code>heading</code>. Wheels slip when the robot rotates, so heading from encoders alone drifts fast. Always pass <code>imu=robot.imu()</code> if you have one.</li>
+  <li>Tells <code>rotate_left()</code>, <code>rotate_right()</code>, <code>rotate_by()</code> and <code>rotate_to()</code> when to cut power (within about 1.5°). The robot can coast a little past that.</li>
   <li>Does <em>not</em> steer <code>forward()</code> straight. If the robot curves, check the motors and wheels.</li>
   <li>BNO085/BNO055: heading doesn't drift. MPU-6050: drifts about 0.5–2° per minute.</li>
 </ul>
@@ -119,7 +123,7 @@
 <span style="color:#C586C0">for</span> <span style="color:#9CDCFE">side</span> <span style="color:#569CD6">in</span> <span style="color:#4EC9B0">range</span>(<span style="color:#B5CEA8">4</span>):
     <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">forward</span>(<span style="color:#B5CEA8">0.5</span>)
     <span style="color:#9CDCFE">heading</span> = <span style="color:#9CDCFE">heading</span> + <span style="color:#B5CEA8">90</span>
-    <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">turn_to</span>(<span style="color:#9CDCFE">heading</span> % <span style="color:#B5CEA8">360</span>)     <span style="color:#6A9955"># 90, 180, 270, 0</span>
+    <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">rotate_to</span>(<span style="color:#9CDCFE">heading</span> % <span style="color:#B5CEA8">360</span>)   <span style="color:#6A9955"># 90, 180, 270, 0</span>
 
 <span style="color:#9CDCFE">x</span>, <span style="color:#9CDCFE">y</span>, <span style="color:#9CDCFE">heading</span> = <span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">pose</span>
 <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Ended at x:"</span>, <span style="color:#9CDCFE">x</span>, <span style="color:#CE9178">" y:"</span>, <span style="color:#9CDCFE">y</span>, <span style="color:#CE9178">" heading:"</span>, <span style="color:#9CDCFE">heading</span>)</pre>
@@ -143,16 +147,16 @@
 
 <span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
     <span style="color:#6A9955"># INPUT</span>
-    <span style="color:#9CDCFE">forward</span> = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_y</span> * <span style="color:#B5CEA8">100</span>      <span style="color:#6A9955"># stick up = forward</span>
-    <span style="color:#9CDCFE">right</span>   = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_x</span> * <span style="color:#B5CEA8">100</span>      <span style="color:#6A9955"># stick right = slide right</span>
-    <span style="color:#9CDCFE">spin</span>    = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">right_x</span> * <span style="color:#B5CEA8">100</span>     <span style="color:#6A9955"># stick right = turn right</span>
+    <span style="color:#9CDCFE">forward</span> = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_y</span> * <span style="color:#B5CEA8">100</span>      <span style="color:#6A9955"># stick up = +1 = forward</span>
+    <span style="color:#9CDCFE">slide</span>   = -<span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_x</span> * <span style="color:#B5CEA8">100</span>     <span style="color:#6A9955"># stick right is +1, but +vy is LEFT, so flip it</span>
+    <span style="color:#9CDCFE">spin</span>    = -<span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">right_x</span> * <span style="color:#B5CEA8">100</span>    <span style="color:#6A9955"># same for rotation: +omega is LEFT</span>
 
     <span style="color:#6A9955"># DECIDE</span>
     <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">just_pressed_a</span>:
         <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">reset_pose</span>()         <span style="color:#6A9955"># A: call this spot (0, 0, 0°)</span>
 
     <span style="color:#6A9955"># OUTPUT</span>
-    <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">move</span>(<span style="color:#9CDCFE">vx</span>=<span style="color:#9CDCFE">forward</span>, <span style="color:#9CDCFE">vy</span>=<span style="color:#9CDCFE">right</span>, <span style="color:#9CDCFE">omega</span>=-<span style="color:#9CDCFE">spin</span>)    <span style="color:#6A9955"># omega + is LEFT, so flip it</span>
+    <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">move</span>(<span style="color:#9CDCFE">vx</span>=<span style="color:#9CDCFE">forward</span>, <span style="color:#9CDCFE">vy</span>=<span style="color:#9CDCFE">slide</span>, <span style="color:#9CDCFE">omega</span>=<span style="color:#9CDCFE">spin</span>)
     <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"x:"</span>, <span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">x</span>, <span style="color:#CE9178">" y:"</span>, <span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">y</span>, <span style="color:#CE9178">" heading:"</span>, <span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">heading</span>)
 
     <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.02</span>)</pre>

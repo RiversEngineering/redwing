@@ -206,8 +206,8 @@ class Motor:
 
         Used only by the blocking moves of
         :class:`~redwing.odometry.DifferentialDrive` and
-        :class:`~redwing.odometry.MecanumDrive` (``forward()``, ``turn_left()``,
-        ``turn_to()``, ...), which slow down near the end of a move.  Set it to
+        :class:`~redwing.odometry.MecanumDrive` (``forward()``, ``rotate_left()``,
+        ``rotate_to()``, ...), which slow down near the end of a move.  Set it to
         roughly the smallest power that still makes the wheel turn, so the
         robot doesn't stall just short of its target.
 

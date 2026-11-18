@@ -89,14 +89,14 @@ robot.log("Starting differential drive demo")
 robot.clear_map()
 
 # Drive a simple square
-# Each leg: forward 0.5 m, then turn 90° right
+# Each leg: forward 0.5 m, then rotate 90° right
 for leg in range(4):
     robot.log(f"Leg {leg + 1}: forward 0.5 m")
     drive.forward(0.5, power=50)
     robot.sleep(0.3)            # brief pause between moves
 
-    robot.log(f"Leg {leg + 1}: turn right 90°")
-    drive.turn_right(90, power=40)
+    robot.log(f"Leg {leg + 1}: rotate right 90°")
+    drive.rotate_right(90, power=40)
     robot.sleep(0.3)
 
     x, y, hdg = drive.pose
@@ -107,9 +107,9 @@ robot.log("Reversing 0.2 m")
 drive.backward(0.2, power=40)
 robot.sleep(0.3)
 
-# Turn left using the signed turn_by() method
-robot.log("Turning 45° counter-clockwise")
-drive.turn_by(45, power=35)
+# Rotate left using the signed rotate_by() method (+ = left / CCW)
+robot.log("Rotating 45° counter-clockwise")
+drive.rotate_by(45, power=35)
 robot.sleep(0.3)
 
 # Continuous drive example: gentle arc for 1 second

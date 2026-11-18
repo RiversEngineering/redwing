@@ -94,22 +94,23 @@ Tune the constants below to match your robot before running.
 <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.3</span>)
 
 <span style="color:#6A9955"># Diagonal movement using strafe(distance, angle)</span>
-<span style="color:#6A9955"># Angle: 0° = forward, 90° = right, 180° = backward, 270° = left</span>
-<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Diagonal: forward-right 0.5 m at 45°"</span>)
+<span style="color:#6A9955"># Angle: counter-clockwise from forward, like heading:</span>
+<span style="color:#6A9955">#   0° = forward, 90° = left, 180° = backward, 270° = right</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Diagonal: forward-left 0.5 m at 45°"</span>)
 <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">strafe</span>(<span style="color:#B5CEA8">0.5</span>, <span style="color:#9CDCFE">angle_deg</span>=<span style="color:#B5CEA8">45</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">50</span>)
 <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.3</span>)
 
-<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Diagonal: back to start at 225° (back-left)"</span>)
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Diagonal: back to start at 225° (back-right)"</span>)
 <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">strafe</span>(<span style="color:#B5CEA8">0.5</span>, <span style="color:#9CDCFE">angle_deg</span>=<span style="color:#B5CEA8">225</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">50</span>)
 <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.3</span>)
 
 <span style="color:#6A9955"># Rotations — robot stays in place</span>
-<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Turn right 90°"</span>)
-<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">turn_right</span>(<span style="color:#B5CEA8">90</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">40</span>)
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Rotate right 90°"</span>)
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">rotate_right</span>(<span style="color:#B5CEA8">90</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">40</span>)
 <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.3</span>)
 
-<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Turn left 90°  (back to original heading)"</span>)
-<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">turn_left</span>(<span style="color:#B5CEA8">90</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">40</span>)
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Rotate left 90°  (back to original heading)"</span>)
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">rotate_left</span>(<span style="color:#B5CEA8">90</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">40</span>)
 <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.3</span>)
 
 <span style="color:#6A9955"># Pose after the above moves should be close to (0, 0, 0°)</span>
@@ -118,7 +119,7 @@ Tune the constants below to match your robot before running.
 
 <span style="color:#6A9955"># Continuous holonomic motion: move(vx, vy, omega)</span>
 <span style="color:#6A9955">#   vx    = forward/backward  (-100 to +100)</span>
-<span style="color:#6A9955">#   vy    = right strafe       (-100 to +100, positive = right)</span>
+<span style="color:#6A9955">#   vy    = sideways strafe    (-100 to +100, positive = left)</span>
 <span style="color:#6A9955">#   omega = rotation           (-100 to +100, positive = CCW)</span>
 <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Continuous: circle (forward + CCW rotation) for 2 s"</span>)
 <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">move</span>(<span style="color:#9CDCFE">vx</span>=<span style="color:#B5CEA8">40</span>, <span style="color:#9CDCFE">vy</span>=<span style="color:#B5CEA8">0</span>, <span style="color:#9CDCFE">omega</span>=<span style="color:#B5CEA8">20</span>)
@@ -127,7 +128,7 @@ Tune the constants below to match your robot before running.
 <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.3</span>)
 
 <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Continuous: crab sideways right for 1 s"</span>)
-<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">move</span>(<span style="color:#9CDCFE">vx</span>=<span style="color:#B5CEA8">0</span>, <span style="color:#9CDCFE">vy</span>=<span style="color:#B5CEA8">50</span>, <span style="color:#9CDCFE">omega</span>=<span style="color:#B5CEA8">0</span>)
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">move</span>(<span style="color:#9CDCFE">vx</span>=<span style="color:#B5CEA8">0</span>, <span style="color:#9CDCFE">vy</span>=-<span style="color:#B5CEA8">50</span>, <span style="color:#9CDCFE">omega</span>=<span style="color:#B5CEA8">0</span>)   <span style="color:#6A9955"># negative vy = right</span>
 <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">1.0</span>)
 <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">stop</span>()
 <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.3</span>)

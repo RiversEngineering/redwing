@@ -26,7 +26,7 @@ Quick start — differential drive::
     robot.start()
 
     drive.forward(0.5)      # 0.5 m forward
-    drive.turn_right(90)    # 90° clockwise
+    drive.rotate_right(90)  # 90° clockwise
     print(drive.pose)       # (x_m, y_m, heading_deg)
 
 Quick start — mecanum drive::
@@ -43,8 +43,8 @@ Quick start — mecanum drive::
 
     drive.forward(0.5)
     drive.strafe_right(0.3)
-    drive.turn_by(-90)      # 90° clockwise (right)
-    drive.strafe(0.4, 45)   # move diagonally at 45° (forward-right)
+    drive.rotate_by(-90)    # 90° clockwise (right)
+    drive.strafe(0.4, 45)   # move diagonally at 45° (forward-left)
 
 Coordinate frame
 ----------------
@@ -55,8 +55,13 @@ The robot uses a right-hand coordinate system:
 - ``+Z``: up
 - ``heading``: rotation around +Z, degrees, 0 at startup.
   **Positive = counter-clockwise** (left turn), consistent with
-  ``imu.heading``.  Use :meth:`turn_left` / :meth:`turn_right` to avoid
+  ``imu.heading``.  Use ``rotate_left()`` / ``rotate_right()`` to avoid
   thinking about sign conventions.
+
+Every signed drive value follows this frame (ROS REP 103): positive
+``move_by`` / ``vx`` = forward, positive ``strafe_by`` / ``vy`` = **left**,
+positive ``rotate_by`` / ``omega`` / ``turn`` = counter-clockwise (left),
+and ``strafe()`` angles are measured counter-clockwise from forward.
 
 The ``imu.acceleration`` vector and ``imu.quaternion`` are expressed in the
 same robot frame once :meth:`~redwing.devices.imu.IMU.set_mount_rotation`
@@ -105,7 +110,7 @@ def _hdiff(new_deg: float, old_deg: float) -> float:
 
 
 def _turn_angle(current_deg: float, target_deg: float, direction: str) -> float:
-    """Signed turn (CCW positive) from *current_deg* to *target_deg*.
+    """Signed rotation (CCW positive) from *current_deg* to *target_deg*.
 
     *direction* is ``"shortest"``, ``"left"`` (CCW) or ``"right"`` (CW).
     """
@@ -402,8 +407,8 @@ class DifferentialDrive:
 
     # ── Dead-reckoning rotation ────────────────────────────────────────────────
 
-    def turn_by(self, angle_deg: float, power: float = 40.0) -> None:
-        """Turn in place by *angle_deg* degrees.
+    def rotate_by(self, angle_deg: float, power: float = 40.0) -> None:
+        """Rotate in place by *angle_deg* degrees.
 
         Positive angle = **counter-clockwise** (left turn).
         Negative angle = **clockwise** (right turn).
@@ -444,23 +449,19 @@ class DifferentialDrive:
 
         self.stop()
 
-    def rotate(self, angle_deg: float, power: float = 40.0) -> None:
-        """Old name for :meth:`turn_by`, kept so existing programs still run."""
-        self.turn_by(angle_deg, power)
+    def rotate_left(self, angle_deg: float, power: float = 40.0) -> None:
+        """Rotate left (counter-clockwise) in place by *angle_deg* degrees."""
+        self.rotate_by(abs(angle_deg), power)
 
-    def turn_left(self, angle_deg: float, power: float = 40.0) -> None:
-        """Turn left (counter-clockwise) by *angle_deg* degrees."""
-        self.turn_by(abs(angle_deg), power)
+    def rotate_right(self, angle_deg: float, power: float = 40.0) -> None:
+        """Rotate right (clockwise) in place by *angle_deg* degrees."""
+        self.rotate_by(-abs(angle_deg), power)
 
-    def turn_right(self, angle_deg: float, power: float = 40.0) -> None:
-        """Turn right (clockwise) by *angle_deg* degrees."""
-        self.turn_by(-abs(angle_deg), power)
-
-    def turn_to(self, heading_deg: float, direction: str = "shortest",
+    def rotate_to(self, heading_deg: float, direction: str = "shortest",
                 power: float = 40.0) -> None:
-        """Turn in place to face an absolute *heading_deg* (same frame as :attr:`heading`).
+        """Rotate in place to face an absolute *heading_deg* (same frame as :attr:`heading`).
 
-        Because the target is absolute, any overshoot from one turn is
+        Because the target is absolute, any overshoot from one rotation is
         corrected by the next instead of adding up.
 
         Parameters
@@ -469,15 +470,22 @@ class DifferentialDrive:
             Heading to face, in degrees (0 = startup, positive = CCW).
         direction:
             ``"shortest"`` (default) takes the shorter way round,
-            ``"left"`` always turns counter-clockwise, ``"right"`` always
-            turns clockwise.
+            ``"left"`` always rotates counter-clockwise, ``"right"`` always
+            rotates clockwise.
 
         Example::
 
-            drive.turn_to(90)                      # face 90°, shorter way
-            drive.turn_to(0, direction="left")     # back to 0°, turning left
+            drive.rotate_to(90)                    # face 90°, shorter way
+            drive.rotate_to(0, direction="left")   # back to 0°, rotating left
         """
-        self.turn_by(_turn_angle(self.heading, heading_deg, direction), power)
+        self.rotate_by(_turn_angle(self.heading, heading_deg, direction), power)
+
+    # ── Old names, kept so existing programs still run ─────────────────────────
+    rotate     = rotate_by
+    turn_by    = rotate_by
+    turn_left  = rotate_left
+    turn_right = rotate_right
+    turn_to    = rotate_to
 
     # ── Strafe guard ───────────────────────────────────────────────────────────
 
@@ -512,14 +520,14 @@ class MecanumDrive:
         FL (/45°)    FR (\\45°)
         BL (\\45°)   BR (/45°)
 
-    Motor mixing (vx = forward, vy = right, ω = CCW rotation — all as %)::
+    Motor mixing (vx = forward, vy = left, ω = CCW rotation — all as %)::
 
-        FL = vx + vy − ω
-        FR = vx − vy + ω
-        BL = vx − vy − ω
-        BR = vx + vy + ω
+        FL = vx − vy − ω
+        FR = vx + vy + ω
+        BL = vx + vy − ω
+        BR = vx − vy + ω
 
-    where ``vy > 0`` strafes **right** and ``ω > 0`` turns **counter-clockwise**.
+    where ``vy > 0`` strafes **left** and ``ω > 0`` rotates **counter-clockwise**.
 
     Parameters
     ----------
@@ -626,9 +634,9 @@ class MecanumDrive:
         self._last_counts = counts
 
         fl, fr, bl, br = ds
-        # Robot-frame displacement (forward = x, right = y in robot frame)
+        # Robot-frame displacement (x = forward, y = left)
         dx_r = (fl + fr + bl + br) * 0.25
-        dy_r = (fl - fr - bl + br) * 0.25   # right positive
+        dy_r = (-fl + fr + bl - br) * 0.25
 
         if self._imu and self._imu.connected and self._last_hdg is not None:
             if self._imu_is_mpu:
@@ -646,9 +654,9 @@ class MecanumDrive:
             self._heading = (self._heading + dhdg) % 360.0
             h_rad  = math.radians(self._heading)
             cos_h, sin_h = math.cos(h_rad), math.sin(h_rad)
-            # Transform robot frame (x=fwd, y=right) → world frame (x=fwd, y=left)
-            self._x += dx_r * cos_h + dy_r * sin_h
-            self._y += dx_r * sin_h - dy_r * cos_h
+            # Rotate robot-frame displacement into the world frame
+            self._x += dx_r * cos_h - dy_r * sin_h
+            self._y += dx_r * sin_h + dy_r * cos_h
             x, y, hdg = self._x, self._y, self._heading
 
         if self._robot is not None:
@@ -705,7 +713,7 @@ class MecanumDrive:
         vx:
             Forward / backward power, −100 to +100.
         vy:
-            Strafe power.  Positive = **right**, negative = left.
+            Strafe power.  Positive = **left**, negative = right.
         omega:
             Rotation power.  Positive = **counter-clockwise** (left), negative = CW.
         """
@@ -715,7 +723,7 @@ class MecanumDrive:
     @staticmethod
     def _mix(vx: float, vy: float, omega: float) -> list[float]:
         """Wheel powers (FL, FR, BL, BR), scaled down so none exceeds 100."""
-        w  = [vx + vy - omega, vx - vy + omega, vx - vy - omega, vx + vy + omega]
+        w  = [vx - vy - omega, vx + vy + omega, vx + vy - omega, vx - vy + omega]
         mx = max(max(abs(p) for p in w), 100.0)
         return [p * 100.0 / mx for p in w]
 
@@ -760,14 +768,14 @@ class MecanumDrive:
 
     def strafe_left(self, distance_m: float, power: float = 50.0) -> None:
         """Strafe left by *distance_m* metres."""
-        self._strafe_move(abs(distance_m), 0.0, -abs(power))
+        self._strafe_move(abs(distance_m), 0.0, abs(power))
 
     def strafe_right(self, distance_m: float, power: float = 50.0) -> None:
         """Strafe right by *distance_m* metres."""
-        self._strafe_move(abs(distance_m), 0.0, abs(power))
+        self._strafe_move(abs(distance_m), 0.0, -abs(power))
 
     def strafe_by(self, distance_m: float, power: float = 50.0) -> None:
-        """Strafe sideways by *distance_m* metres.  Positive = **right**, negative = left
+        """Strafe sideways by *distance_m* metres.  Positive = **left**, negative = right
         (same as ``vy`` in :meth:`move`)."""
         if distance_m == 0:
             return
@@ -783,18 +791,19 @@ class MecanumDrive:
             Distance to travel in metres.
         angle_deg:
             Direction relative to the robot's forward axis.
-            ``0°`` = forward, ``90°`` = right, ``180°`` = backward, ``270°`` = left.
+            Counter-clockwise from forward, like heading:
+            ``0°`` = forward, ``90°`` = left, ``180°`` = backward, ``270°`` = right.
         power:
             Motor power magnitude (0–100).
 
         Example::
 
-            drive.strafe(0.3, 45)   # move diagonally: forward-right
-            drive.strafe(0.5, 270)  # strafe left (same as strafe_left)
+            drive.strafe(0.3, 45)   # move diagonally: forward-left
+            drive.strafe(0.5, 270)  # strafe right (same as strafe_right)
         """
         a  = math.radians(angle_deg)
         vx = abs(power) * math.cos(a)
-        vy = abs(power) * math.sin(a)   # positive = right
+        vy = abs(power) * math.sin(a)   # positive = left
         self._strafe_move(abs(distance_m), vx, vy)
 
     def _strafe_move(self, dist_m: float, vx: float, vy: float) -> None:
@@ -819,8 +828,8 @@ class MecanumDrive:
 
     # ── Dead-reckoning rotation ────────────────────────────────────────────────
 
-    def turn_by(self, angle_deg: float, power: float = 40.0) -> None:
-        """Turn in place.  Positive = CCW (left).  Negative = CW (right)."""
+    def rotate_by(self, angle_deg: float, power: float = 40.0) -> None:
+        """Rotate in place by *angle_deg* degrees.  Positive = CCW (left).  Negative = CW (right)."""
         if abs(angle_deg) <= _ANG_TOL:
             return
         pwr  = abs(power)
@@ -857,23 +866,26 @@ class MecanumDrive:
 
         self.stop()
 
-    def rotate(self, angle_deg: float, power: float = 40.0) -> None:
-        """Old name for :meth:`turn_by`, kept so existing programs still run."""
-        self.turn_by(angle_deg, power)
+    def rotate_left(self, angle_deg: float, power: float = 40.0) -> None:
+        """Rotate left (counter-clockwise) in place by *angle_deg* degrees."""
+        self.rotate_by(abs(angle_deg), power)
 
-    def turn_left(self, angle_deg: float, power: float = 40.0) -> None:
-        """Turn left (counter-clockwise) by *angle_deg* degrees."""
-        self.turn_by(abs(angle_deg), power)
+    def rotate_right(self, angle_deg: float, power: float = 40.0) -> None:
+        """Rotate right (clockwise) in place by *angle_deg* degrees."""
+        self.rotate_by(-abs(angle_deg), power)
 
-    def turn_right(self, angle_deg: float, power: float = 40.0) -> None:
-        """Turn right (clockwise) by *angle_deg* degrees."""
-        self.turn_by(-abs(angle_deg), power)
-
-    def turn_to(self, heading_deg: float, direction: str = "shortest",
+    def rotate_to(self, heading_deg: float, direction: str = "shortest",
                 power: float = 40.0) -> None:
-        """Turn in place to face an absolute *heading_deg*.
+        """Rotate in place to face an absolute *heading_deg*.
 
-        Same as :meth:`DifferentialDrive.turn_to`; *direction* is
+        Same as :meth:`DifferentialDrive.rotate_to`; *direction* is
         ``"shortest"`` (default), ``"left"``, or ``"right"``.
         """
-        self.turn_by(_turn_angle(self.heading, heading_deg, direction), power)
+        self.rotate_by(_turn_angle(self.heading, heading_deg, direction), power)
+
+    # ── Old names, kept so existing programs still run ─────────────────────────
+    rotate     = rotate_by
+    turn_by    = rotate_by
+    turn_left  = rotate_left
+    turn_right = rotate_right
+    turn_to    = rotate_to

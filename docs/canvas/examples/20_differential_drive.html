@@ -89,14 +89,14 @@ Tune the constants below to match your robot before running.
 <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">clear_map</span>()
 
 <span style="color:#6A9955"># Drive a simple square</span>
-<span style="color:#6A9955"># Each leg: forward 0.5 m, then turn 90° right</span>
+<span style="color:#6A9955"># Each leg: forward 0.5 m, then rotate 90° right</span>
 <span style="color:#C586C0">for</span> <span style="color:#9CDCFE">leg</span> <span style="color:#569CD6">in</span> <span style="color:#4EC9B0">range</span>(<span style="color:#B5CEA8">4</span>):
     <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">Leg </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">leg</span> + <span style="color:#B5CEA8">1</span><span style="color:#569CD6">}</span><span style="color:#CE9178">: forward 0.5 m</span><span style="color:#CE9178">"</span>)
     <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">forward</span>(<span style="color:#B5CEA8">0.5</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">50</span>)
     <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.3</span>)            <span style="color:#6A9955"># brief pause between moves</span>
 
-    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">Leg </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">leg</span> + <span style="color:#B5CEA8">1</span><span style="color:#569CD6">}</span><span style="color:#CE9178">: turn right 90°</span><span style="color:#CE9178">"</span>)
-    <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">turn_right</span>(<span style="color:#B5CEA8">90</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">40</span>)
+    <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#569CD6">f</span><span style="color:#CE9178">"</span><span style="color:#CE9178">Leg </span><span style="color:#569CD6">{</span><span style="color:#9CDCFE">leg</span> + <span style="color:#B5CEA8">1</span><span style="color:#569CD6">}</span><span style="color:#CE9178">: rotate right 90°</span><span style="color:#CE9178">"</span>)
+    <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">rotate_right</span>(<span style="color:#B5CEA8">90</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">40</span>)
     <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.3</span>)
 
     <span style="color:#9CDCFE">x</span>, <span style="color:#9CDCFE">y</span>, <span style="color:#9CDCFE">hdg</span> = <span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">pose</span>
@@ -107,9 +107,9 @@ Tune the constants below to match your robot before running.
 <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">backward</span>(<span style="color:#B5CEA8">0.2</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">40</span>)
 <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.3</span>)
 
-<span style="color:#6A9955"># Turn left using the signed turn_by() method</span>
-<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Turning 45° counter-clockwise"</span>)
-<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">turn_by</span>(<span style="color:#B5CEA8">45</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">35</span>)
+<span style="color:#6A9955"># Rotate left using the signed rotate_by() method (+ = left / CCW)</span>
+<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">log</span>(<span style="color:#CE9178">"Rotating 45° counter-clockwise"</span>)
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">rotate_by</span>(<span style="color:#B5CEA8">45</span>, <span style="color:#9CDCFE">power</span>=<span style="color:#B5CEA8">35</span>)
 <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">sleep</span>(<span style="color:#B5CEA8">0.3</span>)
 
 <span style="color:#6A9955"># Continuous drive example: gentle arc for 1 second</span>

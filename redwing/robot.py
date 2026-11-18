@@ -1009,8 +1009,8 @@ class Robot:
 
             drive.forward(0.5)
             drive.strafe_right(0.3)
-            drive.strafe(0.4, 45)   # diagonal: forward-right
-            drive.turn_left(90)
+            drive.strafe(0.4, 45)   # diagonal: forward-left
+            drive.rotate_left(90)
         """
         self._check_not_started("create a drive system")
 

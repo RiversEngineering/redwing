@@ -288,7 +288,7 @@ s.set_angle(90)
 
 ## Drive systems (odometry + dead-reckoning)
 
-Coordinate frame: +X forward, +Y left, heading in degrees, **CCW positive**, 0 at `robot.start()`.
+Coordinate frame: +X forward, +Y left, heading in degrees, **CCW positive**, 0 at `robot.start()`. Every signed value follows this (ROS REP 103): `move_by`/`vx` + = forward, `strafe_by`/`vy` + = **left**, `rotate_by`/`omega`/`turn` + = left (CCW), `strafe()` angles CCW from forward.
 
 ### Differential (2-wheel / tank)
 
@@ -312,10 +312,10 @@ drive.drive(forward=50, turn=0)      # continuous, non-blocking, -100..100
 drive.forward(0.5)                    # blocking: 0.5 m, power=50 default
 drive.backward(0.3)
 drive.move_by(-0.3)                    # signed: + forward, - backward
-drive.turn_left(90); drive.turn_right(90)   # blocking, degrees, power=40 default
-drive.turn_to(180)                     # blocking, absolute heading, shorter way round
-drive.turn_to(0, direction="left")     # or "right"; force the turn direction
-drive.turn_by(-45)                     # signed: + left (CCW), - right (CW)
+drive.rotate_left(90); drive.rotate_right(90)   # blocking, in place, degrees, power=40 default
+drive.rotate_to(180)                   # blocking, absolute heading, shorter way round
+drive.rotate_to(0, direction="left")   # or "right"; force the direction
+drive.rotate_by(-45)                   # signed: + left (CCW), - right (CW)
 drive.stop()
 
 drive.pose                              # (x_m, y_m, heading_deg)
@@ -338,13 +338,13 @@ drive = robot.mecanum_drive(
 )
 robot.start()
 
-drive.move(vx=50, vy=0, omega=0)     # continuous, non-blocking; vy>0=right, omega>0=CCW
+drive.move(vx=50, vy=0, omega=0)     # continuous, non-blocking; vy>0=left, omega>0=CCW
 drive.forward(0.5); drive.backward(0.3); drive.move_by(-0.3)
 drive.strafe_left(0.3); drive.strafe_right(0.3)
-drive.strafe_by(-0.3)                  # signed: + right, - left (like vy)
-drive.strafe(0.4, 45)                  # blocking, robot-relative angle: 0=fwd,90=right,180=back,270=left
-drive.turn_left(90); drive.turn_by(-90)
-drive.turn_to(90, direction="right")   # same turn_to() as DifferentialDrive
+drive.strafe_by(-0.3)                  # signed: + left, - right (like vy)
+drive.strafe(0.4, 45)                  # blocking, robot-relative angle CCW: 0=fwd,90=left,180=back,270=right
+drive.rotate_left(90); drive.rotate_by(-90)
+drive.rotate_to(90, direction="right") # same rotate_to() as DifferentialDrive
 drive.stop()
 drive.pose   # same pose API as DifferentialDrive
 ```
