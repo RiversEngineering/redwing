@@ -255,6 +255,13 @@ class _VelocityControl:
 
         Gains are converted from m/s to the Pico's ticks/s.
         """
+        if self._robot is not None:
+            state = self._robot._conn.get_all_state()
+            version = state.get("firmware_version", 0)
+            if version is not None and version < 1:
+                raise RuntimeError(
+                    "Pico velocity mode needs newer Pico firmware. Flash it from "
+                    "the dashboard's Firmware tab, or use set_velocity_mode(\"python\").")
         mpt = self._mpt
         for m, enc, sign in self._vel_wheels():
             if sign < 0:
