@@ -778,8 +778,8 @@ class MecanumDrive(_VelocityControl):
         self._mpt     = math.pi * wheel_diameter_mm / 1000.0 / ticks_per_rev
         self._track   = track_width_mm / 1000.0
         self._wb      = wheelbase_mm / 1000.0
-        # Rotation radius = (track + wheelbase) / 4
-        self._rk      = (self._track + self._wb) * 0.25
+        # Wheel travel per radian of rotation = (track + wheelbase) / 2
+        self._rk      = (self._track + self._wb) * 0.5
         self._robot   = robot
 
         self._x       = 0.0
@@ -939,7 +939,7 @@ class MecanumDrive(_VelocityControl):
             Rotation in degrees per second.  Positive = **left (CCW)**.
         """
         # Wheel surface speed for rotation is omega × (half track + half wheelbase)
-        k = math.radians(omega) * (self._track + self._wb) * 0.5
+        k = math.radians(omega) * self._rk
         self._vel_command([vx - vy - k, vx + vy + k, vx + vy - k, vx - vy + k])
 
     def _vel_wheels(self):
