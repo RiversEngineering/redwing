@@ -24,7 +24,9 @@ from .devices.imu import IMU
 from .odometry import DifferentialDrive, MecanumDrive
 
 # Pico firmware this library needs (FIRMWARE_VERSION in firmware/src/protocol.h)
-REQUIRED_FIRMWARE = 1
+REQUIRED_FIRMWARE = 2
+# Daemon this library needs (DAEMON_VERSION in daemon/state.py; 1 = before it was reported)
+REQUIRED_DAEMON = 2
 
 # Single-pin ports S0–S7 → internal IDs 0–7
 # Dual-pin ports   D0–D7 → internal IDs 8–15
@@ -634,25 +636,38 @@ class Robot:
     def _check_firmware(self):
         """Make sure the daemon and Pico support what this program uses.
 
-        Motor inversion and velocity feedforward run on the Pico.  On older
-        firmware an inverted motor would silently spin the wrong way, so that
-        is an error; otherwise an outdated Pico only gets a warning.
+        Motor inversion, feedforward and bias run on the Pico.  On older
+        software they would silently do nothing (or spin the wrong way), so a
+        program that uses them stops with an error; otherwise an outdated
+        daemon or Pico only gets a warning.
         """
         state = self._conn.get_all_state()
-        needs_new = any(m._effective_inverted() or m._ff_set for m in self._motors)
-        if "firmware_version" not in state:
-            problem = ("The robot's background software is out of date. "
-                       "Run redwing-rebuild on the robot.")
-        else:
-            version = state["firmware_version"]
-            if version is None or version >= REQUIRED_FIRMWARE:
-                return   # current, or not reported yet (Pico just reconnected)
-            problem = ("The Pico firmware is out of date. Flash it from the "
-                       "dashboard's Firmware tab (after redwing-pull).")
-        if needs_new:
-            raise RuntimeError(problem + " This program inverts a motor or "
-                               "uses feedforward, which needs the update.")
-        self.log("⚠ " + problem, level="warning")
+        uses = []          # (feature, firmware version, daemon version) it needs
+        for m in self._motors:
+            if m._effective_inverted():
+                uses.append(("inverts a motor", 1, 1))
+            if m._ff_set:
+                uses.append(("uses feedforward", 1, 1))
+            if m._bias_set:
+                uses.append(("uses a motor bias", 2, 2))
+
+        daemon = state.get("daemon_version", 1) if "firmware_version" in state else 0
+        firmware = state.get("firmware_version")
+        rebuild = ("The robot's background software is out of date. "
+                   "Run redwing-rebuild on the robot.")
+        flash = ("The Pico firmware is out of date. Flash it from the "
+                 "dashboard's Firmware tab (after redwing-pull).")
+
+        for feature, need_fw, need_daemon in uses:
+            if daemon < need_daemon:
+                raise RuntimeError(f"{rebuild} This program {feature}, which needs the update.")
+            if firmware is not None and firmware < need_fw:
+                raise RuntimeError(f"{flash} This program {feature}, which needs the update.")
+
+        if daemon < REQUIRED_DAEMON:
+            self.log("⚠ " + rebuild, level="warning")
+        elif firmware is not None and firmware < REQUIRED_FIRMWARE:
+            self.log("⚠ " + flash, level="warning")
 
     # ------------------------------------------------------------------
     # UART bus (D7: GP12 = TX, GP13 = RX)

@@ -234,6 +234,11 @@ class IPCServer:
             self._rp.enqueue(proto.cmd_set_vel_ff(
                 cmd["port"], float(cmd.get("kv", 0.0)), float(cmd.get("ks", 0.0))))
 
+        elif c == "set_bias":
+            self._rp.enqueue(proto.cmd_set_bias(
+                cmd["port"], str(cmd.get("mode", "off")), float(cmd.get("power", 0.0)),
+                int(cmd.get("peak_count", 0)), float(cmd.get("ticks_per_rev", 0.0))))
+
         elif c == "map_point":
             async with self._state.lock:
                 self._state.map_points_buf.append((float(cmd.get("x", 0)), float(cmd.get("y", 0))))

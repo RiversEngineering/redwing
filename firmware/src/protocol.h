@@ -34,10 +34,12 @@
 #define CMD_SET_MOTOR_INVERT 0x19  // flip a motor's output direction (all modes, incl. PID); payload: CmdSetMotorInvert
 #define CMD_SET_VEL_FF       0x1A  // velocity PID feedforward; payload: CmdSetVelFF
 #define CMD_GET_VERSION      0x1B  // reply RESP_VERSION [version:u16le]; older firmware replies ERR_UNKNOWN_CMD
+#define CMD_SET_BIAS         0x1C  // fixed extra output in velocity/position PID; payload: CmdSetBias
 
 // Bumped whenever the daemon/library needs to know a feature exists.
 //   1: CMD_SET_MOTOR_INVERT, CMD_SET_VEL_FF, CMD_GET_VERSION
-#define FIRMWARE_VERSION     1
+//   2: CMD_SET_BIAS
+#define FIRMWARE_VERSION     2
 
 // ─── RP2040 → Pi response types ──────────────────────────────────────────────
 #define RESP_STATE         0x81
@@ -195,6 +197,8 @@ typedef struct { uint8_t port_id; float deadband; float output_floor; float ramp
 typedef struct { uint8_t port_id; uint8_t inverted; } CmdInvertEncoder;
 typedef struct { uint8_t port_id; uint8_t inverted; } CmdSetMotorInvert;
 typedef struct { uint8_t port_id; float kv; float ks; } CmdSetVelFF;
+// mode: 0 = off, 1 = constant, 2 = cosine (power × cos of the angle from peak_count)
+typedef struct { uint8_t port_id; uint8_t mode; float power; int32_t peak_count; float ticks_per_rev; } CmdSetBias;
 typedef struct { uint8_t port_id; uint8_t mode; }    CmdGoBildaMode;
 
 #pragma pack(pop)

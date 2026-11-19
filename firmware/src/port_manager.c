@@ -222,6 +222,7 @@ bool port_configure(uint8_t id, uint8_t port_type) {
     p->motor_inverted = false;
     p->vel_kv         = 0.0f;
     p->vel_ks         = 0.0f;
+    p->bias_mode      = BIAS_OFF;
     p->pid_enabled    = false;
     p->pos_pid_enabled = false;
     p->pid_integral   = 0.0f;
@@ -462,6 +463,29 @@ void port_set_vel_ff(uint8_t id, float kv, float ks) {
     ports[id].vel_ks = (ks > 0.0f) ? ks : 0.0f;
 }
 
+void port_set_bias(uint8_t id, uint8_t mode, float power, int32_t peak_count, float ticks_per_rev) {
+    if (!valid_port(id)) return;
+    PortState *p = &ports[id];
+    if (mode == BIAS_COSINE && ticks_per_rev <= 0.0f) mode = BIAS_OFF;
+    if (mode > BIAS_COSINE) mode = BIAS_OFF;
+    p->bias_power      = power;
+    p->bias_peak_count = peak_count;
+    p->bias_tpr        = ticks_per_rev;
+    p->bias_mode       = mode;
+}
+
+// Bias output (%) at encoder position *count*.
+static float bias_at(const PortState *p, float count) {
+    switch (p->bias_mode) {
+        case BIAS_CONSTANT: return p->bias_power;
+        case BIAS_COSINE: {
+            float turns = (count - (float)p->bias_peak_count) / p->bias_tpr;
+            return p->bias_power * cosf(turns * 6.28318531f);
+        }
+        default: return 0.0f;
+    }
+}
+
 void port_set_servo(uint8_t id, uint16_t pulse_us) {
     if (!valid_port(id)) return;
     PortState *p = &ports[id];
@@ -613,6 +637,7 @@ void port_reset(void) {
         p->motor_inverted  = false;
         p->vel_kv          = 0.0f;
         p->vel_ks          = 0.0f;
+        p->bias_mode       = BIAS_OFF;
         p->pid_enabled     = false;
         p->pos_pid_enabled = false;
         p->pid_integral    = 0.0f;
@@ -653,6 +678,7 @@ void port_pid_update(void) {
             float ff = p->vel_kv * target;
             if      (target > 0.0f) ff += p->vel_ks;
             else if (target < 0.0f) ff -= p->vel_ks;
+            ff += bias_at(p, (float)encoder_get_count((uint8_t)p->enc_slot));
 
             output = ff + p->pid_kp * error + p->pid_ki * p->pid_integral + p->pid_kd * derivative;
             if (output >  100.0f) { output =  100.0f; p->pid_integral -= error * dt; }
@@ -690,8 +716,12 @@ void port_pid_update(void) {
 
             float limit = (p->pos_speed_limit > 0) ? (float)p->pos_speed_limit / 100.0f : 100.0f;
 
+            // Bias is added on top of the PID (outside max_speed and the
+            // deadband), so a held load stays held while the PID rests.
+            float bias = bias_at(p, p->pos_ramp_setpoint);
+
             if (p->pos_deadband > 0.0f && fabsf(error) <= p->pos_deadband) {
-                // Inside deadband: freeze integral, reset filter state, command zero.
+                // Inside deadband: freeze integral, reset filter state, command bias only.
                 p->pid_d_prev = 0.0f;
                 output = 0.0f;
             } else {
@@ -725,6 +755,10 @@ void port_pid_update(void) {
                     output = (output > 0.0f) ? p->pos_output_floor : -p->pos_output_floor;
                 }
             }
+
+            output += bias;
+            if (output >  100.0f) output =  100.0f;
+            if (output < -100.0f) output = -100.0f;
         } else {
             continue;
         }

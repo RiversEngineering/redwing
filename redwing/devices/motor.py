@@ -76,6 +76,12 @@ class MotorGroup:
         """Power of the first motor in the group (proxy for the group's power)."""
         return self._motors[0].power
 
+    def set_bias(self, power: float, peak_count: "int | None" = None,
+                 ticks_per_rev: "float | None" = None) -> None:
+        """Set the same bias on every motor in the group (see :meth:`Motor.set_bias`)."""
+        for m in self._motors:
+            m.set_bias(power, peak_count, ticks_per_rev)
+
     def set_min_power(self, value: float) -> None:
         """Set the drive-system minimum power on every motor in the group."""
         for m in self._motors:
@@ -121,6 +127,7 @@ class Motor:
         self._inverted       = False
         self._code_invert_set = False  # True once student code sets motor.inverted
         self._ff_set = False           # True once set_feedforward() is called
+        self._bias_set = False         # True once set_bias() turns a bias on
         self._robot = robot
         if robot is not None:
             robot._motors.append(self)
@@ -320,6 +327,67 @@ class Motor:
         self._ff_set = True
         self._conn.send_command(cmd="set_vel_ff", port=self._id, kv=float(kv), ks=float(ks))
 
+    def set_bias(self, power: float, peak_count: "int | None" = None,
+                 ticks_per_rev: "float | None" = None):
+        """Add a fixed extra power for a load that always pushes on the mechanism.
+
+        Some mechanisms always need some power just to stay put: an arm or
+        lift held up against gravity, a spring or rubber band pulling one way.
+        The bias supplies that power, so the PID only corrects what's left.
+        It's 0 (off) until you set it.
+
+        It applies to :meth:`go_to_position`, :meth:`move_by` and
+        :meth:`set_velocity`, including while the motor is holding still at its
+        target, and is added on top of ``max_speed``.  It does **not** apply to
+        :meth:`set_power` or :meth:`stop`, which set exactly the power you give.
+
+        **Constant bias** (lifts, springs, tension): pass just *power*.
+
+        **Cosine bias** (arms): the load is strongest when the arm sticks out
+        level and fades to 0 as it points straight up or down.  Also pass
+        *peak_count*, the encoder count where the arm is level, and
+        *ticks_per_rev*, encoder ticks for one full turn of the arm (after any
+        gearing).  The power then follows
+        ``power × cos(angle away from peak_count)``, and flips sign once the
+        arm passes straight up, just like gravity does.
+
+        Args:
+            power: % power at full strength.  Find it by hand: the power that
+                just holds the mechanism still (the arm level, for an arm).
+                Its sign is the direction that pushes against the load.
+                0 turns the bias off.
+            peak_count: Cosine only: encoder count where the bias is strongest.
+            ticks_per_rev: Cosine only: encoder ticks per full turn of the
+                mechanism.
+
+        Example::
+
+            lift.set_bias(12)                          # lift needs 12% to hold
+
+            arm.encoder.reset()                        # arm resting straight down
+            arm.set_bias(15, peak_count=360, ticks_per_rev=1440)   # level = 90° up
+            arm.go_to_position(360)
+        """
+        power = float(power)
+        if not -100.0 <= power <= 100.0:
+            raise ValueError("bias power must be between -100 and 100.")
+        if (peak_count is None) != (ticks_per_rev is None):
+            raise ValueError("For a cosine bias pass both peak_count and ticks_per_rev; "
+                             "for a constant bias pass neither.")
+        if ticks_per_rev is not None and float(ticks_per_rev) <= 0:
+            raise ValueError("ticks_per_rev must be greater than 0.")
+        if power == 0.0:
+            mode = "off"
+        elif ticks_per_rev is None:
+            mode = "constant"
+        else:
+            mode = "cosine"
+        self._bias_set = self._bias_set or mode != "off"
+        self._conn.send_command(
+            cmd="set_bias", port=self._id, mode=mode, power=power,
+            peak_count=int(peak_count or 0), ticks_per_rev=float(ticks_per_rev or 0.0),
+        )
+
     def set_pid(self, kp: float, ki: float, kd: float, integral_max: float = None):
         """Set PID gains for closed-loop velocity or position control.
 
@@ -402,8 +470,8 @@ class Motor:
         """Configure position PID options. All settings persist until changed.
 
         Args:
-            deadband: Within ±deadband ticks of target, output is zeroed and integral
-                is frozen. Prevents hunting on chain/belt drives with backlash.
+            deadband: Within ±deadband ticks of target, PID output is zeroed (a
+                :meth:`set_bias` stays on) and integral is frozen. Prevents hunting on chain/belt drives with backlash.
                 Default 0 (off).
             output_floor: Minimum motor output (%) when outside deadband. Ensures
                 the motor overcomes static friction when the PID computes a small

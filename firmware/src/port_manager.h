@@ -32,6 +32,11 @@ typedef struct {
     float    pid_integral_max; // 0 = uncapped; > 0 = clamp accumulator to ±this value
     float    vel_kv;           // velocity feedforward: % output per tick/s of target (0 = off)
     float    vel_ks;           // velocity feedforward: % output added in the target's direction (0 = off)
+    // Bias: fixed extra output in both PID modes (e.g. holding an arm up)
+    uint8_t  bias_mode;        // BIAS_OFF / BIAS_CONSTANT / BIAS_COSINE
+    float    bias_power;       // %; constant value, or peak value for cosine
+    int32_t  bias_peak_count;  // cosine: encoder count where the bias is strongest
+    float    bias_tpr;         // cosine: encoder ticks per full turn of the mechanism
     // Position PID state (mutually exclusive with velocity PID)
     bool     pos_pid_enabled;
     int32_t  pos_target;      // target encoder tick count
@@ -125,6 +130,15 @@ void port_set_motor_inverted(uint8_t id, bool inverted);
 // Velocity PID feedforward: output += kv * target + ks * sign(target).
 // kv is % per tick/s, ks is %. Both 0 (the default) = plain PID.
 void port_set_vel_ff(uint8_t id, float kv, float ks);
+
+// Bias: fixed extra output added in velocity and position PID (not direct power).
+//   BIAS_CONSTANT: output += power
+//   BIAS_COSINE:   output += power * cos(2*pi * (count - peak_count) / ticks_per_rev)
+// Position PID uses its setpoint as the count; velocity PID uses the measured count.
+#define BIAS_OFF      0
+#define BIAS_CONSTANT 1
+#define BIAS_COSINE   2
+void port_set_bias(uint8_t id, uint8_t mode, float power, int32_t peak_count, float ticks_per_rev);
 
 // Set position PID options. All options persist until changed.
 //   deadband:     ticks; within ±deadband, output is zeroed and integral frozen. 0 = off.

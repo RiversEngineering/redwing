@@ -324,6 +324,14 @@ static void handle_command(uint8_t type, const uint8_t *payload, uint8_t len) {
             break;
         }
 
+        case CMD_SET_BIAS: {
+            if (len < sizeof(CmdSetBias)) goto bad_len;
+            const CmdSetBias *cmd = (const CmdSetBias *)payload;
+            port_set_bias(cmd->port_id, cmd->mode, cmd->power, cmd->peak_count, cmd->ticks_per_rev);
+            usb_comm_send_ack(type);
+            break;
+        }
+
         case CMD_GET_VERSION: {
             const uint8_t ver[2] = { FIRMWARE_VERSION & 0xFF, (FIRMWARE_VERSION >> 8) & 0xFF };
             usb_comm_send(RESP_VERSION, ver, 2);

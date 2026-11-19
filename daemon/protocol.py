@@ -41,6 +41,7 @@ CMD_PCA_CH_ON       = 0x18  # payload: [ch:u8] — full-on a channel, 100% duty,
 CMD_SET_MOTOR_INVERT = 0x19 # payload: [port_id:u8][inverted:u8] — flips output in every mode, incl. PID
 CMD_SET_VEL_FF      = 0x1A  # payload: [port_id:u8][kv:f32][ks:f32] — velocity PID feedforward
 CMD_GET_VERSION     = 0x1B  # reply RSP_VERSION; firmware older than v1 replies ERR_UNKNOWN_CMD
+CMD_SET_BIAS        = 0x1C  # payload: [port_id:u8][mode:u8][power:f32][peak_count:i32][ticks_per_rev:f32] (firmware v2)
 
 # -------------------------------------------------------------------
 # RP2040 → Pi response types
@@ -229,6 +230,12 @@ def cmd_set_motor_invert(port_id: int, inverted: bool) -> bytes:
 
 def cmd_set_vel_ff(port_id: int, kv: float, ks: float) -> bytes:
     return build_packet(CMD_SET_VEL_FF, struct.pack("<Bff", port_id, kv, ks))
+
+BIAS_MODES = {"off": 0, "constant": 1, "cosine": 2}
+
+def cmd_set_bias(port_id: int, mode: str, power: float, peak_count: int, ticks_per_rev: float) -> bytes:
+    return build_packet(CMD_SET_BIAS, struct.pack("<BBfif", port_id, BIAS_MODES[mode],
+                                                  power, peak_count, ticks_per_rev))
 
 def cmd_get_version() -> bytes:
     return build_packet(CMD_GET_VERSION)

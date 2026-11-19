@@ -9,6 +9,10 @@ import time
 from typing import Any
 
 
+# Bumped when the library needs to know the daemon supports a command.
+#   2: set_bias
+DAEMON_VERSION = 2
+
 class GamepadState:
     """Mutable gamepad snapshot updated by the virtual controller (WebSocket)
     and the physical controller reader (evdev). Last write wins."""
@@ -228,6 +232,7 @@ class SharedState:
             "config_finalized": self.config_finalized,
             "rp2040_connected": self.rp2040_connected,
             "firmware_version": self.firmware_version,
+            "daemon_version": DAEMON_VERSION,
         }
         if self.lidar_scan is not None:
             msg["lidar"] = self.lidar_scan

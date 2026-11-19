@@ -34,7 +34,7 @@
 <ul>
   <li><strong>KP</strong> (push): start at 10. Too low → slow, stops short of the target. Too high → overshoots and wobbles.</li>
   <li><strong>KD</strong> (brake): start at 0.5. Raise it to calm overshoot and wobble near the target.</li>
-  <li><strong>KI</strong> (patience): start at 0. If gravity makes the arm sag a little below its target, try a <em>small</em> value with a cap: and cap it with <code>integral_max</code> (below).</li>
+  <li><strong>KI</strong> (patience): start at 0. If gravity makes the arm sag a little below its target, set a bias first (below), then try a <em>small</em> value with a cap: and cap it with <code>integral_max</code> (below).</li>
 </ul>
 <p>Use <code>robot.plot()</code> on the target and position to <em>see</em> what the arm is doing while you tune.</p>
 
@@ -50,10 +50,24 @@
 <span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">go_to_position</span>(<span style="color:#9CDCFE">target</span>, <span style="color:#9CDCFE">keep_integral</span>=<span style="color:#569CD6">True</span>)</pre>
 <p>Always set <code>integral_max</code> in <code>set_pid()</code> when you use this. Without a cap, KI built up holding the arm in one direction can push against you for a moment when you reverse.</p>
 
+<h3>Holding up weight: bias</h3>
+<p>An arm or lift needs some power all the time just to stay up. PID only pushes once the arm has already sagged, so it sits a little low, and KI has to slowly make up the difference. A <strong>bias</strong> adds that holding power from the start. It's off (0) unless you set it.</p>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">lift</span>.<span style="color:#DCDCAA">set_bias</span>(<span style="color:#B5CEA8">12</span>)          <span style="color:#6A9955"># lift: always needs about 12% to hold</span></pre>
+<p>An arm is different: holding it level takes the most power, and pointing straight up or down takes none. Tell the bias where level is, and it scales itself as the arm moves:</p>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#6A9955"># Encoder zeroed with the arm resting straight down; 1425.1 ticks per arm turn</span>
+<span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">set_bias</span>(<span style="color:#B5CEA8">15</span>, <span style="color:#9CDCFE">peak_count</span>=<span style="color:#B5CEA8">1425.1</span> / <span style="color:#B5CEA8">4</span>, <span style="color:#9CDCFE">ticks_per_rev</span>=<span style="color:#B5CEA8">1425.1</span>)   <span style="color:#6A9955"># level = 90° up</span></pre>
+<ul>
+  <li><strong>Finding the power:</strong> hold the arm level with <code>arm.set_power()</code> and raise it until the arm just stops sagging. Use that number. Close enough is fine; PID fixes the rest.</li>
+  <li><strong>Sign:</strong> use the power direction that <em>lifts</em> the arm when it's level. If the arm gets heavier instead, flip the sign.</li>
+  <li>Past straight up, the bias reverses by itself, just like gravity.</li>
+  <li>The bias works with <code>go_to_position()</code>, <code>move_by()</code> and <code>set_velocity()</code>, even inside the deadband, and on top of <code>max_speed</code>. <code>set_power()</code> and <code>stop()</code> ignore it.</li>
+</ul>
+<p>Anything that always pulls one way can use a bias, not just weight: a spring, rubber bands, a cable under tension.</p>
+
 <h3>Stop the buzzing: deadband</h3>
 <p>Gears and chains have a little slop (<em>backlash</em>). The arm can end up hunting back and forth by a few ticks around its target, buzzing and never settling. A deadband tells PID: inside ±N ticks of the target, you're close enough, so stop pushing.</p>
 <pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">arm</span>.<span style="color:#DCDCAA">set_position_options</span>(<span style="color:#9CDCFE">deadband</span>=<span style="color:#B5CEA8">5</span>)     <span style="color:#6A9955"># setup: "close enough" = within 5 ticks</span></pre>
-<p>Inside the deadband the motor output is 0 and KI is frozen. Start around 3–5 ticks. Too big, and the arm stops noticeably short of the target or sags under its own weight before PID pushes back.</p>
+<p>Inside the deadband the PID output is 0 (only the bias, if you set one, stays on) and KI is frozen. Start around 3–5 ticks. Too big, and the arm stops noticeably short of the target or sags under its own weight before PID pushes back.</p>
 
 <h3>Example: arm with three preset positions</h3>
 <pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#C586C0">from</span> <span style="color:#4EC9B0">redwing</span> <span style="color:#C586C0">import</span> <span style="color:#4EC9B0">Robot</span>
