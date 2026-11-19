@@ -498,11 +498,16 @@ void port_set_velocity(uint8_t id, int32_t velocity_x10) {
     if (!valid_port(id)) return;
     PortState *p = &ports[id];
     if (p->enc_slot < 0) return;
+    // Start fresh only when entering velocity mode.  A stream of new targets
+    // (e.g. a joystick at 50 Hz) keeps the integral so it can still build up
+    // against a steady load; anti-windup in port_pid_update() bounds it.
+    if (!p->pid_enabled) {
+        p->pid_integral   = 0.0f;
+        p->pid_last_error = 0.0f;
+    }
     p->pid_target      = velocity_x10;
     p->pid_enabled     = true;
     p->pos_pid_enabled = false;
-    p->pid_integral    = 0.0f;
-    p->pid_last_error  = 0.0f;
 }
 
 void port_set_position(uint8_t id, int32_t target, uint16_t speed_limit, bool keep_integral) {

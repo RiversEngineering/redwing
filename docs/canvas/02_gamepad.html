@@ -9,6 +9,11 @@
 <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">right_x</span>
 <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">right_y</span></pre>
 
+<h3>Deadband: no creeping</h3>
+<p>A stick rarely returns exactly to 0, so a robot can creep when nobody's touching it. A deadband treats small values as 0:</p>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">gp</span>.<span style="color:#DCDCAA">set_deadband</span>(<span style="color:#B5CEA8">0.1</span>)    <span style="color:#6A9955"># setup: within ±0.1 of centre reads 0</span>
+<span style="color:#6A9955"># stick at 0.05 -&gt; 0.0,  0.55 -&gt; 0.5,  1.0 -&gt; 1.0  (no jump at the edge)</span></pre>
+
 <h3>Axis mode: driving with x forward</h3>
 <p>Drive systems use the robot's frame: <strong>+x is forward and +y is left</strong>. Switch the sticks to match, and their values go straight into <code>drive.move()</code>:</p>
 <pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">gp</span>.<span style="color:#DCDCAA">set_axis_mode</span>(<span style="color:#CE9178">"ros"</span>)      <span style="color:#6A9955"># setup: x = stick up, y = stick LEFT</span>

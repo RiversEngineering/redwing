@@ -246,6 +246,7 @@ gp = robot.gamepad     # no setup call needed, works immediately
 
 gp.left_x, gp.left_y, gp.right_x, gp.right_y   # -1.0..1.0; default: x = right, y = up
 gp.set_axis_mode("ros")                          # x = up, y = LEFT: feeds drives directly
+gp.set_deadband(0.1)                             # sticks read 0 within ±0.1, rest rescaled
                                                  # ("cartesian" = default)
 gp.a, gp.b, gp.x, gp.y                          # True while held
 gp.just_pressed_a                                # True once per press (edge)
@@ -317,6 +318,10 @@ drive = robot.differential_drive(
 robot.start()
 
 drive.drive(forward=50, turn=0)      # continuous, non-blocking, -100..100
+drive.set_max_speed(1.2)             # setup for set_velocity: wheel m/s at 100% power
+drive.set_velocity(0.3, omega=45)    # continuous, closed-loop: m/s forward, deg/s left
+drive.set_velocity_mode("pico")      # optional: run the loop on the Pico (default "python")
+drive.set_velocity_gains(kp=None, ki=None)   # optional override, % per m/s of error
 drive.forward(0.5)                    # blocking: 0.5 m, power=50 default
 drive.backward(0.3)
 drive.move_by(-0.3)                    # signed: + forward, - backward
@@ -347,6 +352,7 @@ drive = robot.mecanum_drive(
 robot.start()
 
 drive.move(vx=50, vy=0, omega=0)     # continuous, non-blocking; vy>0=left, omega>0=CCW
+drive.set_velocity(0.3, 0.1, 45)     # closed-loop: vx, vy (m/s), omega (deg/s); same setup as above
 drive.forward(0.5); drive.backward(0.3); drive.move_by(-0.3)
 drive.strafe_left(0.3); drive.strafe_right(0.3)
 drive.strafe_by(-0.3)                  # signed: + left, - right (like vy)

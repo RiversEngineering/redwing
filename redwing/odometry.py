@@ -138,9 +138,172 @@ def _floored(power: float, motor, default: float | None) -> float:
     return min(power, 100.0)
 
 
+# ── Velocity control (shared by both drives) ───────────────────────────────────
+
+_VEL_MODES = ("python", "pico")
+_VEL_KP = 1.0    # default feedback: % per m/s of error, as a multiple of feedforward kv
+_VEL_KI = 2.0    # default integral: per second, as a multiple of kp
+_VEL_I_MAX = 20.0  # most power (%) the integral may add
+
+
+def _motors_of(m) -> list:
+    """The individual motors behind a drive wheel (a Motor or a MotorGroup)."""
+    return list(getattr(m, "motors", [m]))
+
+
+class _VelocityControl:
+    """Closed-loop wheel speed for the drives.
+
+    A drive provides ``_mpt`` (metres per tick) and ``_vel_wheels()`` →
+    ``[(motor_or_group, encoder, encoder_sign), ...]``, and turns a robot
+    speed into wheel speeds in its own ``set_velocity()``.
+
+    Each wheel gets feedforward (``kv * target + ks * sign(target)``) plus
+    PI feedback on the measured encoder speed.  ``kv`` comes from
+    :meth:`set_max_speed`; ``ks`` is each motor's ``min_power`` (0 if unset).
+    The loop runs either in the drive's 50 Hz Python thread (``"python"``,
+    default) or on the Pico at 100 Hz (``"pico"``).
+    """
+
+    def _vel_init(self):
+        self._max_speed   = None     # m/s at 100 % power
+        self._vel_mode    = "python"
+        self._vel_kp_user = None     # % per m/s; None = default from max speed
+        self._vel_ki_user = None
+        self._vel_targets = None     # per-wheel m/s while Python-mode control is on
+        self._vel_integ   = []
+        self._pico_ready  = False
+
+    # ── Settings ──────────────────────────────────────────────────────────────
+
+    def set_max_speed(self, speed_mps: float) -> None:
+        """Set the wheel speed (m/s) the robot reaches at full power.
+
+        Needed before :meth:`set_velocity`: it is the feedforward that does
+        most of the work.  Measure it by driving at ``power=100`` and reading
+        the encoder speed, or start with an estimate and adjust until
+        ``set_velocity()`` lands close to the asked-for speed.
+        """
+        if speed_mps <= 0:
+            raise ValueError("max speed must be positive (m/s at full power).")
+        self._max_speed  = float(speed_mps)
+        self._pico_ready = False
+
+    def set_velocity_mode(self, mode: str) -> None:
+        """Choose where velocity control runs: ``"python"`` (default) or ``"pico"``.
+
+        ``"python"`` runs in the drive's own 50 Hz loop and works with any
+        firmware.  ``"pico"`` runs on the Pico at 100 Hz: it reacts faster and
+        isn't slowed down by busy student code, but needs Pico firmware v1+.
+        Student code is the same either way.
+        """
+        m = str(mode).lower()
+        if m not in _VEL_MODES:
+            raise ValueError("velocity mode must be 'python' or 'pico'.")
+        if m != self._vel_mode:
+            self.stop()
+        self._vel_mode   = m
+        self._pico_ready = False
+
+    def set_velocity_gains(self, kp: float | None = None, ki: float | None = None) -> None:
+        """Override the feedback gains (% power per m/s of speed error).
+
+        Defaults: ``kp`` equals the feedforward gain (``100 / max_speed``),
+        ``ki`` is twice ``kp``.  Lower ``kp`` if the speed oscillates; raise
+        it if the robot is slow to recover when a wheel is loaded.
+        """
+        self._vel_kp_user = None if kp is None else float(kp)
+        self._vel_ki_user = None if ki is None else float(ki)
+        self._pico_ready  = False
+
+    def _vel_gains(self) -> tuple[float, float, float]:
+        if self._max_speed is None:
+            raise RuntimeError(
+                "Call drive.set_max_speed(m_per_s) before drive.set_velocity(): "
+                "the drive needs the robot's top speed at full power."
+            )
+        kv = 100.0 / self._max_speed
+        kp = kv * _VEL_KP if self._vel_kp_user is None else self._vel_kp_user
+        ki = kp * _VEL_KI if self._vel_ki_user is None else self._vel_ki_user
+        return kv, kp, ki
+
+    # ── Commands ──────────────────────────────────────────────────────────────
+
+    def _vel_command(self, wheel_mps: list[float]) -> None:
+        """Run each wheel at the given speed (m/s), scaled down together if
+        any would exceed max speed (keeps the direction of travel)."""
+        kv, kp, ki = self._vel_gains()
+        peak = max(abs(v) for v in wheel_mps)
+        if peak > self._max_speed:
+            wheel_mps = [v * self._max_speed / peak for v in wheel_mps]
+
+        if self._vel_mode == "pico":
+            self._vel_targets = None
+            if not self._pico_ready:
+                self._vel_setup_pico(kv, kp, ki)
+            for (m, _enc, sign), v in zip(self._vel_wheels(), wheel_mps):
+                for motor in _motors_of(m):
+                    motor.set_velocity(sign * v / self._mpt)
+            return
+
+        if self._vel_targets is None:
+            self._vel_integ = [0.0] * len(wheel_mps)
+        self._vel_targets = list(wheel_mps)
+
+    def _vel_setup_pico(self, kv: float, kp: float, ki: float) -> None:
+        """Give every wheel motor its encoder, feedforward and PID on the Pico.
+
+        Gains are converted from m/s to the Pico's ticks/s.
+        """
+        mpt = self._mpt
+        for m, enc, sign in self._vel_wheels():
+            if sign < 0:
+                raise RuntimeError(
+                    "Pico velocity mode can't use the drive's invert_* encoder "
+                    "flags. Use encoder.invert() instead.")
+            for motor in _motors_of(m):
+                if not hasattr(motor, "set_velocity"):
+                    raise RuntimeError("Pico velocity mode needs D-port motors with encoders.")
+                if motor.encoder is not enc:
+                    motor.attach_encoder(enc)       # a group shares one encoder
+                motor.set_feedforward(kv * mpt, _floor(motor, 0.0))
+                i_max = _VEL_I_MAX / (ki * mpt) if ki > 0 else None
+                motor.set_pid(kp * mpt, ki * mpt, 0.0, integral_max=i_max)
+        self._pico_ready = True
+
+    def _vel_off(self) -> None:
+        """Leave Python-mode velocity control (any other drive command does this;
+        on the Pico, the next set_power() ends velocity PID by itself)."""
+        self._vel_targets = None
+
+    def _vel_step(self) -> None:
+        """One Python-mode control step; called from the drive's 50 Hz loop."""
+        targets = self._vel_targets
+        if targets is None:
+            return
+        kv, kp, ki = self._vel_gains()
+        for i, ((m, enc, sign), target) in enumerate(zip(self._vel_wheels(), targets)):
+            measured = sign * enc.velocity * self._mpt
+            error    = target - measured
+            if target == 0.0:
+                self._vel_integ[i] = 0.0
+            elif ki > 0:
+                lim = _VEL_I_MAX / ki
+                self._vel_integ[i] = max(-lim, min(lim, self._vel_integ[i] + error * _ODOM_DT))
+            power = kv * target + kp * error + ki * self._vel_integ[i]
+            if target != 0.0:
+                ks = _floor(m, 0.0)
+                power += ks if target > 0 else -ks
+            elif abs(measured) < 0.02:
+                power = 0.0                         # stopped: don't hum or creep
+            if self._vel_targets is not targets:
+                return                              # cancelled mid-step
+            m.set_power(max(-100.0, min(100.0, power)))
+
+
 # ── DifferentialDrive ───────────────────────────────────────────────────────────
 
-class DifferentialDrive:
+class DifferentialDrive(_VelocityControl):
     """Two-wheel differential drive with odometry and dead-reckoning movement.
 
     Parameters
@@ -204,6 +367,7 @@ class DifferentialDrive:
         self._lock    = threading.Lock()
         self._thread: threading.Thread | None = None
         self._running = False
+        self._vel_init()
 
     # ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -233,6 +397,7 @@ class DifferentialDrive:
         while self._running:
             t0 = time.monotonic()
             self._tick()
+            self._vel_step()
             rem = _ODOM_DT - (time.monotonic() - t0)
             if rem > 0:
                 time.sleep(rem)
@@ -345,13 +510,39 @@ class DifferentialDrive:
             The two sides are mixed as ``left = forward − turn``,
             ``right = forward + turn``.
         """
+        self._vel_off()
         l = max(-100.0, min(100.0, forward - turn))
         r = max(-100.0, min(100.0, forward + turn))
         self._lm.set_power(l)
         self._rm.set_power(r)
 
+    def set_velocity(self, vx: float, omega: float = 0.0) -> None:
+        """Drive at a measured speed (non-blocking), using the encoders.
+
+        Unlike :meth:`drive`, which sets power, this holds the asked-for speed
+        whatever the load or battery level, so small joystick inputs give
+        slow, steady motion.  Call :meth:`set_max_speed` once first.
+
+        Parameters
+        ----------
+        vx:
+            Forward speed in m/s (negative = backward).
+        omega:
+            Rotation in degrees per second.  Positive = **left (CCW)**.
+
+        Runs until another drive command; :meth:`stop` ends it.  See
+        :meth:`set_velocity_mode` for running it on the Pico instead.
+        """
+        w = math.radians(omega) * self._track * 0.5
+        self._vel_command([vx - w, vx + w])
+
+    def _vel_wheels(self):
+        return [(self._lm, self._le, -1.0 if self._il else 1.0),
+                (self._rm, self._re, -1.0 if self._ir else 1.0)]
+
     def stop(self) -> None:
-        """Stop both drive motors immediately."""
+        """Stop both drive motors immediately (also ends :meth:`set_velocity`)."""
+        self._vel_off()
         self._lm.set_power(0)
         self._rm.set_power(0)
 
@@ -379,11 +570,13 @@ class DifferentialDrive:
 
     def _push(self, sign: float, power: float) -> None:
         """Drive both sides straight, each at or above its minimum power."""
+        self._vel_off()
         self._lm.set_power(sign * _floored(power, self._lm, _MIN_PWR))
         self._rm.set_power(sign * _floored(power, self._rm, _MIN_PWR))
 
     def _spin(self, sign: float, power: float) -> None:
         """Spin in place (sign +1 = CCW), each side at or above its minimum."""
+        self._vel_off()
         self._lm.set_power(-sign * _floored(power, self._lm, _MIN_TURN_PWR))
         self._rm.set_power( sign * _floored(power, self._rm, _MIN_TURN_PWR))
 
@@ -512,7 +705,7 @@ class DifferentialDrive:
 
 # ── MecanumDrive ────────────────────────────────────────────────────────────────
 
-class MecanumDrive:
+class MecanumDrive(_VelocityControl):
     """Four-wheel mecanum (holonomic) drive with odometry and dead-reckoning.
 
     Wheel positions and standard roller orientation::
@@ -593,6 +786,7 @@ class MecanumDrive:
         self._lock    = threading.Lock()
         self._thread: threading.Thread | None = None
         self._running = False
+        self._vel_init()
 
     # ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -621,6 +815,7 @@ class MecanumDrive:
         while self._running:
             t0 = time.monotonic()
             self._tick()
+            self._vel_step()
             rem = _ODOM_DT - (time.monotonic() - t0)
             if rem > 0:
                 time.sleep(rem)
@@ -717,8 +912,32 @@ class MecanumDrive:
         omega:
             Rotation power.  Positive = **counter-clockwise** (left), negative = CW.
         """
+        self._vel_off()
         for m, p in zip(self._motors, self._mix(vx, vy, omega)):
             m.set_power(p)
+
+    def set_velocity(self, vx: float, vy: float = 0.0, omega: float = 0.0) -> None:
+        """Drive at a measured speed (non-blocking), using the encoders.
+
+        Like :meth:`move`, but in real units and held at that speed whatever
+        the load.  Call :meth:`set_max_speed` once first.
+
+        Parameters
+        ----------
+        vx:
+            Forward speed in m/s.
+        vy:
+            Sideways speed in m/s.  Positive = **left**.
+        omega:
+            Rotation in degrees per second.  Positive = **left (CCW)**.
+        """
+        # Wheel surface speed for rotation is omega × (half track + half wheelbase)
+        k = math.radians(omega) * (self._track + self._wb) * 0.5
+        self._vel_command([vx - vy - k, vx + vy + k, vx + vy - k, vx - vy + k])
+
+    def _vel_wheels(self):
+        return [(m, e, -1.0 if inv else 1.0)
+                for m, e, inv in zip(self._motors, self._encs, self._inverts)]
 
     @staticmethod
     def _mix(vx: float, vy: float, omega: float) -> list[float]:
@@ -733,6 +952,7 @@ class MecanumDrive:
         main wheel reaches its minimum power.  Scaling them together keeps the
         direction of travel.  Wheels under half the fastest one (e.g. the
         idle pair on a diagonal) are ignored."""
+        self._vel_off()
         w    = self._mix(vx, vy, omega)
         peak = max(abs(p) for p in w)
         s    = 1.0
@@ -746,7 +966,8 @@ class MecanumDrive:
             m.set_power(p * s)
 
     def stop(self) -> None:
-        """Stop all four motors."""
+        """Stop all four motors (also ends :meth:`set_velocity`)."""
+        self._vel_off()
         for m in self._motors:
             m.set_power(0)
 

@@ -61,6 +61,7 @@ class Gamepad:
         # Keys match the gamepad dict keys (plus "_edge" suffix for analog inputs).
         self._prev: dict[str, bool] = {}
         self._ros = False   # axis mode; see set_axis_mode()
+        self._deadband = 0.0  # see set_deadband()
 
     # ------------------------------------------------------------------
     # Axis mode
@@ -92,6 +93,24 @@ class Gamepad:
             raise ValueError("axis mode must be 'cartesian' or 'ros'.")
         self._ros = (m == "ros")
 
+    def set_deadband(self, deadband: float) -> None:
+        """Ignore small stick movements, for steady fine control.
+
+        Stick values within ±*deadband* of centre read exactly 0, so a stick
+        that doesn't quite return to centre won't creep the robot.  The rest
+        of the range is stretched to fill 0…1, so there's no jump at the
+        edge and a full push still reads ±1.0::
+
+            gp.set_deadband(0.1)
+            # stick at 0.05 → 0.0,  0.55 → 0.5,  1.0 → 1.0
+
+        Applies to the four stick axes only (not the triggers).  Default 0.
+        """
+        d = float(deadband)
+        if not 0.0 <= d < 1.0:
+            raise ValueError("deadband must be at least 0 and less than 1.")
+        self._deadband = d
+
     @property
     def axis_mode(self) -> str:
         """Current axis mode: ``"cartesian"`` or ``"ros"``."""
@@ -104,10 +123,15 @@ class Gamepad:
         """
         gp = self._gp()
         if not self._ros:
-            return float(gp.get(horiz_key if axis == "x" else vert_key, 0.0))
-        if axis == "x":
-            return float(gp.get(vert_key, 0.0))      # up = +x
-        return -float(gp.get(horiz_key, 0.0))        # left = +y
+            v = float(gp.get(horiz_key if axis == "x" else vert_key, 0.0))
+        elif axis == "x":
+            v = float(gp.get(vert_key, 0.0))         # up = +x
+        else:
+            v = -float(gp.get(horiz_key, 0.0))       # left = +y
+        d = self._deadband
+        if abs(v) <= d:
+            return 0.0
+        return (v - d if v > 0 else v + d) / (1.0 - d)
 
     # ------------------------------------------------------------------
     # Internal helpers
