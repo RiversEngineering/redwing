@@ -55,7 +55,8 @@ m = robot.D0.motor("locked_antiphase")     # or "sm" / "lap" / "servo" aliases
 
 m.set_power(75)      # -100..100, open-loop PWM %
 m.stop()
-m.invert()            # flip direction without rewiring (m.invert(False) to undo)
+m.invert()            # flip direction without rewiring (m.invert(False) to undo);
+                      # applied on the Pico, so PID velocity/position respect it too
 m.inverted            # True/False readback; m.inverted = True also still works
 m.power                # readback (last commanded, or actual output during PID)
 ```
@@ -66,6 +67,8 @@ m.power                # readback (last commanded, or actual output during PID)
 enc = robot.D2.encoder()
 m.attach_encoder(enc)
 m.set_pid(kp, ki, kd, integral_max=None)   # integral_max caps ki * integral_max contribution
+m.set_feedforward(kv, ks=0)   # optional, velocity only: + kv*target + ks in direction of travel
+                              # kv ~ 100 / (ticks/s at full power); default 0 = plain PID
 
 m.set_velocity(300)      # target ticks/sec
 m.velocity                # target ticks/sec (readback)

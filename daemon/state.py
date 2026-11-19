@@ -72,6 +72,7 @@ class SharedState:
 
         # RP2040 connection status (updated by rp2040.py on connect/disconnect)
         self.rp2040_connected: bool = False
+        self.firmware_version: int | None = None   # from CMD_GET_VERSION; 0 = pre-versioning firmware
 
         # Latest data from RP2040
         self.rp2040_ts: int = 0           # RP2040 millisecond timestamp
@@ -226,6 +227,7 @@ class SharedState:
             "ports": dict(self.ports),
             "config_finalized": self.config_finalized,
             "rp2040_connected": self.rp2040_connected,
+            "firmware_version": self.firmware_version,
         }
         if self.lidar_scan is not None:
             msg["lidar"] = self.lidar_scan

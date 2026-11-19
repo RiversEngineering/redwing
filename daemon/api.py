@@ -464,9 +464,12 @@ def create_app(state: SharedState, camera: CameraCapture, rp: "RP2040", pca=None
                     if port and port not in state.port_invert_code_set:
                         inv = bool(msg.get("inverted", False))
                         state.port_invert[port] = inv
-                        # Encoders: propagate direction change to firmware
-                        if state.ports.get(port, {}).get("type") == "encoder":
+                        # Encoders and motors: propagate direction change to firmware
+                        ptype = state.ports.get(port, {}).get("type")
+                        if ptype == "encoder":
                             rp.enqueue(proto.cmd_invert_encoder(int(port), inv))
+                        elif ptype in proto.MOTOR_TYPE_NAMES:
+                            rp.enqueue(proto.cmd_set_motor_invert(int(port), inv))
 
             elif cmd == "gamepad":
                 async with state.lock:

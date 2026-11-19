@@ -31,6 +31,13 @@
 #define CMD_INVERT_ENCODER   0x16  // flip encoder count/velocity sign; payload: CmdInvertEncoder
 #define CMD_GOBILDA_MODE     0x17  // switch GoBilda dual-mode servo; payload: [port_id:u8][mode:u8] (0=positional 1=continuous)
 #define CMD_PCA_CH_ON        0x18  // full-on channel (100% duty, not a PWM pulse); payload: [ch:u8] (no ACK)
+#define CMD_SET_MOTOR_INVERT 0x19  // flip a motor's output direction (all modes, incl. PID); payload: CmdSetMotorInvert
+#define CMD_SET_VEL_FF       0x1A  // velocity PID feedforward; payload: CmdSetVelFF
+#define CMD_GET_VERSION      0x1B  // reply RESP_VERSION [version:u16le]; older firmware replies ERR_UNKNOWN_CMD
+
+// Bumped whenever the daemon/library needs to know a feature exists.
+//   1: CMD_SET_MOTOR_INVERT, CMD_SET_VEL_FF, CMD_GET_VERSION
+#define FIRMWARE_VERSION     1
 
 // ─── RP2040 → Pi response types ──────────────────────────────────────────────
 #define RESP_STATE         0x81
@@ -39,6 +46,7 @@
 #define RESP_UART_RX       0x84  // bytes received on UART; payload: [port_id:u8][data...]
 #define RESP_MEASURE_PULSE 0x85  // pulse width result; payload: [pulse_us:u32 LE]
 #define RESP_LOG           0x86  // diagnostic text from firmware; payload: ASCII string (no NUL)
+#define RESP_VERSION       0x87  // reply to CMD_GET_VERSION; payload: [version:u16le]
 
 // ─── Port type enum ──────────────────────────────────────────────────────────
 #define PORT_UNCONFIGURED   0x00
@@ -185,6 +193,8 @@ typedef struct { uint8_t port_id; int32_t target; uint16_t speed_limit; uint8_t 
 typedef struct { uint8_t port_id; float deadband; float output_floor; float ramp_rate; float d_alpha; float approach_factor; } CmdSetPosOptions;
 typedef struct { uint8_t port_id; float deadband; float output_floor; float ramp_rate; float d_alpha; float approach_factor; float output_boost; } CmdSetPosOptionsFull;
 typedef struct { uint8_t port_id; uint8_t inverted; } CmdInvertEncoder;
+typedef struct { uint8_t port_id; uint8_t inverted; } CmdSetMotorInvert;
+typedef struct { uint8_t port_id; float kv; float ks; } CmdSetVelFF;
 typedef struct { uint8_t port_id; uint8_t mode; }    CmdGoBildaMode;
 
 #pragma pack(pop)

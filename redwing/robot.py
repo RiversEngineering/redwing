@@ -23,6 +23,9 @@ from .devices.ir_distance import IrDistance
 from .devices.imu import IMU
 from .odometry import DifferentialDrive, MecanumDrive
 
+# Pico firmware this library needs (FIRMWARE_VERSION in firmware/src/protocol.h)
+REQUIRED_FIRMWARE = 1
+
 # Single-pin ports S0–S7 → internal IDs 0–7
 # Dual-pin ports   D0–D7 → internal IDs 8–15
 # Dedicated I2C port     → internal ID  16
@@ -97,6 +100,7 @@ class Robot:
         self._vl53l0x: VL53L0X | None = None
         self._imu: IMU | None = None
         self._drives: list = []   # DifferentialDrive / MecanumDrive instances
+        self._motors: list = []   # Motor instances (they register themselves)
         self._started = False
         atexit.register(self._shutdown)
         # Reset RP2040 state from any previous run (best-effort; no-op if not connected)
@@ -608,6 +612,7 @@ class Robot:
         # reflects this program's configuration.  PUB messages arrive in order,
         # so a True seen after a False must be post-finalize.
         self._conn.wait_for_state(lambda s: not s.get("config_finalized", False))
+        self._check_firmware()
 
         ok, error = self._conn.finalize_config()
         if not ok:
@@ -625,6 +630,29 @@ class Robot:
         self._started = True
         for drive in self._drives:
             drive._start()
+
+    def _check_firmware(self):
+        """Make sure the daemon and Pico support what this program uses.
+
+        Motor inversion and velocity feedforward run on the Pico.  On older
+        firmware an inverted motor would silently spin the wrong way, so that
+        is an error; otherwise an outdated Pico only gets a warning.
+        """
+        state = self._conn.get_all_state()
+        needs_new = any(m._effective_inverted() or m._ff_set for m in self._motors)
+        if "firmware_version" not in state:
+            problem = ("The robot's background software is out of date. "
+                       "Run redwing-rebuild on the robot.")
+        else:
+            version = state["firmware_version"]
+            if version is None or version >= REQUIRED_FIRMWARE:
+                return   # current, or not reported yet (Pico just reconnected)
+            problem = ("The Pico firmware is out of date. Flash it from the "
+                       "dashboard's Firmware tab (after redwing-pull).")
+        if needs_new:
+            raise RuntimeError(problem + " This program inverts a motor or "
+                               "uses feedforward, which needs the update.")
+        self.log("⚠ " + problem, level="warning")
 
     # ------------------------------------------------------------------
     # UART bus (D7: GP12 = TX, GP13 = RX)

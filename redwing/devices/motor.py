@@ -120,7 +120,10 @@ class Motor:
         self._min_power = None
         self._inverted       = False
         self._code_invert_set = False  # True once student code sets motor.inverted
+        self._ff_set = False           # True once set_feedforward() is called
         self._robot = robot
+        if robot is not None:
+            robot._motors.append(self)
 
     def _check_started(self):
         if self._robot is not None and not self._robot._started:
@@ -146,7 +149,11 @@ class Motor:
         return self._power
 
     def _effective_inverted(self) -> bool:
-        """Return the active invert flag.  Code takes precedence over dashboard."""
+        """Return the active invert flag.  Code takes precedence over dashboard.
+
+        The Pico applies the inversion itself (see :attr:`inverted`); this is
+        only used to check that the firmware supports it.
+        """
         if self._code_invert_set:
             return self._inverted
         return self._conn.get_all_state().get("port_invert", {}).get(str(self._id), False)
@@ -164,9 +171,7 @@ class Motor:
         """
         self._check_started()
         value = max(-100.0, min(100.0, float(value)))
-        if self._effective_inverted():
-            value = -value
-        self._power = value
+        self._power = value          # inversion is applied on the Pico
         self._conn.send_command(cmd="set_motor", port=self._id, value=int(value * 100))
 
     # ------------------------------------------------------------------
@@ -180,7 +185,14 @@ class Motor:
 
     @inverted.setter
     def inverted(self, value: bool):
-        """Set to True to flip the motor direction without rewiring."""
+        """Set to True to flip the motor direction without rewiring.
+
+        The flag lives on the Pico, so it applies to everything the motor
+        does: ``set_power()``, ``set_velocity()`` and ``go_to_position()``.
+        It does not flip the encoder; for PID control the encoder count must
+        still go up when this motor is given positive power (use
+        ``encoder.invert()`` if it doesn't).
+        """
         self._inverted        = bool(value)
         self._code_invert_set = True
         self._conn.send_command(cmd="set_motor_invert", port=self._id, inverted=self._inverted)
@@ -281,6 +293,32 @@ class Motor:
         if self._encoder is None:
             return 0.0
         return self._encoder.velocity
+
+    def set_feedforward(self, kv: float, ks: float = 0.0):
+        """Add feedforward to velocity control (:meth:`set_velocity` only).
+
+        Feedforward is the power the target speed *should* need, worked out
+        before measuring anything; PID then only corrects what's left.  That
+        makes velocity control respond faster and need less integral.  Both
+        default to 0, which is plain PID.  Position control
+        (:meth:`go_to_position`) is not affected.
+
+        Args:
+            kv: % power per tick/s of target speed.  Estimate it as
+                ``100 / top_speed``, where *top_speed* is the encoder velocity
+                (ticks/s) at full power.
+            ks: % power added in the direction of travel to overcome static
+                friction, roughly the smallest power that makes the wheel turn.
+
+        Example::
+
+            # Wheel spins at about 2400 ticks/s at full power
+            motor.set_feedforward(100 / 2400, ks=8)
+            motor.set_pid(0.05, 0.02, 0)      # small gains: FF does most of the work
+            motor.set_velocity(1200)
+        """
+        self._ff_set = True
+        self._conn.send_command(cmd="set_vel_ff", port=self._id, kv=float(kv), ks=float(ks))
 
     def set_pid(self, kp: float, ki: float, kd: float, integral_max: float = None):
         """Set PID gains for closed-loop velocity or position control.

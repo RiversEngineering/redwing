@@ -10,8 +10,9 @@ typedef struct {
     uint8_t  pin_a;          // primary GPIO
     uint8_t  pin_b;          // secondary GPIO, NO_PIN (255) if single-pin port
 
-    // Motor/servo current output value
+    // Motor/servo current output value, as commanded (before motor_inverted)
     int16_t  motor_value;    // -10000 to +10000
+    bool     motor_inverted; // flip the output sent to the hardware, in every mode
 
     // Servo
     uint16_t servo_pulse_us; // last commanded pulse width in microseconds
@@ -29,6 +30,8 @@ typedef struct {
     float    pid_integral;
     float    pid_last_error;   // velocity PID: previous error for d-on-error
     float    pid_integral_max; // 0 = uncapped; > 0 = clamp accumulator to ±this value
+    float    vel_kv;           // velocity feedforward: % output per tick/s of target (0 = off)
+    float    vel_ks;           // velocity feedforward: % output added in the target's direction (0 = off)
     // Position PID state (mutually exclusive with velocity PID)
     bool     pos_pid_enabled;
     int32_t  pos_target;      // target encoder tick count
@@ -114,6 +117,14 @@ void port_set_position(uint8_t port_id, int32_t target, uint16_t speed_limit, bo
 // returned by encoder_get_count / encoder_get_velocity, so PID and user reads both
 // see the corrected sign.  port_id must be an active PORT_ENCODER port.
 void port_set_encoder_inverted(uint8_t port_id, bool inverted);
+
+// Flip a motor's output direction in every mode (direct power, velocity and
+// position PID). The encoder is not affected; see port_set_encoder_inverted().
+void port_set_motor_inverted(uint8_t id, bool inverted);
+
+// Velocity PID feedforward: output += kv * target + ks * sign(target).
+// kv is % per tick/s, ks is %. Both 0 (the default) = plain PID.
+void port_set_vel_ff(uint8_t id, float kv, float ks);
 
 // Set position PID options. All options persist until changed.
 //   deadband:     ticks; within ±deadband, output is zeroed and integral frozen. 0 = off.

@@ -308,6 +308,28 @@ static void handle_command(uint8_t type, const uint8_t *payload, uint8_t len) {
             break;
         }
 
+        case CMD_SET_MOTOR_INVERT: {
+            if (len < sizeof(CmdSetMotorInvert)) goto bad_len;
+            const CmdSetMotorInvert *cmd = (const CmdSetMotorInvert *)payload;
+            port_set_motor_inverted(cmd->port_id, cmd->inverted != 0);
+            usb_comm_send_ack(type);
+            break;
+        }
+
+        case CMD_SET_VEL_FF: {
+            if (len < sizeof(CmdSetVelFF)) goto bad_len;
+            const CmdSetVelFF *cmd = (const CmdSetVelFF *)payload;
+            port_set_vel_ff(cmd->port_id, cmd->kv, cmd->ks);
+            usb_comm_send_ack(type);
+            break;
+        }
+
+        case CMD_GET_VERSION: {
+            const uint8_t ver[2] = { FIRMWARE_VERSION & 0xFF, (FIRMWARE_VERSION >> 8) & 0xFF };
+            usb_comm_send(RESP_VERSION, ver, 2);
+            break;
+        }
+
         case CMD_SET_POS_OPTIONS: {
             if (len < sizeof(CmdSetPosOptions)) goto bad_len;
             const CmdSetPosOptions *cmd = (const CmdSetPosOptions *)payload;

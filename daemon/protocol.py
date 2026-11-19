@@ -38,6 +38,9 @@ CMD_SET_POS_OPTIONS = 0x15  # payload: [port_id:u8][deadband:f32][output_floor:f
 CMD_INVERT_ENCODER  = 0x16  # payload: [port_id:u8][inverted:u8]
 CMD_GOBILDA_MODE    = 0x17  # payload: [port_id:u8][mode:u8] (0=positional, 1=continuous)
 CMD_PCA_CH_ON       = 0x18  # payload: [ch:u8] — full-on a channel, 100% duty, not a PWM pulse (no ACK)
+CMD_SET_MOTOR_INVERT = 0x19 # payload: [port_id:u8][inverted:u8] — flips output in every mode, incl. PID
+CMD_SET_VEL_FF      = 0x1A  # payload: [port_id:u8][kv:f32][ks:f32] — velocity PID feedforward
+CMD_GET_VERSION     = 0x1B  # reply RSP_VERSION; firmware older than v1 replies ERR_UNKNOWN_CMD
 
 # -------------------------------------------------------------------
 # RP2040 → Pi response types
@@ -48,6 +51,7 @@ RSP_ACK            = 0x83
 RSP_UART_RX        = 0x84
 RSP_MEASURE_PULSE  = 0x85  # payload: [pulse_us:u32 LE]
 RSP_LOG            = 0x86  # payload: ASCII diagnostic string (no NUL)
+RSP_VERSION        = 0x87  # payload: [version:u16 LE]
 
 # -------------------------------------------------------------------
 # RP2040 error codes (must match firmware protocol.h)
@@ -107,6 +111,10 @@ PORT_TYPE_NAMES = {
 }
 
 PORT_TYPE_IDS = {v: k for k, v in PORT_TYPE_NAMES.items()}
+
+# Port types whose direction the firmware flips with CMD_SET_MOTOR_INVERT
+MOTOR_TYPE_NAMES = {PORT_TYPE_NAMES[PORT_MOTOR_SM], PORT_TYPE_NAMES[PORT_MOTOR_LAP],
+                    PORT_TYPE_NAMES[PORT_MOTOR_SERVO]}
 
 # Number of state data bytes per port type
 PORT_STATE_SIZES = {
@@ -216,6 +224,15 @@ def cmd_set_position(port_id: int, target: int, speed_limit: int, keep_integral:
 def cmd_invert_encoder(port_id: int, inverted: bool) -> bytes:
     return build_packet(CMD_INVERT_ENCODER, struct.pack("<BB", port_id, 1 if inverted else 0))
 
+def cmd_set_motor_invert(port_id: int, inverted: bool) -> bytes:
+    return build_packet(CMD_SET_MOTOR_INVERT, struct.pack("<BB", port_id, 1 if inverted else 0))
+
+def cmd_set_vel_ff(port_id: int, kv: float, ks: float) -> bytes:
+    return build_packet(CMD_SET_VEL_FF, struct.pack("<Bff", port_id, kv, ks))
+
+def cmd_get_version() -> bytes:
+    return build_packet(CMD_GET_VERSION)
+
 def cmd_gobilda_mode(port_id: int, mode: int) -> bytes:
     return build_packet(CMD_GOBILDA_MODE, struct.pack("<BB", port_id, mode & 0xFF))
 
@@ -305,6 +322,9 @@ class PacketParser:
         if msg_type == RSP_MEASURE_PULSE and len(payload) >= 4:
             pulse_us = struct.unpack_from("<I", payload, 0)[0]
             return {"type": "measure_pulse", "pulse_us": pulse_us}
+
+        if msg_type == RSP_VERSION and len(payload) >= 2:
+            return {"type": "version", "version": struct.unpack_from("<H", payload)[0]}
 
         if msg_type == RSP_LOG:
             msg = payload.rstrip(b"\x00").decode("ascii", errors="replace")

@@ -224,9 +224,15 @@ class IPCServer:
 
         elif c == "set_motor_invert":
             port = str(cmd.get("port", ""))
+            inverted = bool(cmd.get("inverted", False))
+            self._rp.enqueue(proto.cmd_set_motor_invert(int(port), inverted))
             async with self._state.lock:
-                self._state.port_invert[port] = bool(cmd.get("inverted", False))
+                self._state.port_invert[port] = inverted
                 self._state.port_invert_code_set.add(port)
+
+        elif c == "set_vel_ff":
+            self._rp.enqueue(proto.cmd_set_vel_ff(
+                cmd["port"], float(cmd.get("kv", 0.0)), float(cmd.get("ks", 0.0))))
 
         elif c == "map_point":
             async with self._state.lock:
@@ -353,6 +359,11 @@ class IPCServer:
             async with self._state.lock:
                 self._state.port_config[str(port_id)] = port_type
                 self._state.ports.setdefault(str(port_id), {})["type"] = port_type
+                # Configuring clears the firmware's invert flag; re-apply the
+                # dashboard toggle (code can still override it afterwards).
+                dash_inverted = self._state.port_invert.get(str(port_id), False)
+            if port_type in proto.MOTOR_TYPE_NAMES and dash_inverted:
+                self._rp.enqueue(proto.cmd_set_motor_invert(port_id, True))
 
         return {"ok": ok, "error": "" if ok else "RP2040 did not accept configuration"}
 

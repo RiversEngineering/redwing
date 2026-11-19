@@ -219,6 +219,9 @@ bool port_configure(uint8_t id, uint8_t port_type) {
 
     p->type           = port_type;
     p->motor_value    = 0;
+    p->motor_inverted = false;
+    p->vel_kv         = 0.0f;
+    p->vel_ks         = 0.0f;
     p->pid_enabled    = false;
     p->pos_pid_enabled = false;
     p->pid_integral   = 0.0f;
@@ -410,32 +413,53 @@ uint8_t port_uart_rx(uint8_t port_id, uint8_t *buf) {
 
 // ─── Motor / servo control ───────────────────────────────────────────────────
 
-void port_set_motor(uint8_t id, int16_t value) {
-    if (!valid_port(id)) return;
-    PortState *p = &ports[id];
+// Record a motor command and drive the hardware.  motor_value keeps the value
+// as commanded; motor_inverted is applied only to what reaches the pins, so
+// direct power, velocity PID and position PID all respect it.
+static void motor_write(PortState *p, int16_t value) {
     p->motor_value = value;
-    p->pid_enabled     = false;   // direct power overrides both PID modes
-    p->pos_pid_enabled = false;
-
-    uint8_t a = p->pin_a;
-    uint8_t b = p->pin_b;
+    int16_t out = p->motor_inverted ? (int16_t)-value : value;
 
     switch (p->type) {
         case PORT_MOTOR_SM:
-            motor_sm_set(a, b, value);
+            motor_sm_set(p->pin_a, p->pin_b, out);
             break;
         case PORT_MOTOR_LAP:
-            motor_lap_set(a, value);
+            motor_lap_set(p->pin_a, out);
             break;
         case PORT_MOTOR_SERVO: {
             uint16_t mid   = (p->servo_min_us + p->servo_max_us) / 2;
             uint16_t range = (p->servo_max_us - p->servo_min_us) / 2;
-            int32_t  pulse = (int32_t)mid + ((int32_t)value * (int32_t)range) / 10000;
-            servo_set_raw_us(a, (uint16_t)pulse, p->servo_min_us, p->servo_max_us);
+            int32_t  pulse = (int32_t)mid + ((int32_t)out * (int32_t)range) / 10000;
+            servo_set_raw_us(p->pin_a, (uint16_t)pulse, p->servo_min_us, p->servo_max_us);
             break;
         }
         default: break;
     }
+}
+
+void port_set_motor(uint8_t id, int16_t value) {
+    if (!valid_port(id)) return;
+    PortState *p = &ports[id];
+    p->pid_enabled     = false;   // direct power overrides both PID modes
+    p->pos_pid_enabled = false;
+    motor_write(p, value);
+}
+
+void port_set_motor_inverted(uint8_t id, bool inverted) {
+    if (!valid_port(id)) return;
+    PortState *p = &ports[id];
+    if (p->motor_inverted == inverted) return;
+    p->motor_inverted = inverted;
+    // Re-apply a direct-power command so the change takes effect now; the PID
+    // loop rewrites its own output on the next tick.
+    if (!p->pid_enabled && !p->pos_pid_enabled) motor_write(p, p->motor_value);
+}
+
+void port_set_vel_ff(uint8_t id, float kv, float ks) {
+    if (!valid_port(id)) return;
+    ports[id].vel_kv = kv;
+    ports[id].vel_ks = (ks > 0.0f) ? ks : 0.0f;
 }
 
 void port_set_servo(uint8_t id, uint16_t pulse_us) {
@@ -581,6 +605,9 @@ void port_reset(void) {
         port_deinit(i);   // clean up encoder PIO, ultrasonic, GPIO state
         p->type           = PORT_UNCONFIGURED;
         p->motor_value     = 0;
+        p->motor_inverted  = false;
+        p->vel_kv          = 0.0f;
+        p->vel_ks          = 0.0f;
         p->pid_enabled     = false;
         p->pos_pid_enabled = false;
         p->pid_integral    = 0.0f;
@@ -616,7 +643,13 @@ void port_pid_update(void) {
                 if (p->pid_integral < -p->pid_integral_max) p->pid_integral = -p->pid_integral_max;
             }
 
-            output = p->pid_kp * error + p->pid_ki * p->pid_integral + p->pid_kd * derivative;
+            // Feedforward supplies the power the target speed needs; PID only
+            // corrects the remaining error.  kv = ks = 0 (default) = plain PID.
+            float ff = p->vel_kv * target;
+            if      (target > 0.0f) ff += p->vel_ks;
+            else if (target < 0.0f) ff -= p->vel_ks;
+
+            output = ff + p->pid_kp * error + p->pid_ki * p->pid_integral + p->pid_kd * derivative;
             if (output >  100.0f) { output =  100.0f; p->pid_integral -= error * dt; }
             if (output < -100.0f) { output = -100.0f; p->pid_integral -= error * dt; }
 
@@ -691,25 +724,7 @@ void port_pid_update(void) {
             continue;
         }
 
-        int16_t cmd = (int16_t)(output * 100.0f);
-        p->motor_value = cmd;
-
-        switch (p->type) {
-            case PORT_MOTOR_SM:
-                motor_sm_set(p->pin_a, p->pin_b, cmd);
-                break;
-            case PORT_MOTOR_LAP:
-                motor_lap_set(p->pin_a, cmd);
-                break;
-            case PORT_MOTOR_SERVO: {
-                uint16_t mid   = (p->servo_min_us + p->servo_max_us) / 2;
-                uint16_t range = (p->servo_max_us - p->servo_min_us) / 2;
-                int32_t  pulse = (int32_t)mid + ((int32_t)cmd * (int32_t)range) / 10000;
-                servo_set_raw_us(p->pin_a, (uint16_t)pulse, p->servo_min_us, p->servo_max_us);
-                break;
-            }
-            default: break;
-        }
+        motor_write(p, (int16_t)(output * 100.0f));
     }
 }
 

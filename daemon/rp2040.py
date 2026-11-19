@@ -25,6 +25,7 @@ class RP2040:
         self._reset_future: asyncio.Future | None = None
         self._measure_pulse_future: asyncio.Future | None = None
         self._pca_init_future: asyncio.Future | None = None
+        self._version_future: asyncio.Future | None = None
         self._tf_bufs: dict[int, bytearray] = {}   # port_id → unparsed UART bytes for TF sensors
 
     async def run(self):
@@ -45,6 +46,8 @@ class RP2040:
                     self._measure_pulse_future.set_result(None)
                 if self._pca_init_future and not self._pca_init_future.done():
                     self._pca_init_future.set_result(False)
+                if self._version_future and not self._version_future.done():
+                    self._version_future.set_result(None)
                 await asyncio.sleep(RECONNECT_DELAY)
 
     async def _connect_and_run(self):
@@ -56,6 +59,7 @@ class RP2040:
         self._connected = True
         async with self._state.lock:
             self._state.rp2040_connected = True
+            self._state.firmware_version = None   # re-queried below
             # Clear port data so the dashboard doesn't show stale state from
             # the previous session while we wait for the first state packet.
             self._state.ports.clear()
@@ -68,6 +72,7 @@ class RP2040:
         log.info("RP2040 connected")
 
         await self._send_raw(proto.cmd_set_rate(STREAM_HZ))
+        asyncio.create_task(self._query_version())
 
         await asyncio.gather(
             self._read_loop(reader),
@@ -142,6 +147,10 @@ class RP2040:
                 if self._pca_init_future and not self._pca_init_future.done():
                     self._pca_init_future.set_result(True)
 
+        elif ptype == "version":
+            if self._version_future and not self._version_future.done():
+                self._version_future.set_result(pkt.get("version", 0))
+
         elif ptype == "measure_pulse":
             pulse_us = pkt.get("pulse_us", 0)
             if self._measure_pulse_future and not self._measure_pulse_future.done():
@@ -159,7 +168,13 @@ class RP2040:
             pca_pending = (
                 self._pca_init_future and not self._pca_init_future.done()
             )
-            if pca_pending:
+            version_pending = (
+                self._version_future and not self._version_future.done()
+            )
+            if version_pending and code == proto.ERR_UNKNOWN_CMD:
+                # Firmware from before CMD_GET_VERSION existed
+                self._version_future.set_result(0)
+            elif pca_pending:
                 # PCA9685 not found on I²C — expected when the board isn't fitted
                 log.debug(f"PCA9685 not present (RP2040: {msg})")
             else:
@@ -257,6 +272,27 @@ class RP2040:
             raise
         finally:
             self._config_done_future = None
+
+    async def _query_version(self, timeout: float = 2.0):
+        """Ask the Pico for its firmware version and publish it in state.
+
+        0 = firmware from before versioning; None = no reply.
+        """
+        loop = asyncio.get_running_loop()
+        self._version_future = loop.create_future()
+        self.enqueue(proto.cmd_get_version())
+        try:
+            version = await asyncio.wait_for(asyncio.shield(self._version_future), timeout=timeout)
+        except asyncio.TimeoutError:
+            version = None
+        finally:
+            self._version_future = None
+        async with self._state.lock:
+            self._state.firmware_version = version
+        if version is None:
+            log.warning("RP2040 did not report a firmware version")
+        else:
+            log.info(f"RP2040 firmware version {version}")
 
     async def reset(self, timeout: float = 2.0) -> bool:
         """Send CMD_RESET and wait for ACK. Returns True on success."""
