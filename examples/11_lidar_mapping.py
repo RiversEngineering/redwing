@@ -26,7 +26,7 @@ import math
 from redwing import Robot
 
 TICKS_PER_CM   = 43.0    # encoder ticks per centimetre of wheel travel
-TRACK_WIDTH_CM = 20.0    # distance between left and right wheels
+TRACK_WIDTH_CM = 41.0    # distance between left and right wheels
 
 robot = Robot()
 

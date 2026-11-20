@@ -407,7 +407,7 @@ class Robot:
             drive = robot.differential_drive(
                 left=left, right=right,
                 wheel_diameter_mm=60,
-                track_width_mm=150,
+                track_width_mm=410,
                 ticks_per_rev=1440,
             )
         """
@@ -897,7 +897,7 @@ class Robot:
             rm.attach_encoder(re)
             drive = robot.differential_drive(
                 left_motor=lm, right_motor=rm,
-                wheel_diameter_mm=60, track_width_mm=150, ticks_per_rev=1440,
+                wheel_diameter_mm=60, track_width_mm=410, ticks_per_rev=1440,
             )
 
         **Group style** (recommended for 4-motor drives) — pass
@@ -909,7 +909,7 @@ class Robot:
 
             drive = robot.differential_drive(
                 left=left, right=right,
-                wheel_diameter_mm=60, track_width_mm=150, ticks_per_rev=1440,
+                wheel_diameter_mm=60, track_width_mm=410, ticks_per_rev=1440,
             )
 
         **Explicit style** (single motor per side) — pass motor and encoder
@@ -919,7 +919,7 @@ class Robot:
                 left_motor=lm,   right_motor=rm,
                 left_encoder=le, right_encoder=re,
                 imu=imu,
-                wheel_diameter_mm=60, track_width_mm=150, ticks_per_rev=1440,
+                wheel_diameter_mm=60, track_width_mm=410, ticks_per_rev=1440,
             )
 
         Parameters
@@ -1044,7 +1044,7 @@ class Robot:
                 fl=fl, fr=fr, bl=bl, br=br,
                 imu=robot.imu(),
                 wheel_diameter_mm=100,
-                track_width_mm=300,
+                track_width_mm=410,
                 wheelbase_mm=280,
                 ticks_per_rev=1440,
             )

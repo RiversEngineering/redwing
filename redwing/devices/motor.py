@@ -32,7 +32,7 @@ class MotorGroup:
         drive = robot.differential_drive(
             left=left, right=right,
             wheel_diameter_mm=60,
-            track_width_mm=150,
+            track_width_mm=410,
             ticks_per_rev=1440,
         )
     """

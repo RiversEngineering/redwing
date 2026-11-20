@@ -20,7 +20,7 @@ Quick start — differential drive::
         left_motor=lm, right_motor=rm,    # attached encoders used automatically
         imu=imu,
         wheel_diameter_mm=60,
-        track_width_mm=150,
+        track_width_mm=410,
         ticks_per_rev=1440,
     )
     robot.start()
@@ -35,7 +35,7 @@ Quick start — mecanum drive::
         fl=fl_motor, fr=fr_motor,     # each with an attached encoder
         bl=bl_motor, br=br_motor,
         wheel_diameter_mm=100,
-        track_width_mm=300,
+        track_width_mm=410,
         wheelbase_mm=280,
         ticks_per_rev=1440,
     )

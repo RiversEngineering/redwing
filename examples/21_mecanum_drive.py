@@ -36,7 +36,7 @@ import redwing
 
 # ── Robot geometry ─────────────────────────────────────────────────────────────
 WHEEL_DIAM_MM  = 100     # mecanum wheel diameter in millimetres
-TRACK_WIDTH_MM = 300     # left-to-right distance between wheel centres (mm)
+TRACK_WIDTH_MM = 410     # left-to-right distance between wheel centres (mm)
 WHEELBASE_MM   = 280     # front-to-back distance between wheel centres (mm)
 TICKS_PER_REV  = 1440   # encoder pulses per full wheel revolution
 

@@ -21,7 +21,7 @@
     <span style="color:#9CDCFE">left_motor</span>=<span style="color:#9CDCFE">left_motor</span>,   <span style="color:#9CDCFE">right_motor</span>=<span style="color:#9CDCFE">right_motor</span>,
     <span style="color:#9CDCFE">imu</span>=<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">imu</span>(),
     <span style="color:#9CDCFE">wheel_diameter_mm</span>=<span style="color:#B5CEA8">96</span>,
-    <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#B5CEA8">280</span>,      <span style="color:#6A9955"># center of left wheel to center of right wheel</span>
+    <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#B5CEA8">410</span>,      <span style="color:#6A9955"># center of left wheel to center of right wheel</span>
     <span style="color:#9CDCFE">ticks_per_rev</span>=<span style="color:#B5CEA8">537.7</span>,     <span style="color:#6A9955"># encoder ticks per WHEEL revolution</span>
 )</pre>
 <p>The drive uses each motor's attached encoder, so you don't pass the encoders again.</p>
@@ -41,7 +41,7 @@
     <span style="color:#9CDCFE">fl</span>=<span style="color:#9CDCFE">fl</span>, <span style="color:#9CDCFE">fr</span>=<span style="color:#9CDCFE">fr</span>, <span style="color:#9CDCFE">bl</span>=<span style="color:#9CDCFE">bl</span>, <span style="color:#9CDCFE">br</span>=<span style="color:#9CDCFE">br</span>,
     <span style="color:#9CDCFE">imu</span>=<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">imu</span>(),
     <span style="color:#9CDCFE">wheel_diameter_mm</span>=<span style="color:#B5CEA8">96</span>,
-    <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#B5CEA8">300</span>,      <span style="color:#6A9955"># left wheels to right wheels</span>
+    <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#B5CEA8">410</span>,      <span style="color:#6A9955"># left wheels to right wheels</span>
     <span style="color:#9CDCFE">wheelbase_mm</span>=<span style="color:#B5CEA8">280</span>,        <span style="color:#6A9955"># front wheels to back wheels</span>
     <span style="color:#9CDCFE">ticks_per_rev</span>=<span style="color:#B5CEA8">537.7</span>,
 )</pre>
@@ -128,7 +128,7 @@
 <span style="color:#9CDCFE">drive</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">differential_drive</span>(
     <span style="color:#9CDCFE">left_motor</span>=<span style="color:#9CDCFE">left_motor</span>,   <span style="color:#9CDCFE">right_motor</span>=<span style="color:#9CDCFE">right_motor</span>,
     <span style="color:#9CDCFE">imu</span>=<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">imu</span>(),
-    <span style="color:#9CDCFE">wheel_diameter_mm</span>=<span style="color:#B5CEA8">96</span>, <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#B5CEA8">280</span>, <span style="color:#9CDCFE">ticks_per_rev</span>=<span style="color:#B5CEA8">537.7</span>,
+    <span style="color:#9CDCFE">wheel_diameter_mm</span>=<span style="color:#B5CEA8">96</span>, <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#B5CEA8">410</span>, <span style="color:#9CDCFE">ticks_per_rev</span>=<span style="color:#B5CEA8">537.7</span>,
 )
 <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">start</span>()
 
@@ -153,7 +153,7 @@
 <span style="color:#9CDCFE">drive</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">mecanum_drive</span>(
     <span style="color:#9CDCFE">fl</span>=<span style="color:#9CDCFE">fl</span>, <span style="color:#9CDCFE">fr</span>=<span style="color:#9CDCFE">fr</span>, <span style="color:#9CDCFE">bl</span>=<span style="color:#9CDCFE">bl</span>, <span style="color:#9CDCFE">br</span>=<span style="color:#9CDCFE">br</span>,
     <span style="color:#9CDCFE">imu</span>=<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">imu</span>(),
-    <span style="color:#9CDCFE">wheel_diameter_mm</span>=<span style="color:#B5CEA8">96</span>, <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#B5CEA8">300</span>, <span style="color:#9CDCFE">wheelbase_mm</span>=<span style="color:#B5CEA8">280</span>, <span style="color:#9CDCFE">ticks_per_rev</span>=<span style="color:#B5CEA8">537.7</span>,
+    <span style="color:#9CDCFE">wheel_diameter_mm</span>=<span style="color:#B5CEA8">96</span>, <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#B5CEA8">410</span>, <span style="color:#9CDCFE">wheelbase_mm</span>=<span style="color:#B5CEA8">280</span>, <span style="color:#9CDCFE">ticks_per_rev</span>=<span style="color:#B5CEA8">537.7</span>,
 )
 <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">set_max_rpm</span>(<span style="color:#B5CEA8">312</span>)             <span style="color:#6A9955"># RPM printed on the motors</span>
 <span style="color:#9CDCFE">gp</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#9CDCFE">gamepad</span>

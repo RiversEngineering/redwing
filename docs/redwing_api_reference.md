@@ -315,7 +315,7 @@ rm.attach_encoder(robot.D3.encoder())
 drive = robot.differential_drive(
     left_motor=lm, right_motor=rm,   # attached encoders are used automatically
     imu=robot.imu(),              # optional but recommended — cuts angular drift
-    wheel_diameter_mm=60, track_width_mm=150, ticks_per_rev=1440,
+    wheel_diameter_mm=60, track_width_mm=410, ticks_per_rev=1440,
     invert_left=False, invert_right=False,
 )
 # or pass left_encoder=/right_encoder= explicitly,
@@ -356,7 +356,7 @@ drive = robot.mecanum_drive(
     fl=fl, fr=fr, bl=bl, br=br,       # motors with attached encoders,
                                       # or (motor, encoder) tuples, or MotorGroups
     imu=robot.imu(),
-    wheel_diameter_mm=100, track_width_mm=300, wheelbase_mm=280, ticks_per_rev=1440,
+    wheel_diameter_mm=100, track_width_mm=410, wheelbase_mm=280, ticks_per_rev=1440,
 )
 robot.start()
 
