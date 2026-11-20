@@ -324,7 +324,10 @@ drive = robot.differential_drive(
 robot.start()
 
 drive.drive(forward=50, turn=0)      # continuous, non-blocking, -100..100
-drive.set_max_speed(1.2)             # setup for set_velocity: wheel m/s at 100% power
+drive.set_max_rpm(312)               # setup for set_velocity: rated motor RPM (gear_ratio=1 default,
+                                     # = motor turns per wheel turn); or set_max_speed(m/s) if measured
+drive.max_speed                      # m/s, worked out from the above (None until set)
+drive.max_angular_speed              # deg/s rotating in place
 drive.set_velocity(0.3, omega=45)    # continuous, closed-loop: m/s forward, deg/s left
 drive.set_velocity_mode("pico")      # optional: run the loop on the Pico (default "python")
 drive.set_velocity_gains(kp=None, ki=None)   # optional override, % per m/s of error

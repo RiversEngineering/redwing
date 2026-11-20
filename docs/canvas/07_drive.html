@@ -90,11 +90,15 @@
 
 <h3>Driving by speed (smooth, fine control)</h3>
 <p>Power isn't speed: the same power goes slower on carpet or a low battery, and small powers may not move the robot at all. <code>set_velocity()</code> uses the encoders to hold a real speed instead.</p>
-<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">set_max_speed</span>(<span style="color:#B5CEA8">1.2</span>)                <span style="color:#6A9955"># setup: wheel speed (m/s) at full power</span>
+<pre style="background:#1E1E1E;color:#D4D4D4;border-radius:6px;padding:12px 14px;font-family:Consolas,Menlo,Monaco,'Courier New',monospace;font-size:14px;line-height:1.5;overflow-x:auto;"><span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">set_max_rpm</span>(<span style="color:#B5CEA8">312</span>)                 <span style="color:#6A9955"># setup: the RPM printed on the drive motors</span>
 
 <span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">set_velocity</span>(<span style="color:#B5CEA8">0.3</span>, <span style="color:#9CDCFE">omega</span>=<span style="color:#B5CEA8">45</span>)       <span style="color:#6A9955"># differential: m/s forward, degrees/s left</span>
-<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">set_velocity</span>(<span style="color:#B5CEA8">0.3</span>, <span style="color:#B5CEA8">0.1</span>, <span style="color:#B5CEA8">45</span>)        <span style="color:#6A9955"># mecanum: vx, vy (m/s, + = left), omega</span></pre>
-<p><strong>Finding max speed:</strong> run <code>drive.drive(100)</code> for a second and read the encoder speed, or guess and adjust until <code>set_velocity()</code> drives close to the speed you asked for. If a wheel needs a push to start turning, <code>motor.set_min_power()</code> is used here too.</p>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">set_velocity</span>(<span style="color:#B5CEA8">0.3</span>, <span style="color:#B5CEA8">0.1</span>, <span style="color:#B5CEA8">45</span>)        <span style="color:#6A9955"># mecanum: vx, vy (m/s, + = left), omega</span>
+
+<span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">max_speed</span>                         <span style="color:#6A9955"># top speed, m/s (worked out for you)</span>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">max_angular_speed</span>                 <span style="color:#6A9955"># top rotation speed, degrees/s</span></pre>
+<p><strong>Chain or gears between motor and wheel?</strong> Add the ratio, as motor turns per wheel turn: <code>drive.set_max_rpm(435, gear_ratio=2)</code>.</p>
+<p><strong>Real robots are a bit slower</strong> than the printed RPM (it's measured with no load). That's fine for most driving. If the robot can't keep up near full stick, measure its real top speed instead: run <code>drive.drive(100)</code> for a second, read the encoder speed, and use <code>drive.set_max_speed(m_per_s)</code>. If a wheel needs a push to start turning, <code>motor.set_min_power()</code> is used here too.</p>
 <p><code>drive.set_velocity_mode("pico")</code> runs the speed control on the Pico instead of in Python. It reacts faster and isn't slowed down by busy code; your code stays the same.</p>
 
 <h3>Where am I?</h3>
@@ -151,7 +155,7 @@
     <span style="color:#9CDCFE">imu</span>=<span style="color:#9CDCFE">robot</span>.<span style="color:#DCDCAA">imu</span>(),
     <span style="color:#9CDCFE">wheel_diameter_mm</span>=<span style="color:#B5CEA8">96</span>, <span style="color:#9CDCFE">track_width_mm</span>=<span style="color:#B5CEA8">300</span>, <span style="color:#9CDCFE">wheelbase_mm</span>=<span style="color:#B5CEA8">280</span>, <span style="color:#9CDCFE">ticks_per_rev</span>=<span style="color:#B5CEA8">537.7</span>,
 )
-<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">set_max_speed</span>(<span style="color:#B5CEA8">1.2</span>)           <span style="color:#6A9955"># m/s at full power</span>
+<span style="color:#9CDCFE">drive</span>.<span style="color:#DCDCAA">set_max_rpm</span>(<span style="color:#B5CEA8">312</span>)             <span style="color:#6A9955"># RPM printed on the motors</span>
 <span style="color:#9CDCFE">gp</span> = <span style="color:#9CDCFE">robot</span>.<span style="color:#9CDCFE">gamepad</span>
 <span style="color:#9CDCFE">gp</span>.<span style="color:#DCDCAA">set_axis_mode</span>(<span style="color:#CE9178">"ros"</span>)            <span style="color:#6A9955"># sticks use the robot frame: x = up, y = left</span>
 <span style="color:#9CDCFE">gp</span>.<span style="color:#DCDCAA">set_deadband</span>(<span style="color:#B5CEA8">0.1</span>)               <span style="color:#6A9955"># ignore a stick that doesn't quite centre</span>
@@ -159,9 +163,9 @@
 
 <span style="color:#C586C0">while</span> <span style="color:#569CD6">True</span>:
     <span style="color:#6A9955"># INPUT</span>
-    <span style="color:#9CDCFE">forward</span> = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_x</span> * <span style="color:#B5CEA8">0.8</span>      <span style="color:#6A9955"># left stick up    = forward, up to 0.8 m/s</span>
-    <span style="color:#9CDCFE">slide</span>   = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_y</span> * <span style="color:#B5CEA8">0.8</span>      <span style="color:#6A9955"># left stick left  = slide left</span>
-    <span style="color:#9CDCFE">spin</span>    = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">right_y</span> * <span style="color:#B5CEA8">120</span>     <span style="color:#6A9955"># right stick left = rotate left, up to 120°/s</span>
+    <span style="color:#9CDCFE">forward</span> = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_x</span> * <span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">max_speed</span> * <span style="color:#B5CEA8">0.6</span>       <span style="color:#6A9955"># left stick up    = forward</span>
+    <span style="color:#9CDCFE">slide</span>   = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">left_y</span> * <span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">max_speed</span> * <span style="color:#B5CEA8">0.6</span>       <span style="color:#6A9955"># left stick left  = slide left</span>
+    <span style="color:#9CDCFE">spin</span>    = <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">right_y</span> * <span style="color:#9CDCFE">drive</span>.<span style="color:#9CDCFE">max_angular_speed</span> * <span style="color:#B5CEA8">0.4</span>   <span style="color:#6A9955"># right stick left = rotate left</span>
 
     <span style="color:#6A9955"># DECIDE</span>
     <span style="color:#C586C0">if</span> <span style="color:#9CDCFE">gp</span>.<span style="color:#9CDCFE">just_pressed_a</span>:

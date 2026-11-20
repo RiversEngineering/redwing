@@ -160,7 +160,7 @@ class _VelocityControl:
 
     Each wheel gets feedforward (``kv * target + ks * sign(target)``) plus
     PI feedback on the measured encoder speed.  ``kv`` comes from
-    :meth:`set_max_speed`; ``ks`` is each motor's ``min_power`` (0 if unset).
+    :meth:`set_max_speed` / :meth:`set_max_rpm`; ``ks`` is each motor's ``min_power`` (0 if unset).
     The loop runs either in the drive's 50 Hz Python thread (``"python"``,
     default) or on the Pico at 100 Hz (``"pico"``).
     """
@@ -188,6 +188,55 @@ class _VelocityControl:
             raise ValueError("max speed must be positive (m/s at full power).")
         self._max_speed  = float(speed_mps)
         self._pico_ready = False
+
+    def set_max_rpm(self, rpm: float, gear_ratio: float = 1.0) -> None:
+        """Set top speed from the motor's rated RPM (the number on the motor).
+
+        Same as :meth:`set_max_speed`, worked out from the wheel diameter:
+        ``rpm / gear_ratio / 60 × π × wheel diameter``.
+
+        The rated RPM is with no load, so the robot's real top speed is
+        usually 10–25 % lower.  That's fine for most driving; if the robot
+        can't keep up near full stick, measure the real speed and use
+        :meth:`set_max_speed` instead.
+
+        Args:
+            rpm: Motor output RPM at full power, as printed on the motor.
+            gear_ratio: Motor turns per wheel turn, for chains or gears
+                between the motor and the wheel.  2 means the wheel turns at
+                half the motor's speed.  Default 1 (wheel on the motor shaft).
+
+        Example::
+
+            drive.set_max_rpm(312)                  # wheel straight on the motor
+            drive.set_max_rpm(435, gear_ratio=2)    # 2:1 chain reduction
+        """
+        if rpm <= 0:
+            raise ValueError("rpm must be positive.")
+        if gear_ratio <= 0:
+            raise ValueError("gear_ratio must be positive (motor turns per wheel turn).")
+        self.set_max_speed(float(rpm) / float(gear_ratio) / 60.0 * self._wheel_circ)
+
+    @property
+    def max_speed(self) -> "float | None":
+        """Top speed in m/s, from :meth:`set_max_speed` or :meth:`set_max_rpm`.
+
+        ``None`` until one of those is called.  The fastest the robot can drive
+        straight; :meth:`set_velocity` scales faster requests down to it.
+        """
+        return self._max_speed
+
+    @property
+    def max_angular_speed(self) -> "float | None":
+        """Top rotation speed in degrees/s when rotating in place.
+
+        Worked out from :attr:`max_speed` and the drive's size.  ``None`` until
+        the top speed is set.  Moving and rotating at once shares the wheels'
+        speed, so each gets less.
+        """
+        if self._max_speed is None:
+            return None
+        return math.degrees(self._max_speed / self._spin_r)
 
     def set_velocity_mode(self, mode: str) -> None:
         """Choose where velocity control runs: ``"python"`` (default) or ``"pico"``.
@@ -219,8 +268,8 @@ class _VelocityControl:
     def _vel_gains(self) -> tuple[float, float, float]:
         if self._max_speed is None:
             raise RuntimeError(
-                "Call drive.set_max_speed(m_per_s) before drive.set_velocity(): "
-                "the drive needs the robot's top speed at full power."
+                "Call drive.set_max_rpm(rpm) or drive.set_max_speed(m_per_s) before "
+                "drive.set_velocity(): the drive needs the robot's top speed at full power."
             )
         kv = 100.0 / self._max_speed
         kp = kv * _VEL_KP if self._vel_kp_user is None else self._vel_kp_user
@@ -357,7 +406,9 @@ class DifferentialDrive(_VelocityControl):
         self._re   = right_encoder
         self._imu  = imu
         self._mpt  = math.pi * wheel_diameter_mm / 1000.0 / ticks_per_rev
+        self._wheel_circ = math.pi * wheel_diameter_mm / 1000.0
         self._track = track_width_mm / 1000.0
+        self._spin_r = self._track * 0.5   # wheel travel (m) per radian of rotation
         self._il   = invert_left
         self._ir   = invert_right
         self._robot = robot
@@ -528,7 +579,7 @@ class DifferentialDrive(_VelocityControl):
 
         Unlike :meth:`drive`, which sets power, this holds the asked-for speed
         whatever the load or battery level, so small joystick inputs give
-        slow, steady motion.  Call :meth:`set_max_speed` once first.
+        slow, steady motion.  Call :meth:`set_max_rpm` (or :meth:`set_max_speed`) once first.
 
         Parameters
         ----------
@@ -780,6 +831,8 @@ class MecanumDrive(_VelocityControl):
         self._wb      = wheelbase_mm / 1000.0
         # Wheel travel per radian of rotation = (track + wheelbase) / 2
         self._rk      = (self._track + self._wb) * 0.5
+        self._spin_r  = self._rk           # used by max_angular_speed
+        self._wheel_circ = math.pi * wheel_diameter_mm / 1000.0
         self._robot   = robot
 
         self._x       = 0.0
@@ -927,7 +980,7 @@ class MecanumDrive(_VelocityControl):
         """Drive at a measured speed (non-blocking), using the encoders.
 
         Like :meth:`move`, but in real units and held at that speed whatever
-        the load.  Call :meth:`set_max_speed` once first.
+        the load.  Call :meth:`set_max_rpm` (or :meth:`set_max_speed`) once first.
 
         Parameters
         ----------
